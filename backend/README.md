@@ -1,16 +1,20 @@
-# Backend (Laravel API)
+﻿# Backend (Laravel API)
 
-Thu muc API Laravel + Sanctum.
+REST API cho Admin + module Quan. Stack: Laravel + Sanctum + PostgreSQL.
 
-## Chay local (sau khi scaffold)
+## Setup
 
 ```bash
 cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
+# Cau hinh DB (Neon/PostgreSQL) trong .env
 php artisan migrate --seed
-php artisan serve --port=8080
+php artisan serve --host=0.0.0.0 --port=8080
 ```
 
-Issue lien quan: backend / API auth.
+## Luu y
+
+- Khong commit file `.env`
+- Chay `composer install` de tao `vendor/`
