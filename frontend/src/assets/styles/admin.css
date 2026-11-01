@@ -1,0 +1,65 @@
+/* Admin shell — phong cách EduCenter, màu Lieng Mobile */
+.custom-scrollbar-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar-content::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 20px;
+}
+.custom-scrollbar-content::-webkit-scrollbar-thumb:hover {
+  background-color: #cbd5e1;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 20px;
+}
+
+.icon-active .nav-icon-box {
+  background-color: rgb(255 255 255 / 0.2) !important;
+  color: #ffffff !important;
+}
+
+.icon-active svg {
+  color: #ffffff;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-enter {
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.delay-1 { animation-delay: 100ms; }
+.delay-2 { animation-delay: 200ms; }
+.delay-3 { animation-delay: 300ms; }
+
+.animate-enter-stagger {
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.stagger-0 { animation-delay: 0ms; }
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
