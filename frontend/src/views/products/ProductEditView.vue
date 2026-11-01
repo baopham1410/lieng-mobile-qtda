@@ -1,19 +1,11 @@
-<script setup>
-import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import AppDetailSkeleton from '@/components/common/AppDetailSkeleton.vue'
-
-const route = useRoute()
-const router = useRouter()
-
-onMounted(() => {
-  router.replace({
-    name: 'products',
-    query: { edit: route.params.id },
-  })
-})
-</script>
-
-<template>
-  <AppDetailSkeleton variant="page" show-image />
+﻿<template>
+  <div class="p-8">
+    <h1 class="text-2xl font-semibold text-slate-800">Sua san pham</h1>
+    <p class="mt-2 text-slate-500">
+      Stub man hinh — se duoc thay bang UI that o Issue #51 (Bao).
+    </p>
+  </div>
 </template>
+
+<script setup>
+</script>
