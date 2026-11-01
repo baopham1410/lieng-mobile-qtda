@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@import './admin.css';
+@import './transitions.css';
+
+/* Đảm bảo Tailwind quét toàn bộ component Vue/JS */
+@source '../../**/*.{vue,js,ts}';
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-stone-100 text-stone-900 antialiased;
+}

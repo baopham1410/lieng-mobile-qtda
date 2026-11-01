@@ -1,0 +1,55 @@
+/** Tài khoản seed — @see backend/database/seeders/UserSeeder.php */
+export const DEMO_PASSWORD = 'password'
+
+export const demoLoginAccounts = [
+  {
+    id: 'admin',
+    role: 'admin',
+    label: 'Quản lý',
+    name: 'Admin Lieng',
+    email: 'admin@liengmobile.com',
+    hint: 'Dashboard · toàn quyền',
+    accent: 'border-red-200 bg-red-50 text-red-700 ring-red-100 hover:bg-red-100/80',
+    badge: 'bg-red-600 text-white',
+  },
+  {
+    id: 'sales',
+    role: 'sales_staff',
+    label: 'Bán hàng',
+    name: 'Nguyễn Thu Hà',
+    email: 'banhang@liengmobile.com',
+    hint: 'POS · đơn hàng · khách hàng',
+    accent: 'border-emerald-200 bg-emerald-50 text-emerald-800 ring-emerald-100 hover:bg-emerald-100/80',
+    badge: 'bg-emerald-600 text-white',
+  },
+  {
+    id: 'warehouse',
+    role: 'warehouse_staff',
+    label: 'Kho',
+    name: 'Trần Minh Kho',
+    email: 'kho@liengmobile.com',
+    hint: 'Nhập kho · IMEI · sản phẩm',
+    accent: 'border-sky-200 bg-sky-50 text-sky-800 ring-sky-100 hover:bg-sky-100/80',
+    badge: 'bg-sky-600 text-white',
+  },
+  {
+    id: 'quan',
+    role: 'quan_manager',
+    label: 'Admin Quán',
+    name: 'Chủ Quán',
+    email: 'quan@liengmobile.com',
+    hint: 'Toàn quyền Quán · kho sao kê',
+    accent: 'border-amber-200 bg-amber-50 text-amber-900 ring-amber-100 hover:bg-amber-100/80',
+    badge: 'bg-amber-700 text-white',
+  },
+  {
+    id: 'quan-staff',
+    role: 'quan_staff',
+    label: 'NV Quán',
+    name: 'Nhân viên Quán',
+    email: 'nvquan@liengmobile.com',
+    hint: 'Bán / ghi chi — không xem kho sao kê',
+    accent: 'border-orange-200 bg-orange-50 text-orange-900 ring-orange-100 hover:bg-orange-100/80',
+    badge: 'bg-orange-600 text-white',
+  },
+]
