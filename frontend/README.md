@@ -1,6 +1,7 @@
-﻿# Frontend (Vue 3 + Vite + Tailwind)
+﻿# Frontend (Vue 3) — NEN TANG
 
-Web Admin + module Quan.
+PR3/foundation: Vite + Tailwind + Router + Layouts.
+Cac man hinh hien la **stub** — UI that day o PR theo Issue (#58 Hong Intro, ...).
 
 ## Setup
 
@@ -11,6 +12,8 @@ cp .env.example .env
 npm run dev
 ```
 
-Mo http://localhost:5173
+## Phan cong UI tiep theo
+- Hong: #58 #59 #60 #61 #62 #63 #64 #65 #66 #67
+- Bao: #48 #49 #50 #51 #52 #53 #54 #55 #56 #57
 
-Can backend chay o port 8080 (xem VITE_API_URL trong .env).
+Lay UI tu du an goc `Lieng_mobile/frontend` roi thay stub.
