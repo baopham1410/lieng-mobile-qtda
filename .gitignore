@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+vendor/
+.pnp
+.pnp.js
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Build / cache
+dist/
+build/
+.cache/
+.turbo/
+*.tsbuildinfo
+.next/
+.nuxt/
+.output/
+
+# PHP / Laravel
+backend/storage/*.key
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+backend/bootstrap/cache/*.php
+backend/public/hot
+backend/public/storage
+backend/.phpunit.result.cache
+
+# Expo / mobile
+mobile-expo/.expo/
+mobile-expo/dist/
+mobile-expo/web-build/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+*.tmp
+*~
+
+# Office lock files
+~$*.xlsx
+~$*.docx
