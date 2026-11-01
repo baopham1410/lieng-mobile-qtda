@@ -1,36 +1,33 @@
 # Lieng Mobile — mon Quan tri du an phan mem (QTDA)
 
-Repo **private** dung cho mon QTDA. Bat dau **trong** — code se duoc day theo tung Sprint (Issue → Branch → PR).
+Repo **private** dung cho mon QTDA. Code duoc day theo Issue → Branch → Pull Request.
 
-## Nhom (3 thanh vien)
+## Nhom
 
-| Thanh vien | Vai tro chinh | Label |
-|------------|---------------|--------|
-| **Bao** | Backend Laravel + DevOps | `member:bao` |
-| **Hong** | Frontend Vue (Admin + Quan) | `member:hong` |
-| **Giang** | Mobile Expo | `member:giang` |
+| Thanh vien | GitHub | Vai tro |
+|------------|--------|---------|
+| Bao | `baopham1410` | Backend + DevOps |
+| Hong | `Chimsedinang605` | Frontend Vue |
+| Giang | `ktlgiang` | Mobile Expo |
 
-## San pham
+## Cau truc
 
-He thong quan ly cua hang **Lieng Mobile**:
-- Web Admin + module **Quan** (ban nhanh, ghi chi, sao ke)
-- REST API Laravel + Sanctum + PostgreSQL
-- App Expo (uu tien module Quan)
+```
+backend/        Laravel API + Sanctum
+frontend/       Vue 3 + Vite (Admin + Quan)
+mobile-expo/    Expo (app Quan)
+docs/           Tai lieu
+```
 
-## Quy trinh lam viec
+Chi tiet: [`docs/project-structure.md`](docs/project-structure.md)
 
-1. Nhan Issue (Assignee + Milestone Sprint)
-2. Tao branch: `feature/<issue-number>-short-name`
-3. Mo Pull Request → link Issue → review
-4. Merge → chuyen Issue sang Done tren Project board
+## Quy trinh
 
-## Sprint
+1. Nhan Issue tren [Milestone Phan cong man hinh](https://github.com/baopham1410/lieng-mobile-qtda/milestone/7)
+2. Tao branch: `feature/<so-issue>-ten-ngan`
+3. Mo Pull Request, link Issue (`Closes #…`)
+4. Review → merge vao `main`
 
-- [Sprint 1 — Setup & Auth](https://github.com/baopham1410/lieng-mobile-qtda/milestone/2)
-- [Sprint 2 — Catalog & Admin](https://github.com/baopham1410/lieng-mobile-qtda/milestone/3)
-- [Sprint 3 — Module Quan](https://github.com/baopham1410/lieng-mobile-qtda/milestone/4)
-- [Sprint 4 — Mobile + QA + Demo](https://github.com/baopham1410/lieng-mobile-qtda/milestone/5)
+## Bat dau nhanh
 
-## Backlog
-
-Xem [Issues](https://github.com/baopham1410/lieng-mobile-qtda/issues) — loc theo `member:bao` / `member:hong` / `member:giang`.
+Clone repo, xem README trong tung thu muc (`backend/`, `frontend/`, `mobile-expo/`) sau khi cac PR scaffold da merge.
