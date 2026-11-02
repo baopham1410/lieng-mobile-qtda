@@ -1,8 +1,9 @@
-# Mobile (Expo)
+# Mobile (Expo) — PR9 core
 
-App Expo — uu tien module Quan.
+Nen tang Expo + man: Login, Quay, Ghi chi.
+Man Archive / Account / Sao ke dang stub — Hong day o PR10 (#71-#74).
 
-## Chay local (sau khi scaffold)
+## Setup
 
 ```bash
 cd mobile-expo
@@ -10,4 +11,4 @@ npm install
 npx expo start
 ```
 
-Dung Expo Go (SDK khop project). Tren may that: LAN IP hoac `--tunnel`.
+Dat EXPO_PUBLIC_API_URL tro backend. Khong commit `.env`, `node_modules`, `.expo`.
