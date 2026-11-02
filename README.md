@@ -24,3 +24,11 @@ docs/           Tai lieu mon + ky thuat
 
 ## Quy trinh
 Issue → branch `feature/<id>-name` → Pull Request → merge `main`
+
+## Docker (tuy chon)
+
+`ash
+docker compose up -d --build
+`
+
+Chi tiet: [docker/README.md](docker/README.md)
