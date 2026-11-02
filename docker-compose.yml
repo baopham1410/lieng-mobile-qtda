@@ -1,0 +1,30 @@
+services:
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: lieng_app
+    working_dir: /var/www/backend
+    volumes:
+      - ./backend:/var/www/backend
+    networks:
+      - lieng
+    env_file:
+      - ./backend/.env
+
+  nginx:
+    image: nginx:alpine
+    container_name: lieng_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./backend:/var/www/backend
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - lieng
+    depends_on:
+      - app
+
+networks:
+  lieng:
+    driver: bridge
