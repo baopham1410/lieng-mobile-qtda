@@ -8,7 +8,6 @@ class ExampleTest extends TestCase
 {
     public function test_that_true_is_true()
     {
-        // Demo CI đỏ — sửa lại ngay sau
-        $this->assertTrue(false);
+        $this->assertTrue(true);
     }
 }
