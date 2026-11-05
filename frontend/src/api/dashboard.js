@@ -13,6 +13,8 @@ export async function fetchDashboard(config = {}) {
       pendingImports: d.pending_imports,
       lowStockVariants: d.low_stock_variants,
     },
+    revenueCostChart: d.revenue_cost_chart ?? null,
+    deviceShareChart: d.device_share_chart ?? null,
     recentOrders: (d.recent_orders ?? []).map((o) => ({
       id: o.id,
       customer: o.customer,
