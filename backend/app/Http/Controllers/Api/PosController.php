@@ -255,6 +255,34 @@ class PosController extends Controller
 
     public function paymentStatus(Order $order): JsonResponse
     {
+        // Đồng bộ từ PayOS khi vẫn pending — "Kiểm tra ngay" không chỉ đọc DB local.
+        if (
+            $order->payment_provider === 'payos'
+            && in_array($order->payment_status, ['pending', 'unpaid'], true)
+            && $order->payment_reference
+            && $this->payOSService->isConfigured()
+        ) {
+            try {
+                $remote = $this->payOSService->getPaymentRequest((string) $order->payment_reference);
+
+                if ($remote['status'] === 'paid') {
+                    $order = $this->finalizeOrderPaymentService->finalize($order, [
+                        'paid_at' => $remote['paid_at'] ?? now(),
+                        'payment_payload' => $remote['raw'],
+                    ]);
+                } elseif (in_array($remote['status'], ['failed', 'expired', 'cancelled'], true)) {
+                    $order = $this->finalizeOrderPaymentService->release(
+                        $order,
+                        $remote['status'] === 'cancelled' ? 'failed' : $remote['status'],
+                        $remote['raw']
+                    );
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        $order = $order->fresh() ?? $order;
         $breakdown = $order->paymentBreakdown();
 
         return response()->json([
