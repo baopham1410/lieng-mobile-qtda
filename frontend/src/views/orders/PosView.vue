@@ -64,12 +64,41 @@ let paymentAudioContext = null
 const subtotal = computed(() => cartItems.value.reduce((sum, item) => sum + item.price * item.qty, 0))
 const total = computed(() => Math.max(0, subtotal.value - (discount.value || 0)))
 const mixedTransferAmount = computed(() => Math.max(0, total.value - (Number(mixedCashAmount.value) || 0)))
+const cartCount = computed(() => cartItems.value.reduce((sum, item) => sum + (item.qty || 1), 0))
+const awaitingTransfer = computed(() => Boolean(pendingPayment.value && paymentModalPhase.value === 'pending'))
+const checkoutBlockedReason = computed(() => {
+  if (awaitingTransfer.value) return 'Đang chờ chuyển khoản — mở lại QR hoặc đổi phương thức.'
+  if (cartItems.value.length === 0) return 'Giỏ trống — chọn sản phẩm bên trái để bán.'
+  if (checkingOut.value) return 'Đang xử lý thanh toán...'
+  return ''
+})
+const checkoutButtonLabel = computed(() => {
+  if (awaitingTransfer.value) return 'Đang chờ chuyển khoản...'
+  if (checkingOut.value) return locale.t('common.updating')
+  const amount = formatCurrency(total.value)
+  if (selectedPayment.value === 'bank') return `Tạo QR · ${amount}`
+  if (selectedPayment.value === 'mixed') return `Thu kết hợp · ${amount}`
+  return `Thu tiền mặt · ${amount}`
+})
 
 watch(total, (nextTotal) => {
   if ((Number(mixedCashAmount.value) || 0) > nextTotal) {
     mixedCashAmount.value = nextTotal
   }
 })
+
+function dismissCheckoutError() {
+  checkoutError.value = ''
+}
+
+function clearCart() {
+  if (awaitingTransfer.value) return
+  cartItems.value = []
+  discount.value = 0
+  mixedCashAmount.value = 0
+  checkoutError.value = ''
+  checkoutMessage.value = ''
+}
 
 function needsTransferQr(payment, transferAmount = 0) {
   return payment === 'transfer' || (payment === 'mixed' && transferAmount > 0)
@@ -792,8 +821,20 @@ onBeforeUnmount(() => {
     <div v-if="checkoutMessage" class="rounded-[14px] bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-100">
       {{ checkoutMessage }}
     </div>
-    <div v-if="checkoutError" class="rounded-[14px] bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 ring-1 ring-red-100">
-      {{ checkoutError }}
+    <div
+      v-if="checkoutError"
+      class="flex items-start justify-between gap-3 rounded-[14px] bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 ring-1 ring-red-100"
+      role="alert"
+    >
+      <p class="min-w-0 flex-1">{{ checkoutError }}</p>
+      <button
+        type="button"
+        class="shrink-0 rounded-lg px-2 py-0.5 text-xs font-bold text-red-500 hover:bg-red-100"
+        aria-label="Đóng lỗi"
+        @click="dismissCheckoutError"
+      >
+        Đóng
+      </button>
     </div>
 
     <AppModal
@@ -936,8 +977,9 @@ onBeforeUnmount(() => {
         <div class="rounded-[20px] border border-red-200 bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-red-500">{{ locale.t('pos.title') }}</p>
-              <h2 class="text-xl font-black text-[#111118]">Tạo hóa đơn bán lẻ</h2>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-red-500">Bước 1 · {{ locale.t('pos.title') }}</p>
+              <h2 class="text-xl font-black text-[#111118]">Chọn sản phẩm</h2>
+              <p class="mt-0.5 text-xs text-slate-500">Danh mục → thêm vào giỏ → thu tiền bên phải</p>
             </div>
             <span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-600 ring-1 ring-emerald-100">
               API
@@ -1117,18 +1159,31 @@ onBeforeUnmount(() => {
       <div class="min-w-0 lg:sticky lg:top-0 lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain">
         <div class="space-y-3 rounded-[20px] border border-red-200 bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
           <div class="flex items-center justify-between gap-2">
-            <h3 class="text-base font-bold text-[#111118]">Thanh toán</h3>
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-red-500">Bước 2 · Giỏ & thu tiền</p>
+              <h3 class="text-base font-bold text-[#111118]">
+                Giỏ hàng
+                <span class="ml-1 text-sm font-semibold text-slate-500">({{ cartCount }})</span>
+              </h3>
+            </div>
             <span class="max-w-[120px] truncate rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600 ring-1 ring-red-100">
               #{{ draftCode }}
             </span>
           </div>
+
+          <ol class="grid grid-cols-3 gap-1 rounded-[12px] bg-slate-50 p-1 text-center text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+            <li class="rounded-[10px] px-1 py-1.5" :class="selectedCategory === null ? 'bg-white text-red-600 shadow-sm' : 'text-emerald-600'">1. Chọn SP</li>
+            <li class="rounded-[10px] px-1 py-1.5" :class="cartCount > 0 ? 'bg-white text-red-600 shadow-sm' : ''">2. Giỏ</li>
+            <li class="rounded-[10px] px-1 py-1.5" :class="cartCount > 0 ? 'text-slate-700' : ''">3. Thu tiền</li>
+          </ol>
 
           <div class="max-h-36 space-y-2 overflow-y-auto overscroll-contain pr-0.5">
             <AppEmptyState
               v-if="cartItems.length === 0"
               size="sm"
               icon="cart"
-              :title="locale.t('pos.emptyCart')"
+              title="Giỏ đang trống"
+              description="Chọn danh mục → bấm + để thêm máy/IMEI vào giỏ."
             />
             <div
               v-for="item in cartItems"
@@ -1239,36 +1294,45 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="border-t border-red-100 pt-3">
-            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Thanh toán</label>
+            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Cách thu tiền</label>
             <div class="grid grid-cols-3 gap-1.5">
               <button
                 v-for="method in paymentMethods"
                 :key="method.value"
                 type="button"
-                class="rounded-[10px] px-1.5 py-2 text-[11px] font-semibold leading-tight transition"
+                class="rounded-[10px] px-1.5 py-2.5 text-[11px] font-bold leading-tight transition"
                 :class="
                   selectedPayment === method.value
-                    ? 'bg-red-600 text-white'
-                    : 'bg-red-50/60 text-slate-600 ring-1 ring-red-100'
+                    ? 'bg-red-600 text-white shadow-sm shadow-red-600/30'
+                    : 'bg-white text-slate-600 ring-1 ring-red-100 hover:bg-red-50'
                 "
                 @click="selectedPayment = method.value"
               >
                 {{ method.label }}
               </button>
             </div>
-            <p v-if="selectedPayment === 'bank'" class="mt-2 text-[10px] text-slate-500">
-              Tạo QR, chờ khách chuyển.
+            <p v-if="selectedPayment === 'bank'" class="mt-2 text-[11px] text-amber-700">
+              Sẽ hiện QR PayOS — khách chuyển xong bấm Kiểm tra ngay.
             </p>
-            <label class="mb-1.5 mt-2 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Giảm giá</label>
-            <AppMoneyInput v-model="discount" placeholder="0" />
+            <p v-else-if="selectedPayment === 'mixed'" class="mt-2 text-[11px] text-slate-500">
+              Nhập phần tiền mặt; phần còn lại tạo QR chuyển khoản.
+            </p>
+            <details class="mt-2 rounded-[12px] bg-slate-50 open:pb-2">
+              <summary class="cursor-pointer list-none px-2.5 py-2 text-[11px] font-semibold text-slate-600 marker:content-none [&::-webkit-details-marker]:hidden">
+                Giảm giá <span class="font-normal text-slate-400">(tuỳ chọn)</span>
+              </summary>
+              <div class="px-2.5 pb-1">
+                <AppMoneyInput v-model="discount" placeholder="0" />
+              </div>
+            </details>
           </div>
 
-          <div class="space-y-1.5 rounded-[14px] bg-[#fffafa] p-3 ring-1 ring-red-100">
+          <div class="space-y-1.5 rounded-[16px] bg-gradient-to-br from-[#fff5f5] to-white p-3.5 ring-1 ring-red-200">
             <div class="flex items-center justify-between gap-2 text-xs text-slate-500">
               <span class="shrink-0">Tạm tính</span>
               <span class="min-w-0 truncate text-right font-semibold text-slate-700">{{ formatCurrency(subtotal) }}</span>
             </div>
-            <div class="flex items-center justify-between gap-2 text-xs text-slate-500">
+            <div v-if="discount > 0" class="flex items-center justify-between gap-2 text-xs text-slate-500">
               <span class="shrink-0">Giảm giá</span>
               <span class="text-red-600">- {{ formatCurrency(discount || 0) }}</span>
             </div>
@@ -1287,25 +1351,34 @@ onBeforeUnmount(() => {
                 <span class="font-semibold text-slate-700">{{ formatCurrency(mixedTransferAmount) }}</span>
               </div>
             </template>
-            <div class="flex items-center justify-between gap-2 border-t border-red-100 pt-2">
-              <span class="text-sm font-bold text-[#111118]">Tổng</span>
-              <span class="min-w-0 truncate text-right text-base font-black text-red-600">{{ formatCurrency(total) }}</span>
+            <div class="flex items-end justify-between gap-2 border-t border-red-100 pt-2.5">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Khách cần trả</p>
+                <p class="text-sm font-bold text-[#111118]">Tổng cộng</p>
+              </div>
+              <p class="min-w-0 truncate text-right text-2xl font-black leading-none text-red-600">{{ formatCurrency(total) }}</p>
             </div>
           </div>
 
           <button
             type="button"
-            class="w-full rounded-[14px] bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-red-600/20 hover:bg-red-700 disabled:opacity-60"
-            :disabled="checkingOut || cartItems.length === 0 || (pendingPayment && paymentModalPhase === 'pending')"
+            class="w-full rounded-[14px] bg-red-600 px-4 py-3.5 text-sm font-black text-white shadow-lg shadow-red-600/25 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="checkingOut || cartItems.length === 0 || awaitingTransfer"
             @click="handleCheckout"
           >
-            {{
-              pendingPayment && paymentModalPhase === 'pending'
-                ? 'Đang chờ chuyển khoản...'
-                : checkingOut
-                  ? locale.t('common.updating')
-                  : locale.t('pos.checkout')
-            }}
+            {{ checkoutButtonLabel }}
+          </button>
+          <p v-if="checkoutBlockedReason" class="text-center text-[11px] text-slate-500">
+            {{ checkoutBlockedReason }}
+          </p>
+          <button
+            v-if="cartItems.length"
+            type="button"
+            class="w-full rounded-[12px] px-3 py-1.5 text-[11px] font-semibold text-slate-400 hover:bg-slate-50 hover:text-red-600"
+            :disabled="awaitingTransfer"
+            @click="clearCart"
+          >
+            Xóa giỏ
           </button>
         </div>
       </div>
