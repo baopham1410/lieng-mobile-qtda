@@ -4,6 +4,8 @@ import { RouterLink } from 'vue-router'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import AppEmptyState from '@/components/common/AppEmptyState.vue'
 import AppStatCard from '@/components/common/AppStatCard.vue'
+import DashboardRevenueCostChart from '@/components/dashboard/DashboardRevenueCostChart.vue'
+import DashboardDeviceShareChart from '@/components/dashboard/DashboardDeviceShareChart.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLocaleStore } from '@/stores/locale'
 import { usePageTransitionStore } from '@/stores/pageTransition'
@@ -47,15 +49,23 @@ const visibleActions = computed(() =>
 const stats = ref({ ...mockStats })
 const recentOrders = ref([...mockRecentOrders])
 const staffActivity = ref([])
+const revenueCostChart = ref(null)
+const deviceShareChart = ref(null)
 const useMock = ref(false)
 
 onMounted(() => {
-  const mockPayload = { stats: mockStats, recentOrders: mockRecentOrders, staffActivity: [] }
+  const mockPayload = { stats: mockStats, recentOrders: mockRecentOrders, staffActivity: [], revenueCostChart: null, deviceShareChart: null }
 
   const applyData = (data) => {
     stats.value = data.stats
     recentOrders.value = data.recentOrders
     staffActivity.value = data.staffActivity ?? []
+    if (data.revenueCostChart) {
+      revenueCostChart.value = data.revenueCostChart
+    }
+    if (data.deviceShareChart) {
+      deviceShareChart.value = data.deviceShareChart
+    }
     useMock.value = data.stats === mockStats
   }
 
@@ -81,6 +91,12 @@ onMounted(() => {
   stats.value = initial.stats
   recentOrders.value = initial.recentOrders
   staffActivity.value = initial.staffActivity ?? []
+  if (initial.revenueCostChart) {
+    revenueCostChart.value = initial.revenueCostChart
+  }
+  if (initial.deviceShareChart) {
+    deviceShareChart.value = initial.deviceShareChart
+  }
 })
 
 const statCards = computed(() => [
@@ -135,7 +151,17 @@ const statCards = computed(() => [
       </AppStatCard>
     </div>
 
-    <div class="animate-enter-stagger stagger-2 grid gap-6 lg:grid-cols-3">
+    <!-- Biểu đồ Doanh thu & Tỷ trọng thiết bị -->
+    <div class="animate-enter-stagger stagger-2 grid gap-6 lg:grid-cols-3 items-stretch">
+      <div class="lg:col-span-2">
+        <DashboardRevenueCostChart :server-data="revenueCostChart" />
+      </div>
+      <div class="lg:col-span-1">
+        <DashboardDeviceShareChart :server-data="deviceShareChart" />
+      </div>
+    </div>
+
+    <div class="animate-enter-stagger stagger-3 grid gap-6 lg:grid-cols-3">
       <!-- Orders table -->
       <div class="lg:col-span-2 overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
         <div class="flex items-center justify-between border-b border-slate-50 px-6 py-5">
@@ -214,7 +240,7 @@ const statCards = computed(() => [
 
     <div
       v-if="roleName === 'admin'"
-      class="animate-enter-stagger stagger-3 overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
+      class="animate-enter-stagger stagger-4 overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
     >
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-50 px-6 py-5">
         <div>
