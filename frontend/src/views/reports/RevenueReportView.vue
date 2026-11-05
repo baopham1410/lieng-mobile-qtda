@@ -176,6 +176,12 @@ function exportReport() {
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
+          <RouterLink
+            :to="{ name: 'statements' }"
+            class="rounded-[14px] bg-white/15 px-4 py-2.5 text-sm font-bold text-white ring-1 ring-white/35 transition hover:bg-white/25"
+          >
+            Sao kê ngày
+          </RouterLink>
           <button
             type="button"
             class="rounded-[14px] bg-white px-4 py-2.5 text-sm font-bold text-red-600 shadow-sm transition hover:bg-red-50 disabled:opacity-50"
