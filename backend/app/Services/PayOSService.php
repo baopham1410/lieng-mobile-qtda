@@ -78,6 +78,54 @@ class PayOSService
         ];
     }
 
+    /**
+     * Tra cứu trạng thái thanh toán trực tiếp từ PayOS (dùng khi bấm "Kiểm tra ngay"
+     * hoặc poll — không phụ thuộc webhook về máy local).
+     */
+    public function getPaymentRequest(string $paymentLinkIdOrOrderCode): array
+    {
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('Chưa cấu hình PayOS.');
+        }
+
+        $response = $this->httpClient()
+            ->withHeaders([
+                'x-client-id' => config('services.payos.client_id'),
+                'x-api-key' => config('services.payos.api_key'),
+                'Accept' => 'application/json',
+            ])
+            ->timeout(20)
+            ->get(self::API_BASE.'/v2/payment-requests/'.$paymentLinkIdOrOrderCode);
+
+        if ($response->failed()) {
+            throw new RuntimeException($response->json('desc') ?: $response->json('message') ?: 'Không lấy được trạng thái PayOS.');
+        }
+
+        $data = $response->json('data', []);
+        $status = strtolower((string) ($data['status'] ?? ''));
+
+        return [
+            'reference' => (string) ($data['id'] ?? $data['paymentLinkId'] ?? $paymentLinkIdOrOrderCode),
+            'order_code' => (string) ($data['orderCode'] ?? ''),
+            'status' => $this->mapPaymentLinkStatus($status),
+            'paid_at' => isset($data['transactionDateTime'])
+                ? Carbon::parse($data['transactionDateTime'])
+                : (($status === 'paid') ? now() : null),
+            'raw' => $data,
+        ];
+    }
+
+    private function mapPaymentLinkStatus(string $status): string
+    {
+        return match ($status) {
+            'paid' => 'paid',
+            'cancelled', 'canceled' => 'cancelled',
+            'expired' => 'expired',
+            'failed' => 'failed',
+            default => 'pending',
+        };
+    }
+
     public function verifyWebhook(array $payload): bool
     {
         $signature = $payload['signature'] ?? null;
