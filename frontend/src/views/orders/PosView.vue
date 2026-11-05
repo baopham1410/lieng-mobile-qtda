@@ -66,19 +66,10 @@ const total = computed(() => Math.max(0, subtotal.value - (discount.value || 0))
 const mixedTransferAmount = computed(() => Math.max(0, total.value - (Number(mixedCashAmount.value) || 0)))
 const cartCount = computed(() => cartItems.value.reduce((sum, item) => sum + (item.qty || 1), 0))
 const awaitingTransfer = computed(() => Boolean(pendingPayment.value && paymentModalPhase.value === 'pending'))
-const checkoutBlockedReason = computed(() => {
-  if (awaitingTransfer.value) return 'Đang chờ chuyển khoản — mở lại QR hoặc đổi phương thức.'
-  if (cartItems.value.length === 0) return 'Giỏ trống — chọn sản phẩm bên trái để bán.'
-  if (checkingOut.value) return 'Đang xử lý thanh toán...'
-  return ''
-})
 const checkoutButtonLabel = computed(() => {
-  if (awaitingTransfer.value) return 'Đang chờ chuyển khoản...'
+  if (awaitingTransfer.value) return 'Đang chờ CK…'
   if (checkingOut.value) return locale.t('common.updating')
-  const amount = formatCurrency(total.value)
-  if (selectedPayment.value === 'bank') return `Tạo QR · ${amount}`
-  if (selectedPayment.value === 'mixed') return `Thu kết hợp · ${amount}`
-  return `Thu tiền mặt · ${amount}`
+  return `${locale.t('pos.checkout')} · ${formatCurrency(total.value)}`
 })
 
 watch(total, (nextTotal) => {
@@ -873,7 +864,6 @@ onBeforeUnmount(() => {
             <div v-else class="flex h-[280px] w-[280px] items-center justify-center rounded-[16px] bg-white text-sm text-slate-500">
               Đang tạo mã QR...
             </div>
-            <p class="mt-3 text-center text-xs text-slate-500">Mở app ngân hàng → Quét QR → Xác nhận chuyển khoản</p>
           </div>
 
           <div class="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
@@ -881,7 +871,7 @@ onBeforeUnmount(() => {
               class="inline-block h-2 w-2 rounded-full bg-amber-400"
               :class="checkingPaymentStatus ? 'animate-pulse' : 'animate-ping'"
             />
-            {{ checkingPaymentStatus ? 'Đang kiểm tra thanh toán...' : 'Đang chờ khách chuyển khoản' }}
+            {{ checkingPaymentStatus ? 'Đang kiểm tra…' : 'Chờ thanh toán' }}
           </div>
 
           <p v-if="pendingPayment?.paymentExpiresAt" class="mt-2 text-center text-[11px] text-slate-400">
@@ -914,16 +904,15 @@ onBeforeUnmount(() => {
             :disabled="changingPaymentMethod"
             @click="changePaymentMethod"
           >
-            {{ changingPaymentMethod ? 'Đang hủy đơn...' : 'Đổi phương thức thanh toán' }}
+            {{ changingPaymentMethod ? 'Đang hủy…' : 'Đổi phương thức' }}
           </button>
-          <p class="mt-1 text-center text-[10px] text-slate-400">Hủy QR, trả hàng về giỏ và chọn tiền mặt / kết hợp</p>
 
           <button
             type="button"
             class="mt-2 w-full rounded-[12px] px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-600"
             @click="closePaymentModal"
           >
-            Thu nhỏ (vẫn chờ thanh toán)
+            Thu nhỏ
           </button>
         </div>
 
@@ -977,9 +966,8 @@ onBeforeUnmount(() => {
         <div class="rounded-[20px] border border-red-200 bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-red-500">Bước 1 · {{ locale.t('pos.title') }}</p>
-              <h2 class="text-xl font-black text-[#111118]">Chọn sản phẩm</h2>
-              <p class="mt-0.5 text-xs text-slate-500">Danh mục → thêm vào giỏ → thu tiền bên phải</p>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-red-500">{{ locale.t('pos.title') }}</p>
+              <h2 class="text-xl font-black text-[#111118]">{{ locale.t('pos.title') }}</h2>
             </div>
             <span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-600 ring-1 ring-emerald-100">
               API
@@ -1159,31 +1147,21 @@ onBeforeUnmount(() => {
       <div class="min-w-0 lg:sticky lg:top-0 lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain">
         <div class="space-y-3 rounded-[20px] border border-red-200 bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
           <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-red-500">Bước 2 · Giỏ & thu tiền</p>
-              <h3 class="text-base font-bold text-[#111118]">
-                Giỏ hàng
-                <span class="ml-1 text-sm font-semibold text-slate-500">({{ cartCount }})</span>
-              </h3>
-            </div>
+            <h3 class="text-base font-bold text-[#111118]">
+              Giỏ
+              <span class="ml-1 text-sm font-semibold text-slate-400">{{ cartCount }}</span>
+            </h3>
             <span class="max-w-[120px] truncate rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600 ring-1 ring-red-100">
               #{{ draftCode }}
             </span>
           </div>
-
-          <ol class="grid grid-cols-3 gap-1 rounded-[12px] bg-slate-50 p-1 text-center text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
-            <li class="rounded-[10px] px-1 py-1.5" :class="selectedCategory === null ? 'bg-white text-red-600 shadow-sm' : 'text-emerald-600'">1. Chọn SP</li>
-            <li class="rounded-[10px] px-1 py-1.5" :class="cartCount > 0 ? 'bg-white text-red-600 shadow-sm' : ''">2. Giỏ</li>
-            <li class="rounded-[10px] px-1 py-1.5" :class="cartCount > 0 ? 'text-slate-700' : ''">3. Thu tiền</li>
-          </ol>
 
           <div class="max-h-36 space-y-2 overflow-y-auto overscroll-contain pr-0.5">
             <AppEmptyState
               v-if="cartItems.length === 0"
               size="sm"
               icon="cart"
-              title="Giỏ đang trống"
-              description="Chọn danh mục → bấm + để thêm máy/IMEI vào giỏ."
+              :title="locale.t('pos.emptyCart')"
             />
             <div
               v-for="item in cartItems"
@@ -1251,7 +1229,6 @@ onBeforeUnmount(() => {
               </ul>
             </div>
             <p v-if="customerLookupError" class="mt-1 text-[11px] text-red-600">{{ customerLookupError }}</p>
-            <p v-else-if="needsWarrantyInfo" class="mt-1 text-[11px] text-amber-700">Cần thông tin khách để in phiếu bảo hành.</p>
 
             <div
               v-if="customerState === 'found' && matchedCustomer"
@@ -1259,7 +1236,6 @@ onBeforeUnmount(() => {
             >
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
-                  <p class="text-[10px] font-bold uppercase text-emerald-600">Khách quen</p>
                   <p class="truncate text-sm font-bold text-[#111118]">{{ matchedCustomer.name }}</p>
                   <p class="text-xs text-slate-600">{{ matchedCustomer.phone }}</p>
                 </div>
@@ -1268,7 +1244,6 @@ onBeforeUnmount(() => {
             </div>
 
             <div v-else-if="customerState === 'new'" class="mt-2 space-y-2 rounded-[12px] border border-amber-200 bg-amber-50/40 p-2.5">
-              <p class="text-[11px] font-bold text-amber-800">Khách mới — chưa có trong hệ thống</p>
               <input
                 v-model="newCustomerForm.name"
                 type="text"
@@ -1278,23 +1253,14 @@ onBeforeUnmount(() => {
               <input
                 v-model="newCustomerForm.address"
                 type="text"
-                placeholder="Địa chỉ (tuỳ chọn)"
+                placeholder="Địa chỉ"
                 class="w-full rounded-[10px] border border-red-200 bg-white px-2.5 py-2 text-sm outline-none focus:border-red-400"
               />
-              <p class="text-[10px] text-slate-500">SĐT {{ newCustomerForm.phone }}</p>
             </div>
-
-            <p v-else class="mt-2 text-[11px] text-slate-500">Gõ SĐT hoặc tên để chọn khách</p>
-          </div>
-
-          <div v-else-if="cartItems.length" class="border-t border-red-100 pt-3">
-            <p class="rounded-[12px] bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600 ring-1 ring-slate-200">
-              Chỉ mua phụ kiện / card — <strong>không cần</strong> lưu khách hàng. Bấm thanh toán là xong.
-            </p>
           </div>
 
           <div class="border-t border-red-100 pt-3">
-            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Cách thu tiền</label>
+            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Thanh toán</label>
             <div class="grid grid-cols-3 gap-1.5">
               <button
                 v-for="method in paymentMethods"
@@ -1311,23 +1277,13 @@ onBeforeUnmount(() => {
                 {{ method.label }}
               </button>
             </div>
-            <p v-if="selectedPayment === 'bank'" class="mt-2 text-[11px] text-amber-700">
-              Sẽ hiện QR PayOS — khách chuyển xong bấm Kiểm tra ngay.
-            </p>
-            <p v-else-if="selectedPayment === 'mixed'" class="mt-2 text-[11px] text-slate-500">
-              Nhập phần tiền mặt; phần còn lại tạo QR chuyển khoản.
-            </p>
-            <details class="mt-2 rounded-[12px] bg-slate-50 open:pb-2">
-              <summary class="cursor-pointer list-none px-2.5 py-2 text-[11px] font-semibold text-slate-600 marker:content-none [&::-webkit-details-marker]:hidden">
-                Giảm giá <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-              </summary>
-              <div class="px-2.5 pb-1">
-                <AppMoneyInput v-model="discount" placeholder="0" />
-              </div>
-            </details>
+            <div class="mt-2">
+              <label class="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Giảm giá</label>
+              <AppMoneyInput v-model="discount" placeholder="0" />
+            </div>
           </div>
 
-          <div class="space-y-1.5 rounded-[16px] bg-gradient-to-br from-[#fff5f5] to-white p-3.5 ring-1 ring-red-200">
+          <div class="space-y-1.5 rounded-[14px] bg-[#fffafa] p-3 ring-1 ring-red-100">
             <div class="flex items-center justify-between gap-2 text-xs text-slate-500">
               <span class="shrink-0">Tạm tính</span>
               <span class="min-w-0 truncate text-right font-semibold text-slate-700">{{ formatCurrency(subtotal) }}</span>
@@ -1351,30 +1307,24 @@ onBeforeUnmount(() => {
                 <span class="font-semibold text-slate-700">{{ formatCurrency(mixedTransferAmount) }}</span>
               </div>
             </template>
-            <div class="flex items-end justify-between gap-2 border-t border-red-100 pt-2.5">
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Khách cần trả</p>
-                <p class="text-sm font-bold text-[#111118]">Tổng cộng</p>
-              </div>
-              <p class="min-w-0 truncate text-right text-2xl font-black leading-none text-red-600">{{ formatCurrency(total) }}</p>
+            <div class="flex items-center justify-between gap-2 border-t border-red-100 pt-2">
+              <span class="text-sm font-bold text-[#111118]">Tổng</span>
+              <span class="min-w-0 truncate text-right text-xl font-black text-red-600">{{ formatCurrency(total) }}</span>
             </div>
           </div>
 
           <button
             type="button"
-            class="w-full rounded-[14px] bg-red-600 px-4 py-3.5 text-sm font-black text-white shadow-lg shadow-red-600/25 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            class="w-full rounded-[14px] bg-red-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-red-600/20 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="checkingOut || cartItems.length === 0 || awaitingTransfer"
             @click="handleCheckout"
           >
             {{ checkoutButtonLabel }}
           </button>
-          <p v-if="checkoutBlockedReason" class="text-center text-[11px] text-slate-500">
-            {{ checkoutBlockedReason }}
-          </p>
           <button
             v-if="cartItems.length"
             type="button"
-            class="w-full rounded-[12px] px-3 py-1.5 text-[11px] font-semibold text-slate-400 hover:bg-slate-50 hover:text-red-600"
+            class="w-full rounded-[12px] px-3 py-1 text-[11px] font-medium text-slate-400 hover:text-red-600"
             :disabled="awaitingTransfer"
             @click="clearCart"
           >
