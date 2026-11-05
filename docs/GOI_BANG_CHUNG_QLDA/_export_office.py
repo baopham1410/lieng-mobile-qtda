@@ -12,11 +12,12 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
 ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "NOP_DRIVE_DOCX"
+OUT = ROOT / "NOP_DRIVE_DOCX_V2"
 OUT.mkdir(exist_ok=True)
 
 MD_FILES = [
-    ("01_Final_Technical_Report.md", "01_Final_Technical_Report.docx"),
+    ("00_Trang_Thai_Va_Ke_Hoach_AI.md", "00_Trang_Thai_Va_Ke_Hoach_AI.docx"),
+    ("01_Final_Technical_Report_updated.md", "01_Final_Technical_Report.docx"),
     ("02_Project_Charter.md", "02_Project_Charter_Signed.docx"),
     ("03_WBS_and_WBS_Dictionary.md", "03_WBS_and_WBS_Dictionary.docx"),
     ("05_Sprint_Retrospectives.md", "05_Sprint_Retrospectives.docx"),

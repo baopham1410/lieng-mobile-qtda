@@ -33,10 +33,19 @@
 │   ├── 1.5.3 Branch protection + CODEOWNERS
 │   ├── 1.5.4 Docker Compose
 │   └── 1.5.5 Templates Issue/PR
-└── 1.6 Dong du an & bang chung
-    ├── 1.6.1 Bao cao 7 chuong
-    ├── 1.6.2 Risk / Retro / CR / Signoff
-    └── 1.6.3 Slide bao ve
+├── 1.6 Dong du an & bang chung QLDA
+│   ├── 1.6.1 Bao cao 7 chuong
+│   ├── 1.6.2 Risk / Retro / CR / Signoff
+│   └── 1.6.3 Slide bao ve
+└── 1.7 AI tham dinh dinh gia & chatbot (CHUA XONG)
+    ├── 1.7.1 Toi uu UI/luong Admin-POS-Quan
+    ├── 1.7.2 Hoan thien Mobile Expo + API
+    ├── 1.7.3 Public portal: upload anh + touch test + ma dinh gia
+    ├── 1.7.4 OCR model/ROM/pin (PaddleOCR)
+    ├── 1.7.5 YOLO detect nut/xuoc + bbox
+    ├── 1.7.6 Dynamic valuation + bang gia linh kien
+    ├── 1.7.7 Admin: quet QR, phieu thu mua, kho hang cu
+    └── 1.7.8 Chatbot Admin RAG + Ollama + tools bao cao
 ```
 
 ## 2. Tu dien WBS (cac goi 1–2 tuan)
@@ -56,7 +65,11 @@
 | 1.5.2–1.5.3 | CI + protection | Actions + protect main | 3 job xanh | 3 | Bao | PR #90, #91 |
 | 1.5.4 | Docker | Compose API | doc + compose | 2 | Bao | PR #89 |
 | 1.6.* | Evidence package | 8 file Drive | draft trong docs/ | 5 | Bao+Hong | Thu muc nay |
+| 1.7.1 | Toi uu UI | Chinh luong UX Admin/POS/Quan | UAT 5 luong Pass | 5 | Hong+Bao | **TODO** |
+| 1.7.2 | Mobile complete | Expo on API/UX | 4+ man that | 8 | Hong+Bao | **TODO** |
+| 1.7.3–1.7.7 | AI dinh gia O2O | Public+YOLO+OCR+phieu | Demo < 2 phut/may | 21 | Bao+Hong+Giang | **TODO** (de cuong) |
+| 1.7.8 | Chatbot Admin | RAG + tools | 5 cau mau OK | 8 | Bao | **TODO** (`chatbot-internal.md`) |
 
 ## 3. In-Scope / Out-of-Scope (baseline)
 
-Xem Charter muc 4. Moi thay doi sau baseline di qua CR (file 06).
+Xem Charter muc 4 + CR-004 (mo rong AI). Moi thay doi tiep tuc ghi CR.

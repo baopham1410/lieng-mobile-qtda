@@ -9,3 +9,7 @@ R-07,Uoc luong SP lech → tre Sprint,Schedule,3,3,9,Open,Planning Poker 1/2/3/5
 R-08,Stakeholder tre ky nghiem thu,Stakeholder,3,4,12,Open,Chuan bi UAT script + demo data,Bao,3,4,12,Open,Hen lich ky; co video backup,Bao,Chua dong,File 07 (cho chu ky)
 R-09,Mobile Expo moi / loi type,Technical,3,3,9,Open,tsc tren CI,Bao,1,2,2,Mitigated,Job Mobile tsc --noEmit,Bao+Hong,Giam,CI Mobile job
 R-10,Conflict merge khi Bao/Hong song song FE,Process,3,3,9,Open,Chia Issue theo man; nhanh ngan,Bao+Hong,2,2,4,Mitigated,PR nho theo nhom man,Bao+Hong,Giam,PR #80-#85
+R-11,AI dinh gia (YOLO/OCR) tre / thieu data anh loi,Technical,4,5,20,Open,Sprint S7 rule+OCR truoc; S8 YOLO; thu thap anh cua hang,Bao,4,5,20,Open,CR-004; MVP tang dan,Bao+Hong+Giang,Chua xay ra (chua code),De cuong AI; WBS 1.7
+R-12,Chatbot RAG/Ollama chua lam → lo pham vi de tai,Scope,4,4,16,Open,Giu chatbot la S9; doc chatbot-internal.md,Bao,4,4,16,Open,Tach MVP 5 cau mau,Bao,Con mo,docs/chatbot-internal.md
+R-13,UI/luong chua toi uu → UAT fail,Quality,4,4,16,Open,Sprint S5 chi UX,Hong,4,4,16,Open,Checklist 5 luong cot loi,Hong+Bao,Dang mo,00_Trang_Thai
+R-14,Mobile chua xong → thieu minh chung O2O,Schedule,4,4,16,Open,S6 uu tien Expo API/UX,Hong,4,4,16,Open,4 man chinh + login that,Hong+Bao,Dang mo,mobile-expo
