@@ -12,14 +12,14 @@
 - Repo: github.com/baopham1410/lieng-mobile-qtda
 
 ## Slide 2 — Van de & Business Case
-- Cua hang thieu he thong tap trung → kho/POS/Quan manh mun
-- Muc tieu SMART (1 dong moi chu)
-- Loi ich: dong bo du lieu, phan quyen, demo that
+- Van hanh cua hang manh mun + **thu mua may cu dinh gia cam tinh** (de cuong AI)
+- 3 nut that: lech gia chi nhanh · rut ro may loi · khach mat niem tin
+- Huong giai phap: O2O + YOLO/OCR + cong thuc gia dong
 
 ## Slide 3 — Kien truc & WBS
-- So do: Vue3 + Laravel/Sanctum/Neon + Expo
-- Cay WBS muc 1 (6 nhanh): Quan tri · BE · FE · Mobile · DevOps · Dong du an
-- In/Out scope ngan
+- Hien tai: Vue3 + Laravel/Sanctum/Neon + Expo (baseline)
+- Muc tieu: + AI Service (YOLO/OCR/Valuation) + Public portal + Chatbot
+- WBS them nhanh **1.7 AI** (chua xong) — noi ro voi Hoi dong
 
 ## Slide 4 — Chi so thuc thi
 - PR merged #76–#91 (chup danh sach)
@@ -38,17 +38,14 @@
 - DoD: PR + Approve + CI xanh
 - Demo CI do → xanh (bang chung hoc duoc tu fail)
 
-## Slide 7 — Nghiem thu Stakeholder
-- Checklist UAT (login → POS/Quan → mobile)
-- Anh/PDF bien ban hoac email sign-off
-- Link cloud / APK neu da deploy
+## Slide 7 — Trang thai that & ke hoach AI
+- **Da co:** baseline cua hang + QLDA GitHub  
+- **Chua co:** AI dinh gia · chatbot · toi uu UI · mobile xong  
+- Roadmap S5–S10 (CR-004) — khong khai man la da co YOLO
 
-## Slide 8 — Lessons Learned
-1. Tach foundation vs UI som  
-2. Backup nhan su khi member rut  
-3. CI + protection som  
-4. PR nho + AC ro  
-5. Minh chung GitHub > slide thoi
+## Slide 8 — Nghiem thu / Lessons
+- UAT hien tai: luong van hanh; UAT AI sau MVP  
+- Lessons: scope AI phai vao Charter som (CR-004); foundation vs UI; CI som; backup nhan su
 
 ## Slide 9 (optional) — Demo script
 1. Login web  

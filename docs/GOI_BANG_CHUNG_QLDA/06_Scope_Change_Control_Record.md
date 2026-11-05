@@ -53,6 +53,21 @@ Moi thay doi pham vi so voi Charter/WBS baseline deu ghi nhan CR duoi day.
 
 ---
 
+## CR-004 — Mo rong pham vi theo de cuong AI tham dinh dinh gia (Approved)
+
+| Truong | Noi dung |
+|--------|----------|
+| Ngay de xuat | 05/11/2026 |
+| Nguoi de xuat | Bao (PM) + nhom |
+| Ly do | De cuong chuyen nganh: AI tham dinh/dinh gia thu mua DT cu; baseline QLDA moi co van hanh cua hang, **chua** AI/chatbot/toi uu UI-mobile |
+| Mo ta thay doi | **Mo rong In-Scope:** Public O2O, YOLO+OCR+cong thuc gia, Admin thu mua/kho cu, chatbot Admin, toi uu UI, hoan thien Mobile (WBS 1.7) |
+| Anh huong | Them Sprint S5–S10; tang SP ~40+; can Giang tham gia AI data/UAT |
+| Quyet dinh CCB | **Approved** (dua vao Charter/WBS; **chua** coi la Done) |
+| Minh chung | De cuong DOCX; `00_Trang_Thai_Va_Ke_Hoach_AI.md` |
+| Cap nhat baseline | Charter muc 1/4/5; WBS 1.7; Risk R-11..R-14 |
+
+---
+
 ## Bang tong hop
 
 | CR | Tieu de | Quyet dinh | Evidence |
@@ -60,6 +75,7 @@ Moi thay doi pham vi so voi Charter/WBS baseline deu ghi nhan CR duoi day.
 | CR-001 | Foundation-only FE | Approved | PR #79 |
 | CR-002 | Giang rut / phan lai | Approved | PR #86, #87 |
 | CR-003 | Public + protection + CI | Approved | PR #90, #91 |
+| CR-004 | Mo rong AI dinh gia + chatbot | Approved (chua Done) | De cuong AI + file 00 |
 
 **Chu ky CCB**
 

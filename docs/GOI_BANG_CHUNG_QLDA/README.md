@@ -4,7 +4,8 @@
 
 Mo thu muc:
 
-`docs/GOI_BANG_CHUNG_QLDA/NOP_DRIVE_DOCX/`
+`docs/GOI_BANG_CHUNG_QLDA/NOP_DRIVE_DOCX_V2/`  
+(ban cap nhat de cuong AI tham dinh dinh gia — dung V2, khong dung thu muc cu)
 
 | File | Dinh dang |
 |------|-----------|

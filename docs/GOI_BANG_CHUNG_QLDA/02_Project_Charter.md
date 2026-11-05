@@ -10,7 +10,11 @@
 
 ## 1. Ten du an & muc tieu
 
-Xay dung he thong quan ly cua hang dien thoai **Lieng Mobile**: Admin/POS web (Vue 3) + API Laravel/Sanctum + ung dung Quan (Expo), phuc vu nhap-xuat-ton, ban hang, quan ly chi phi Quan, dong bo du lieu thuc.
+Xay dung he thong quan ly cua hang dien thoai **Lieng Mobile**, tich hop huong de tai chuyen nganh: **AI ho tro tham dinh va dinh gia thu mua dien thoai cu** (O2O: cong Public + Admin/POS).
+
+**Hai lop gia tri:**
+1. **Van hanh cua hang** — Admin/POS/Quan web + API + Mobile Expo.  
+2. **AI dinh gia thu mua may cu** — YOLO (loi ngoai quan) + OCR (model/ROM/pin) + cong thuc gia dong + QR/phieu thu mua; kem **chatbot noi bo** Admin (RAG).
 
 ## 2. Sourcing Pathway & Stakeholder
 
@@ -22,23 +26,32 @@ Xay dung he thong quan ly cua hang dien thoai **Lieng Mobile**: Admin/POS web (V
 
 ## 3. Van de nghiep vu
 
-Cua hang quan ly bang thu cong / Excel manh mun: kho, don hang, bao cao, chi phi Quan kho dong bo giua web va dien thoai. Can he thong chay that, co API, co phan quyen.
+1. Van hanh: kho/POS/bao cao/Quan manh mun, thieu he thong tap trung.  
+2. Thu mua may cu: dinh gia cam tinh, lech chi nhanh, rut ro mua may loi, khach mat niem tin (theo de cuong AI).  
+3. Nhan vien moi thieu tro ly noi bo → can chatbot Admin.
 
 ## 4. Pham vi (In / Out)
 
-**In-Scope:** Auth Sanctum; catalog SP/DM; nhap kho; POS/don hang/KH/tai chinh; module Quan (bang, sao ke, chi phi); bao cao; bao hanh; user/role; mobile Expo (login, quay, chi, archive, account, statement); CI GitHub Actions; docs QTDA.
+**In-Scope (baseline da/ dang lam):** Auth Sanctum; catalog; nhap kho; POS/don/KH/finance; Quan web; bao cao/BH/user; mobile Expo co ban; CI/docs QLDA.
 
-**Out-of-Scope (ban dau):** Thanh toan online day du; AI chatbot production; da ngon ngu day du; App Store release; scaling multi-tenant.
+**In-Scope (da dua vao Charter — CHUA HOAN THANH, xem CR-004):**  
+- Cong Public: chup anh / touch test / bao gia uoc luong + ma dinh gia/QR.  
+- Admin: quet ma, AI khoanh loi, phieu thu mua, kho hang cu.  
+- AI: YOLOv8/11 detect loi; OCR model/ROM/pin; cong thuc `P = P0 - C_ngoai quan - C_linh kien - M`.  
+- Chatbot noi bo Admin (RAG + tool bao cao).  
+- Toi uu UI/luong + hoan thien Mobile.
+
+**Out-of-Scope:** App Store release; kiosk tu dong; Zalo bot khach; multi-tenant; thanh toan online day du.
 
 ## 5. Muc tieu SMART
 
 | # | Muc tieu |
 |---|----------|
-| S | Giao duoc ban Admin + Quan web + Mobile core chay voi API that |
-| M | >= 15 man hinh/web modules co UI; API auth + catalog/quan; CI 3 job xanh |
-| A | 2–3 thanh vien, monorepo GitHub, Sprint 1–2 tuan |
-| R | Phuc vu van hanh cua hang that + minh chung QLDA |
-| T | Hoan thanh baseline truoc bao ve cuoi ky (Tuan 14–15) |
+| S | Baseline van hanh chay that + MVP AI dinh gia (OCR/rule → YOLO) + chatbot Admin |
+| M | Baseline UI/API; demo AI dinh gia < 2 phut/may; chatbot tra loi >= 5 cau mau |
+| A | 3 thanh vien (Bao/Hong/Giang), monorepo GitHub |
+| R | Giam dinh gia cam tinh; minh chung QLDA + de tai AI |
+| T | Baseline QLDA truoc bao ve; AI MVP theo Sprint S7–S10 |
 
 ## 6. Rang buoc & gia dinh
 
@@ -68,11 +81,11 @@ Chi phi cloud (Neon/free tier), thoi gian nhom ~8–12 gio/tuan/nguoi. Khong nga
 | PM / Scrum Master | Bao (`baopham1410`) | 20% |
 | Tech Lead / Architect | Bao | 15% |
 | Backend Engineer | Bao | 20% |
-| Frontend / Mobile Engineer | Hong (`Chimsedinang605`) + Bao (mobile core) | 35% |
-| QA & Test Engineer | Hong + Bao (CI/DoD) | 10% |
+| Frontend / Mobile Engineer | Hong (`Chimsedinang605`) + Bao (mobile core) | 30% |
+| QA & Test / AI data & UAT | Hong + Giang (`ktlgiang`) | 15% |
 
-**Tong:** Bao ~55% · Hong ~45%.  
-**Giang (`ktlgiang`):** tham gia giai doan phan cong man hinh ban dau; sau do rut khoi thuc thi (xem CR-002).
+**Ty le huong toi (khi Giang tham gia lai AI/UAT):** Bao ~50% · Hong ~35% · Giang ~15%.  
+**Thuc te giai doan baseline code:** Bao ~55% · Hong ~45% (Giang rut coding — CR-002); Sprint AI se phan lai.
 
 ## 11. Rui ro ban dau (tom tat)
 
