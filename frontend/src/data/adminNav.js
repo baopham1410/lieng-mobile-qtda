@@ -88,6 +88,13 @@ export const adminNavGroups = [
         phosphor: 'ph-duotone ph-chart-bar',
         roles: ['admin', 'warehouse_staff'],
       },
+      {
+        name: 'statements',
+        label: 'Sao kê',
+        to: '/reports/statements',
+        phosphor: 'ph-duotone ph-notebook',
+        roles: ['admin'],
+      },
     ],
   },
   {
@@ -144,8 +151,14 @@ export const pageMeta = {
   finance: { title: 'Thu chi', subtitle: 'Sổ quỹ cửa hàng' },
   quan: { title: 'Quản lý Quán', subtitle: 'Quầy bán nhanh — thêm sản phẩm tại chỗ, ghi chi, tổng kết ngày' },
   'quan-statements': {
-    title: 'Kho sao kê quán',
+    title: 'Sao kê theo ngày',
     subtitle: 'Lưu trữ và in lại sao kê thu — chi theo từng ngày',
+    parent: { name: 'reports', label: 'Báo cáo', to: '/reports' },
+  },
+  statements: {
+    title: 'Sao kê theo ngày',
+    subtitle: 'Lưu trữ và in lại sao kê thu — chi theo từng ngày',
+    parent: { name: 'reports', label: 'Báo cáo', to: '/reports' },
   },
   'quan-costs': {
     title: 'Giá nhập & tiền lời',

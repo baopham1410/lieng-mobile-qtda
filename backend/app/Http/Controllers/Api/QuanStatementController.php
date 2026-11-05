@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\QuanEntryResource;
 use App\Http\Resources\QuanStatementResource;
+use App\Models\Order;
 use App\Models\QuanEntry;
 use App\Models\QuanStatement;
+use App\Models\Transaction;
 use App\Services\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class QuanStatementController extends Controller
@@ -81,15 +84,11 @@ class QuanStatementController extends Controller
             ? Carbon::parse($validated['statement_date'])->startOfDay()
             : now()->startOfDay();
 
-        $entries = QuanEntry::with('user:id,name')
-            ->whereDate('occurred_at', $date->toDateString())
-            ->orderBy('occurred_at')
-            ->orderBy('id')
-            ->get();
+        $snapshot = $this->buildDaySnapshot($date->toDateString());
 
-        if ($entries->isEmpty()) {
+        if ($snapshot->isEmpty()) {
             return response()->json([
-                'message' => 'Ngày này chưa có giao dịch để lưu sao kê.',
+                'message' => 'Ngày này chưa có đơn POS / thu chi để lưu sao kê.',
             ], 422);
         }
 
@@ -102,8 +101,6 @@ class QuanStatementController extends Controller
             ], 409);
         }
 
-        $snapshot = $entries->map(fn (QuanEntry $entry) => (new QuanEntryResource($entry))->resolve())->values()->all();
-
         $income = 0.0;
         $expense = 0.0;
         $cash = 0.0;
@@ -111,13 +108,13 @@ class QuanStatementController extends Controller
         $salesCount = 0;
         $expenseCount = 0;
 
-        foreach ($entries as $entry) {
-            $amount = (float) $entry->amount;
-            if ($entry->type === 'income') {
+        foreach ($snapshot as $row) {
+            $amount = (float) ($row['amount'] ?? 0);
+            if (($row['type'] ?? '') === 'income') {
                 $income += $amount;
-                $cash += (float) ($entry->cash_amount ?? 0);
-                $transfer += (float) ($entry->transfer_amount ?? 0);
-                $salesCount += (int) ($entry->qty ?? 1);
+                $cash += (float) ($row['cashAmount'] ?? 0);
+                $transfer += (float) ($row['transferAmount'] ?? 0);
+                $salesCount += (int) ($row['qty'] ?? 1);
             } else {
                 $expense += $amount;
                 $expenseCount++;
@@ -132,8 +129,8 @@ class QuanStatementController extends Controller
             'net_total' => round($income - $expense, 2),
             'sales_count' => $salesCount,
             'expense_count' => $expenseCount,
-            'row_count' => $entries->count(),
-            'rows_snapshot' => $snapshot,
+            'row_count' => $snapshot->count(),
+            'rows_snapshot' => $snapshot->values()->all(),
             'note' => $validated['note'] ?? $existing?->note,
             'user_id' => $request->user()->id,
         ];
@@ -155,16 +152,120 @@ class QuanStatementController extends Controller
 
         ActivityLogger::record($request->user(), [
             'action' => $action,
-            'module' => 'quan',
+            'module' => 'reports',
             'title' => $message,
             'description' => ActivityLogger::formatMoney((float) $statement->net_total),
-            'link' => '/quan/statements',
+            'link' => '/reports/statements',
         ]);
 
         return response()->json([
             'data' => new QuanStatementResource($statement),
             'message' => $message,
         ], $existing ? 200 : 201);
+    }
+
+    /**
+     * Gộp đơn POS hoàn tất + chi (transactions) + giao dịch Quán (nếu còn) trong ngày.
+     */
+    private function buildDaySnapshot(string $date): Collection
+    {
+        $rows = collect();
+
+        $orders = Order::with(['user:id,name', 'items', 'incomeTransactions'])
+            ->where('status', 'completed')
+            ->where(function ($q) use ($date) {
+                $q->whereDate('paid_at', $date)
+                    ->orWhere(function ($q2) use ($date) {
+                        $q2->whereNull('paid_at')->whereDate('created_at', $date);
+                    });
+            })
+            ->orderBy('paid_at')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($orders as $order) {
+            $amount = (float) $order->total;
+            $method = $order->payment_method ?: 'cash';
+            $breakdown = $order->paymentBreakdown();
+            $cash = 0.0;
+            $transfer = 0.0;
+
+            if ($breakdown) {
+                $cash = (float) ($breakdown['cashAmount'] ?? 0);
+                $transfer = (float) ($breakdown['transferAmount'] ?? 0);
+            } elseif (in_array($method, ['transfer', 'ewallet', 'bank'], true)) {
+                $transfer = $amount;
+            } elseif ($method === 'mixed') {
+                $cash = $amount;
+            } else {
+                $cash = $amount;
+            }
+
+            $occurred = $order->paid_at ?? $order->created_at;
+            $itemCount = max(1, (int) $order->items->count());
+
+            $rows->push([
+                'id' => 'order-'.$order->id,
+                'code' => $order->code,
+                'type' => 'income',
+                'title' => 'Đơn POS '.$order->code,
+                'quanProductId' => null,
+                'qty' => $itemCount,
+                'amount' => $amount,
+                'unitCost' => null,
+                'paymentMethod' => $method,
+                'cashAmount' => $cash,
+                'transferAmount' => $transfer,
+                'note' => $order->notes,
+                'staffName' => $order->user?->name ?? '',
+                'occurredAt' => $occurred?->toIso8601String(),
+                'createdAt' => $order->created_at?->toIso8601String(),
+            ]);
+        }
+
+        $expenses = Transaction::with(['user:id,name', 'category:id,name'])
+            ->where('type', 'expense')
+            ->whereDate('transacted_at', $date)
+            ->orderBy('transacted_at')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($expenses as $tx) {
+            $amount = (float) $tx->amount;
+            $method = $tx->payment_method ?: 'cash';
+            $title = $tx->category?->name
+                ?: ($tx->description ?: 'Chi phí '.$tx->code);
+
+            $rows->push([
+                'id' => 'tx-'.$tx->id,
+                'code' => $tx->code,
+                'type' => 'expense',
+                'title' => $title,
+                'quanProductId' => null,
+                'qty' => 1,
+                'amount' => $amount,
+                'unitCost' => null,
+                'paymentMethod' => $method,
+                'cashAmount' => $method === 'cash' ? $amount : 0,
+                'transferAmount' => in_array($method, ['transfer', 'ewallet', 'bank'], true) ? $amount : 0,
+                'note' => $tx->description,
+                'staffName' => $tx->user?->name ?? '',
+                'occurredAt' => $tx->transacted_at?->toIso8601String(),
+                'createdAt' => $tx->created_at?->toIso8601String(),
+            ]);
+        }
+
+        $quanEntries = QuanEntry::with('user:id,name')
+            ->whereDate('occurred_at', $date)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($quanEntries as $entry) {
+            $rows->push((new QuanEntryResource($entry))->resolve());
+        }
+
+        return $rows->sortBy(fn (array $row) => $row['occurredAt'] ?? '')->values();
     }
 
     public function destroy(Request $request, QuanStatement $quanStatement): JsonResponse
@@ -178,7 +279,7 @@ class QuanStatementController extends Controller
             'module' => 'quan',
             'title' => 'Xóa sao kê '.$code,
             'description' => $date,
-            'link' => '/quan/statements',
+            'link' => '/reports/statements',
         ]);
 
         return response()->json([
