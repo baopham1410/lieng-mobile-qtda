@@ -237,7 +237,7 @@ onMounted(loadList)
           v-else-if="!rows.length"
           size="sm"
           title="Chưa có sao kê"
-          description="Bấm Lưu sao kê hôm nay sau khi đã bán / ghi chi."
+          description="Sau khi thanh toán POS hoặc ghi chi, bấm Lưu sao kê hôm nay."
           class="m-2"
         />
         <ul v-else class="max-h-[70vh] space-y-1 overflow-y-auto p-2">
