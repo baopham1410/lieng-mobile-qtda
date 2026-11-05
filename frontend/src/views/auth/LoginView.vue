@@ -40,7 +40,7 @@ async function finishLogin(data) {
     localStorage.removeItem(REMEMBER_KEY)
   }
 
-  const user = data.user ?? auth.user
+  const user = data?.user ?? auth.user
   if (user?.is_active === false) {
     await auth.logout()
     error.value = loginCopy.inactiveAccount
@@ -48,7 +48,11 @@ async function finishLogin(data) {
   }
 
   const target = resolvePostLoginRoute(user, route.query.redirect)
-  await pageTransition.playLoginEnter(router, target, app)
+  try {
+    await pageTransition.playLoginEnter(router, target, app)
+  } catch {
+    await router.push(target)
+  }
 }
 
 async function handleSubmit() {
@@ -57,11 +61,13 @@ async function handleSubmit() {
     const data = await auth.login(email.value, password.value)
     await finishLogin(data)
   } catch (err) {
-    const msg = err.response?.data?.message
+    const msg = err.response?.data?.message || err.message
     if (msg?.toLowerCase().includes('inactive') || msg?.toLowerCase().includes('khóa')) {
       error.value = loginCopy.inactiveAccount
+    } else if (msg?.includes('Network Error') || err.code === 'ERR_NETWORK') {
+      error.value = 'Không thể kết nối đến máy chủ. Vui lòng sử dụng tài khoản demo bên dưới.'
     } else {
-      error.value = msg ?? 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'
+      error.value = msg || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'
     }
   }
 }
@@ -201,12 +207,12 @@ async function quickLogin(account) {
       </div>
 
       <!-- Đăng nhập nhanh theo vai trò -->
-      <div class="flex w-full max-w-xs justify-center gap-2">
+      <div class="grid w-full max-w-xs grid-cols-3 gap-2">
         <button
-          v-for="acc in demoLoginAccounts"
+          v-for="acc in demoLoginAccounts.slice(0, 3)"
           :key="acc.id"
           type="button"
-          class="flex-1 rounded-full border py-2 px-2 text-center transition duration-200 hover:shadow-sm"
+          class="rounded-2xl border py-2 px-1 text-center transition duration-200 hover:shadow-sm"
           :class="acc.id === 'admin'
             ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
             : acc.id === 'sales'
@@ -218,7 +224,20 @@ async function quickLogin(account) {
           <p class="text-[10px] opacity-75 truncate">{{ acc.name }}</p>
         </button>
       </div>
-      <p class="mt-2 text-[10px] text-slate-400">
+
+      <div class="mt-2 flex w-full max-w-xs justify-center gap-2">
+        <button
+          v-for="acc in demoLoginAccounts.slice(3)"
+          :key="acc.id"
+          type="button"
+          class="flex-1 rounded-xl border border-amber-200 bg-amber-50/70 py-1.5 px-2 text-center text-amber-900 transition duration-200 hover:bg-amber-100/90"
+          @click="quickLogin(acc)"
+        >
+          <span class="text-[11px] font-bold">{{ acc.label }}</span>
+          <span class="text-[10px] opacity-75"> ({{ acc.name }})</span>
+        </button>
+      </div>
+      <p class="mt-2.5 text-[10px] text-slate-400">
         Mật khẩu thử nghiệm: <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-600">{{ DEMO_PASSWORD }}</code>
       </p>
 
