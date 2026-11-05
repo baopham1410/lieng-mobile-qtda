@@ -95,10 +95,15 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'admin', roles: ['admin', 'quan_manager', 'quan_staff'] },
     },
     {
+      path: '/reports/statements',
+      name: 'statements',
+      component: () => import('@/views/quan/QuanStatementsView.vue'),
+      meta: { requiresAuth: true, layout: 'admin', roles: ['admin'] },
+    },
+    {
       path: '/quan/statements',
       name: 'quan-statements',
-      component: () => import('@/views/quan/QuanStatementsView.vue'),
-      meta: { requiresAuth: true, layout: 'admin', roles: ['admin', 'quan_manager'] },
+      redirect: { name: 'statements' },
     },
     {
       path: '/quan/costs',

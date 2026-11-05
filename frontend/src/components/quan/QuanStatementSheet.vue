@@ -8,7 +8,7 @@ const props = defineProps({
   periodFrom: { type: String, default: '' },
   periodTo: { type: String, default: '' },
   staffName: { type: String, default: '' },
-  shopName: { type: String, default: 'Lieng Mobile — Quản lý Quán' },
+  shopName: { type: String, default: 'Lieng Mobile — Sao kê cửa hàng' },
   reportCode: { type: String, default: '' },
   archivedAt: { type: String, default: '' },
 })
@@ -69,7 +69,7 @@ const displayCode = computed(() => {
 })
 
 const titleParts = computed(() => {
-  const raw = props.shopName || 'Lieng Mobile — Quản lý Quán'
+  const raw = props.shopName || 'Lieng Mobile — Sao kê cửa hàng'
   const idx = raw.indexOf(' — ')
   if (idx === -1) return { main: raw, sub: '' }
   return { main: raw.slice(0, idx), sub: raw.slice(idx + 3) }
@@ -253,7 +253,7 @@ function payLabel(row) {
     </footer>
 
     <p class="qs-footer-note">
-      Tài liệu được tạo tự động từ hệ thống Lieng Mobile · Sao kê quản lý quán · {{ displayCode }}
+      Tài liệu được tạo tự động từ hệ thống Lieng Mobile · Sao kê cửa hàng · {{ displayCode }}
     </p>
   </article>
 </template>

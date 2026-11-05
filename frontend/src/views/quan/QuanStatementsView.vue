@@ -163,7 +163,7 @@ async function saveSelectedImage() {
   loadError.value = ''
   try {
     const d = selected.value.statementDate || 'sao-ke'
-    await downloadElementAsPng(el, `sao-ke-quan-${d}`)
+    await downloadElementAsPng(el, `sao-ke-${d}`)
     showFlash('Đã tải ảnh sao kê về máy')
   } catch (err) {
     loadError.value = err.message || 'Không lưu được ảnh.'
@@ -193,20 +193,20 @@ onMounted(loadList)
       {{ flash }}
     </div>
 
-    <div class="no-print flex flex-wrap items-start justify-between gap-3 rounded-[20px] border border-amber-200 bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] sm:p-5">
+    <div class="no-print flex flex-wrap items-start justify-between gap-3 rounded-[20px] border border-red-200 bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] sm:p-5">
       <div>
-        <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700">Lưu trữ</p>
-        <h2 class="mt-1 text-xl font-black text-[#111118]">Kho sao kê theo ngày</h2>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-red-600">Báo cáo · Sao kê</p>
+        <h2 class="mt-1 text-xl font-black text-[#111118]">Sao kê theo ngày</h2>
         <p class="mt-1 max-w-xl text-sm text-slate-500">
-          Mỗi ngày một bản sao kê đã chốt — xem lại, in lại bất cứ lúc nào. Đồng bộ với dữ liệu quầy khi bạn lưu / cập nhật.
+          Mỗi ngày một bản sao kê đã chốt — xem lại, in hoặc lưu ảnh bất cứ lúc nào.
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <RouterLink
-          :to="{ name: 'quan' }"
-          class="rounded-[12px] bg-white px-3 py-2 text-xs font-bold text-amber-900 ring-1 ring-amber-200 hover:bg-amber-50"
+          :to="{ name: 'reports' }"
+          class="rounded-[12px] bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
         >
-          Về quầy
+          Về báo cáo
         </RouterLink>
         <button
           type="button"
@@ -294,7 +294,7 @@ onMounted(loadList)
                 :disabled="saving"
                 @click="refreshSelected"
               >
-                Cập nhật từ quầy
+                Cập nhật lại
               </button>
               <button
                 type="button"
