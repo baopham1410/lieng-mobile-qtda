@@ -1,0 +1,11 @@
+RiskID,RiskTitle,Category,Probability_S1,Impact_S1,Score_S1,Status_S1,Response_S1,Owner_S1,Probability_S2,Impact_S2,Score_S2,Status_S2,Response_S2,Owner_S2,ActualEvent,Evidence
+R-01,API cham / Neon SSL loi ket noi,Technical,3,4,12,Open,Dung .env.example + checklist Neon; fallback local,Bao,2,3,6,Mitigated,Smoke test login/catalog OK; CI dung SQLite memory,Bao,Mot phan (local OK),backend/.env.example; CI phpunit
+R-02,Scope creep FE full UI trong PR foundation,Scope,4,5,20,Occurred,Tach foundation vs man chi tiet,Bao,1,3,3,Closed,CR-001 + PR #79 stub UI,Bao,Co,PR #79; file 06 CR-001
+R-03,Thanh vien rut / giam dong gop,Resource,3,5,15,Occurred,Phan lai Issue cho Bao/Hong,Bao,2,4,8,Mitigated,CR-002; Hong lam man Giang,Bao+Hong,Co (Giang rut coding),Collaborators; PR #87
+R-04,Thieu peer review / tu merge,Process,4,4,16,Open,Quy uoc PR + request review,Bao,1,4,4,Mitigated,Branch protection 1 approve; Hong Approve #91,Bao+Hong,Giam,PR #91 reviews; protection API
+R-05,Thieu CI → merge vo code hong,Quality,4,4,16,Open,Them GitHub Actions,Bao,1,3,3,Closed,PR #90 CI 3 job,Bao,Da xu ly,Actions runs; workflow ci.yml
+R-06,Private repo khong bat branch protection,Process,5,3,15,Occurred,Public repo de bat protection,Bao,1,2,2,Closed,Repo PUBLIC + required checks,Bao,Co,Repo visibility PUBLIC
+R-07,Uoc luong SP lech → tre Sprint,Schedule,3,3,9,Open,Planning Poker 1/2/3/5,Bao+Hong,2,3,6,Watching,Theo doi velocity Sprint 2 cao,Bao,Mot phan,Chuong 4 bao cao
+R-08,Stakeholder tre ky nghiem thu,Stakeholder,3,4,12,Open,Chuan bi UAT script + demo data,Bao,3,4,12,Open,Hen lich ky; co video backup,Bao,Chua dong,File 07 (cho chu ky)
+R-09,Mobile Expo moi / loi type,Technical,3,3,9,Open,tsc tren CI,Bao,1,2,2,Mitigated,Job Mobile tsc --noEmit,Bao+Hong,Giam,CI Mobile job
+R-10,Conflict merge khi Bao/Hong song song FE,Process,3,3,9,Open,Chia Issue theo man; nhanh ngan,Bao+Hong,2,2,4,Mitigated,PR nho theo nhom man,Bao+Hong,Giam,PR #80-#85
