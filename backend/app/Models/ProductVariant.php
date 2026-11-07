@@ -36,7 +36,11 @@ class ProductVariant extends Model
                 ->filter(fn ($row) => $row->price_type === $type
                     && $row->effective_from?->toDateString() <= $today
                     && ($row->effective_to === null || $row->effective_to->toDateString() >= $today))
-                ->sortByDesc(fn ($row) => $row->effective_from?->toDateString())
+                ->sortByDesc(fn ($row) => sprintf(
+                    '%s-%020d',
+                    $row->effective_from?->toDateString() ?? '',
+                    (int) $row->id,
+                ))
                 ->first();
 
             return $price ? (float) $price->amount : null;
@@ -50,6 +54,7 @@ class ProductVariant extends Model
                     ->orWhere('effective_to', '>=', $today);
             })
             ->orderByDesc('effective_from')
+            ->orderByDesc('id')
             ->first();
 
         return $price ? (float) $price->amount : null;
