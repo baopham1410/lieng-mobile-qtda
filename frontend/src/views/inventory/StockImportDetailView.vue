@@ -10,6 +10,7 @@ import {
   addSupplier,
   confirmStockImport,
   createStockImport,
+  fetchNextImportCode,
   formatCurrency,
   generateImportCode,
   getStockImport,
@@ -206,7 +207,7 @@ async function loadImport() {
   await Promise.all([loadSuppliers(), loadCategoryOptions()])
 
   if (isCreate.value) {
-    importCode.value = generateImportCode()
+    importCode.value = await fetchNextImportCode().catch(() => generateImportCode())
     selectedSupplier.value = suppliers.value[0]?.id ?? null
     notes.value = ''
     status.value = 'draft'
@@ -406,8 +407,10 @@ async function persistDraft() {
 
   const payload = { ...buildPayload(), status: 'draft' }
   if (isCreate.value) {
-    await createStockImport(payload)
-    await router.replace({ name: 'stock-import-detail', params: { code: importCode.value } })
+    const saved = await createStockImport(payload)
+    const savedCode = saved?.code || importCode.value
+    importCode.value = savedCode
+    await router.replace({ name: 'stock-import-detail', params: { code: savedCode } })
   } else {
     await updateStockImport(importCode.value, payload)
   }

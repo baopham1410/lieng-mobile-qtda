@@ -4,7 +4,13 @@ import { BarcodeFormat, DecodeHintType } from '@zxing/library'
 import { createWorker } from 'tesseract.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
-import { appendImeiToText, extractImeiFromScan } from '@/utils/imeiScan'
+import {
+  appendImeiToText,
+  appendManyImeisToText,
+  extractAllImeisFromScan,
+  extractImeiFromScan,
+  preprocessCanvasForOcr,
+} from '@/utils/imeiScan'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -17,6 +23,7 @@ const emit = defineEmits(['update:modelValue', 'scanned'])
 
 const scanInput = ref('')
 const scanInputEl = ref(null)
+const fileInputEl = ref(null)
 const scanFlash = ref('')
 const cameraOpen = ref(false)
 const cameraError = ref('')
@@ -24,15 +31,18 @@ const cameraBusy = ref(false)
 const scanningLabel = ref('')
 const lastRaw = ref('')
 const ocrBusy = ref(false)
+const ocrReady = ref(false)
 const videoRef = ref(null)
 const canvasRef = ref(null)
+const previewUrl = ref('')
 
 let codeReader = null
 let controls = null
-let ocrTimer = null
 let ocrWorker = null
 let lastCameraHit = ''
 let lastHitAt = 0
+let wedgeBuffer = ''
+let wedgeTimer = null
 
 const remaining = computed(() => Math.max(0, props.requiredCount - props.importedCount))
 const progressLabel = computed(() => `${props.importedCount}/${props.requiredCount}`)
@@ -45,14 +55,14 @@ function showFlash(message, ok = true) {
   clearTimeout(showFlash._t)
   showFlash._t = setTimeout(() => {
     if (scanFlash.value === message) scanFlash.value = ''
-  }, ok ? 1800 : 2600)
+  }, ok ? 2000 : 3200)
 }
 
 function commitImei(raw, source = 'scan') {
   if (props.disabled) return false
   const result = appendImeiToText(props.modelValue, raw)
   if (!result.imei && result.reason === 'invalid') {
-    showFlash('Chưa đọc được IMEI 15 số — thử lại gần hơn / bấm Chụp OCR', false)
+    showFlash('Chưa đọc được IMEI 15 số — đưa gần hơn hoặc chọn ảnh tem', false)
     return false
   }
   if (result.reason === 'duplicate') {
@@ -65,19 +75,41 @@ function commitImei(raw, source = 'scan') {
   return true
 }
 
+function commitMany(rawText, source) {
+  if (props.disabled) return false
+  const list = extractAllImeisFromScan(rawText)
+  if (!list.length) {
+    showFlash('Không thấy IMEI 15 số trong ảnh/tem', false)
+    return false
+  }
+  const result = appendManyImeisToText(props.modelValue, list)
+  if (!result.added.length) {
+    showFlash('IMEI trong ảnh đã có sẵn trong phiếu', false)
+    return false
+  }
+  emit('update:modelValue', result.text)
+  result.added.forEach((imei) => emit('scanned', { imei, source }))
+  showFlash(
+    result.added.length === 1
+      ? `Đã nạp ${result.added[0]}`
+      : `Đã nạp ${result.added.length} IMEI`,
+  )
+  return true
+}
+
 function acceptCameraText(raw, source) {
   const text = String(raw ?? '').trim()
   if (!text) return false
-  lastRaw.value = text
+  lastRaw.value = text.replace(/\s+/g, ' ').slice(0, 100)
 
   const imei = extractImeiFromScan(text)
   if (!imei) {
-    scanningLabel.value = `Đã thấy chữ/mã nhưng chưa đủ 15 số: ${text.slice(0, 40)}`
+    scanningLabel.value = `Đọc được chữ nhưng chưa đủ 15 số: ${lastRaw.value.slice(0, 36)}`
     return false
   }
 
   const now = Date.now()
-  if (imei === lastCameraHit && now - lastHitAt < 1500) return false
+  if (imei === lastCameraHit && now - lastHitAt < 1600) return false
   lastCameraHit = imei
   lastHitAt = now
 
@@ -89,29 +121,49 @@ function acceptCameraText(raw, source) {
   return ok
 }
 
+/** Súng quét: gom phím nhanh rồi Enter / đủ 15 số. */
 function onScanKeydown(event) {
   if (props.disabled) return
-  if (event.key !== 'Enter') return
-  event.preventDefault()
-  const raw = scanInput.value
-  scanInput.value = ''
-  commitImei(raw, 'wedge')
+
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    const raw = scanInput.value || wedgeBuffer
+    scanInput.value = ''
+    wedgeBuffer = ''
+    commitImei(raw, 'wedge')
+    return
+  }
+
+  if (event.key.length === 1 && /\d/.test(event.key)) {
+    wedgeBuffer += event.key
+    clearTimeout(wedgeTimer)
+    wedgeTimer = setTimeout(() => {
+      if (normalizeDigits(wedgeBuffer).length >= 15) {
+        const raw = wedgeBuffer
+        wedgeBuffer = ''
+        scanInput.value = ''
+        commitImei(raw, 'wedge-auto')
+      }
+    }, 80)
+  }
+}
+
+function normalizeDigits(value) {
+  return String(value ?? '').replace(/\D/g, '')
 }
 
 function onScanPaste(event) {
   if (props.disabled) return
   const text = event.clipboardData?.getData('text') ?? ''
-  const imei = extractImeiFromScan(text)
-  if (!imei) return
+  if (!extractImeiFromScan(text)) return
   event.preventDefault()
   scanInput.value = ''
-  commitImei(imei, 'paste')
+  commitMany(text, 'paste')
 }
 
 watch(scanInput, (value) => {
   if (props.disabled) return
-  const digits = String(value ?? '').replace(/\D/g, '')
-  if (digits.length < 15) return
+  if (normalizeDigits(value).length < 15) return
   const imei = extractImeiFromScan(value)
   if (!imei) return
   scanInput.value = ''
@@ -146,12 +198,13 @@ function buildReader() {
 
 async function ensureOcrWorker() {
   if (ocrWorker) return ocrWorker
-  ocrWorker = await createWorker('eng', 1, {
-    logger: () => {},
-  })
+  scanningLabel.value = 'Đang tải OCR lần đầu (chỉ 1 lần)...'
+  ocrWorker = await createWorker('eng', 1, { logger: () => {} })
   await ocrWorker.setParameters({
     tessedit_char_whitelist: '0123456789IMEIimei:/ -',
+    tessedit_pageseg_mode: '6',
   })
+  ocrReady.value = true
   return ocrWorker
 }
 
@@ -163,9 +216,8 @@ function captureFrame() {
   const h = video.videoHeight
   if (!w || !h) return null
 
-  // Crop giữa khung (vùng khung quét) để OCR/barcode dễ hơn
-  const cropW = Math.floor(w * 0.82)
-  const cropH = Math.floor(h * 0.28)
+  const cropW = Math.floor(w * 0.88)
+  const cropH = Math.floor(h * 0.34)
   const sx = Math.floor((w - cropW) / 2)
   const sy = Math.floor((h - cropH) / 2)
 
@@ -176,42 +228,100 @@ function captureFrame() {
   return canvas
 }
 
-async function runOcrOnce(manual = false) {
+async function recognizeCanvas(sourceCanvas, source) {
+  // 1) barcode trên ảnh gốc
+  try {
+    const reader = buildReader()
+    const result = reader.decodeFromCanvas(sourceCanvas)
+    if (result?.getText?.() && acceptCameraText(result.getText(), `${source}-barcode`)) {
+      return true
+    }
+  } catch {
+    /* no barcode */
+  }
+
+  // 2) OCR ảnh đã tiền xử lý
+  const prepared = preprocessCanvasForOcr(sourceCanvas)
+  const worker = await ensureOcrWorker()
+  const { data } = await worker.recognize(prepared)
+  const text = data?.text ?? ''
+  lastRaw.value = text.replace(/\s+/g, ' ').trim().slice(0, 100)
+
+  if (commitMany(text, source)) {
+    scanningLabel.value = `OCR OK: ${extractAllImeisFromScan(text).join(', ')}`
+    if (remaining.value <= 0) closeCamera()
+    return true
+  }
+
+  return false
+}
+
+async function runOcrOnce() {
   if (ocrBusy.value || !cameraOpen.value) return
   const canvas = captureFrame()
-  if (!canvas) return
+  if (!canvas) {
+    scanningLabel.value = 'Camera chưa sẵn sàng — đợi 1 giây rồi thử lại'
+    return
+  }
 
   ocrBusy.value = true
-  if (manual) scanningLabel.value = 'Đang OCR khung hình...'
+  scanningLabel.value = 'Đang đọc IMEI trong khung đỏ...'
   try {
-    // Thử barcode trên frame trước (nhanh)
-    try {
-      const reader = buildReader()
-      const result = reader.decodeFromCanvas(canvas)
-      if (result?.getText?.()) {
-        acceptCameraText(result.getText(), 'camera-frame')
-        return
-      }
-    } catch {
-      /* no barcode in frame */
-    }
-
-    const worker = await ensureOcrWorker()
-    const { data } = await worker.recognize(canvas)
-    const text = data?.text ?? ''
-    lastRaw.value = text.replace(/\s+/g, ' ').trim().slice(0, 80)
-    if (!acceptCameraText(text, 'ocr') && manual) {
+    const ok = await recognizeCanvas(canvas, 'ocr')
+    if (!ok) {
       scanningLabel.value = lastRaw.value
-        ? `OCR thấy: "${lastRaw.value}" — chưa đủ IMEI 15 số`
-        : 'OCR chưa đọc được số — đưa tem gần hơn, đủ sáng'
+        ? `OCR thấy: "${lastRaw.value}" — chưa đủ 15 số, chỉnh góc/ánh sáng`
+        : 'Chưa đọc được — đưa tem sát khung đỏ, đủ sáng, chữ rõ'
     }
   } catch (err) {
-    if (manual) {
-      scanningLabel.value = err?.message || 'OCR lỗi — thử lại'
-    }
+    scanningLabel.value = err?.message || 'OCR lỗi — thử Chọn ảnh tem'
   } finally {
     ocrBusy.value = false
   }
+}
+
+async function onPickImage(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file || props.disabled) return
+
+  ocrBusy.value = true
+  showFlash('Đang đọc ảnh tem...', true)
+  try {
+    const url = URL.createObjectURL(file)
+    previewUrl.value = url
+    const img = await loadImage(url)
+    const canvas = document.createElement('canvas')
+    const maxW = 1600
+    const scale = img.width > maxW ? maxW / img.width : 1
+    canvas.width = Math.floor(img.width * scale)
+    canvas.height = Math.floor(img.height * scale)
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+
+    const ok = await recognizeCanvas(canvas, 'file')
+    if (!ok) {
+      showFlash(
+        lastRaw.value
+          ? `Ảnh đọc được "${lastRaw.value.slice(0, 28)}" nhưng chưa đủ IMEI`
+          : 'Ảnh chưa đọc được IMEI — chụp gần, rõ nét hơn',
+        false,
+      )
+    }
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    showFlash(err?.message || 'Không đọc được ảnh', false)
+  } finally {
+    ocrBusy.value = false
+  }
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Không mở được ảnh'))
+    img.src = url
+  })
 }
 
 async function openCamera() {
@@ -223,7 +333,7 @@ async function openCamera() {
 
   if (!canUseCamera.value) {
     cameraError.value =
-      'Máy này không mở được camera. Dùng súng quét USB hoặc dán/gõ IMEI vào ô xanh.'
+      'Máy không mở được camera. Dùng súng USB, gõ 15 số, hoặc Chọn ảnh tem.'
     cameraOpen.value = true
     return
   }
@@ -233,15 +343,19 @@ async function openCamera() {
   await nextTick()
 
   try {
+    // Preload OCR song song
+    ensureOcrWorker().catch(() => {})
+
     codeReader = buildReader()
     const devices = await BrowserMultiFormatReader.listVideoInputDevices()
     if (!devices.length) throw new Error('Không tìm thấy camera trên máy.')
 
-    const backCam =
-      devices.find((d) => /back|rear|environment|sau/i.test(d.label)) ?? devices[0]
+    const preferred =
+      devices.find((d) => /back|rear|environment|sau/i.test(d.label)) ??
+      devices[0]
 
     controls = await codeReader.decodeFromVideoDevice(
-      backCam.deviceId,
+      preferred.deviceId,
       videoRef.value,
       (result, _err, ctrl) => {
         controls = ctrl
@@ -250,15 +364,11 @@ async function openCamera() {
       },
     )
 
-    scanningLabel.value = 'Đang quét barcode liên tục — đưa tem vào khung đỏ'
-    // OCR định kỳ: tem IMEI nhiều máy chỉ in chữ, không phải barcode
-    ocrTimer = window.setInterval(() => {
-      runOcrOnce(false)
-    }, 1600)
+    scanningLabel.value = 'Camera sẵn sàng — căn IMEI vào khung rồi bấm Chụp OCR'
   } catch (err) {
     cameraError.value =
       err?.message ||
-      'Không mở được camera. Cho phép quyền camera, hoặc dùng súng quét / gõ IMEI.'
+      'Không mở được camera. Cho phép quyền camera, hoặc Chọn ảnh tem / súng quét.'
     scanningLabel.value = ''
   } finally {
     cameraBusy.value = false
@@ -270,10 +380,6 @@ async function closeCamera() {
   cameraError.value = ''
   cameraBusy.value = false
   scanningLabel.value = ''
-  if (ocrTimer) {
-    clearInterval(ocrTimer)
-    ocrTimer = null
-  }
   try {
     controls?.stop()
   } catch {
@@ -308,7 +414,7 @@ onBeforeUnmount(async () => {
       <div>
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Quét IMEI tự động</p>
         <p class="mt-1 text-xs text-slate-500">
-          Súng quét · camera (barcode + OCR chữ) — còn thiếu
+          Súng USB · ảnh tem · camera OCR — còn thiếu
           <span class="font-semibold text-slate-700">{{ remaining }}</span>
           ({{ progressLabel }})
         </p>
@@ -317,10 +423,10 @@ onBeforeUnmount(async () => {
         <button
           type="button"
           class="rounded-[12px] bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-red-200 hover:bg-red-50 disabled:opacity-50"
-          :disabled="disabled"
-          @click="focusScanBox"
+          :disabled="disabled || ocrBusy"
+          @click="fileInputEl?.click()"
         >
-          Focus ô quét
+          Chọn ảnh tem
         </button>
         <button
           type="button"
@@ -330,12 +436,20 @@ onBeforeUnmount(async () => {
         >
           Quét camera
         </button>
+        <input
+          ref="fileInputEl"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          class="hidden"
+          @change="onPickImage"
+        />
       </div>
     </div>
 
     <div class="rounded-[16px] border border-emerald-200 bg-emerald-50/70 p-3 ring-1 ring-emerald-100">
       <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-emerald-800">
-        Ô nhận súng quét / gõ IMEI
+        Ô nhận súng quét / gõ IMEI (ổn định nhất)
       </label>
       <input
         ref="scanInputEl"
@@ -344,20 +458,22 @@ onBeforeUnmount(async () => {
         inputmode="numeric"
         autocomplete="off"
         :disabled="disabled"
-        placeholder="Click vào đây rồi quét hoặc gõ 15 số..."
+        placeholder="Click vào đây rồi quét súng hoặc gõ 15 số + Enter..."
         class="w-full rounded-[12px] border border-emerald-300 bg-white px-3 py-2.5 font-mono text-sm outline-none focus:border-emerald-500 disabled:opacity-60"
         @keydown="onScanKeydown"
         @paste="onScanPaste"
+        @focus="wedgeBuffer = ''"
       />
-      <p class="mt-1.5 text-[11px] text-emerald-800/80">
-        Tem chỉ in chữ (không có vạch) → dùng camera + nút <strong>Chụp OCR</strong>. Có súng USB thì ổn định hơn.
+      <p class="mt-1.5 text-[11px] leading-relaxed text-emerald-800/90">
+        Tem chỉ có chữ in → <strong>Chọn ảnh tem</strong> hoặc camera + <strong>Chụp OCR</strong>.
+        Webcam laptop thường khó đọc; ảnh chụp gần từ điện thoại tốt hơn.
       </p>
     </div>
 
     <p
       v-if="scanFlash"
       class="rounded-[12px] px-3 py-2 text-xs font-semibold"
-      :class="scanFlash.includes('Đã nạp') ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'"
+      :class="scanFlash.includes('Đã nạp') || scanFlash.includes('Đang đọc') ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'"
     >
       {{ scanFlash }}
     </p>
@@ -392,13 +508,12 @@ onBeforeUnmount(async () => {
               muted
               autoplay
             />
-            <!-- Khung hướng dẫn vùng đọc -->
             <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div class="h-[28%] w-[82%] rounded-[12px] border-2 border-red-500/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+              <div class="h-[34%] w-[88%] rounded-[12px] border-2 border-red-500/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
             </div>
-            <div class="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/50 to-transparent px-3 py-2">
+            <div class="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/55 to-transparent px-3 py-2">
               <p class="text-center text-[11px] font-semibold text-white">
-                {{ scanningLabel || 'Đưa dãy IMEI 15 số vào khung đỏ' }}
+                {{ scanningLabel || 'Căn dãy 15 số IMEI vào khung đỏ' }}
               </p>
             </div>
           </div>
@@ -410,9 +525,17 @@ onBeforeUnmount(async () => {
               type="button"
               class="rounded-[12px] bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
               :disabled="!!cameraError || cameraBusy || ocrBusy"
-              @click="runOcrOnce(true)"
+              @click="runOcrOnce"
             >
               {{ ocrBusy ? 'Đang đọc...' : 'Chụp OCR ngay' }}
+            </button>
+            <button
+              type="button"
+              class="rounded-[12px] bg-white px-4 py-2.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-50"
+              :disabled="ocrBusy"
+              @click="fileInputEl?.click()"
+            >
+              Chọn ảnh tem
             </button>
             <button
               type="button"
@@ -424,9 +547,9 @@ onBeforeUnmount(async () => {
           </div>
 
           <p class="text-xs leading-relaxed text-slate-500">
-            1) Căn dãy số IMEI vào <span class="font-semibold text-red-600">khung đỏ</span>, đủ sáng.<br />
-            2) Nếu tem có vạch barcode → tự nhận.<br />
-            3) Nếu chỉ có chữ in → bấm <span class="font-semibold">Chụp OCR ngay</span>.
+            Webcam laptop thường mờ — nên <strong>chụp ảnh tem bằng điện thoại</strong> rồi
+            <strong>Chọn ảnh tem</strong>. Trong camera: căn số vào khung → bấm
+            <strong>Chụp OCR ngay</strong> (không chờ tự quét).
           </p>
         </div>
       </div>
