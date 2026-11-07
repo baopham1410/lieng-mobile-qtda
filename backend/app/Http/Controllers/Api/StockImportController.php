@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StockImportResource;
+use App\Models\Category;
 use App\Models\ExpenseCategory;
 use App\Models\ImeiCode;
+use App\Models\Product;
+use App\Models\ProductPrice;
+use App\Models\ProductVariant;
 use App\Models\StockImport;
 use App\Models\StockImportItem;
 use App\Models\Transaction;
@@ -15,9 +19,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class StockImportController extends Controller
 {
+    private const IMEI_CATEGORY_SLUGS = ['dien-thoai', 'tablet', 'laptop', 'phone', 'watch'];
+
     public function index(): JsonResponse
     {
         $imports = StockImport::with([
@@ -54,47 +61,27 @@ class StockImportController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|unique:stock_imports,code',
-            'supplierId' => 'required|exists:suppliers,id',
-            'notes' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.productVariantId' => 'required|exists:product_variants,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unitPrice' => 'required|numeric|min:0',
-            'imeis' => 'nullable|array',
-            'imeis.*' => 'string|size:15',
-        ]);
+        $validated = $this->validateImportPayload($request, creating: true);
 
         return DB::transaction(function () use ($validated, $request) {
-            $total = collect($validated['items'])->sum(fn ($i) => $i['quantity'] * $i['unitPrice']);
-
             $import = StockImport::create([
                 'code' => $validated['code'],
                 'supplier_id' => $validated['supplierId'],
                 'user_id' => $request->user()->id,
-                'total_amount' => $total,
+                'total_amount' => 0,
                 'status' => 'draft',
                 'notes' => $validated['notes'] ?? '',
             ]);
 
-            foreach ($validated['items'] as $item) {
-                StockImportItem::create([
-                    'stock_import_id' => $import->id,
-                    'product_variant_id' => $item['productVariantId'],
-                    'quantity' => $item['quantity'],
-                    'unit_cost' => $item['unitPrice'],
-                    'subtotal' => $item['quantity'] * $item['unitPrice'],
-                ]);
-            }
-
-            $this->syncImeis($import, $validated['imeis'] ?? []);
+            $total = $this->syncImportItems($import, $validated['items']);
+            $import->update(['total_amount' => $total]);
+            $this->syncImeis($import->fresh('items'), $validated['imeis'] ?? []);
 
             ActivityLogger::record($request->user(), [
                 'action' => 'create',
                 'module' => 'stock_imports',
                 'title' => 'Tạo phiếu nhập '.$import->code,
-                'description' => 'Tổng '.ActivityLogger::formatMoney((float) $import->total_amount),
+                'description' => 'Tổng '.ActivityLogger::formatMoney((float) $import->fresh()->total_amount),
                 'link' => '/inventory/imports/'.$import->code,
                 'metadata' => ['import_code' => $import->code],
             ]);
@@ -116,16 +103,7 @@ class StockImportController extends Controller
             return response()->json(['message' => 'Phiếu đã xác nhận, không thể sửa.'], 422);
         }
 
-        $validated = $request->validate([
-            'supplierId' => 'sometimes|exists:suppliers,id',
-            'notes' => 'nullable|string',
-            'items' => 'sometimes|array|min:1',
-            'items.*.productVariantId' => 'required_with:items|exists:product_variants,id',
-            'items.*.quantity' => 'required_with:items|integer|min:1',
-            'items.*.unitPrice' => 'required_with:items|numeric|min:0',
-            'imeis' => 'nullable|array',
-            'imeis.*' => 'string|size:15',
-        ]);
+        $validated = $this->validateImportPayload($request, creating: false);
 
         return DB::transaction(function () use ($import, $validated, $request) {
             if (isset($validated['supplierId'])) {
@@ -138,27 +116,14 @@ class StockImportController extends Controller
             if (isset($validated['items'])) {
                 $import->items()->each(fn ($item) => $item->imeiCodes()->delete());
                 $import->items()->delete();
-
-                $total = 0;
-                foreach ($validated['items'] as $item) {
-                    $subtotal = $item['quantity'] * $item['unitPrice'];
-                    $total += $subtotal;
-                    StockImportItem::create([
-                        'stock_import_id' => $import->id,
-                        'product_variant_id' => $item['productVariantId'],
-                        'quantity' => $item['quantity'],
-                        'unit_cost' => $item['unitPrice'],
-                        'subtotal' => $subtotal,
-                    ]);
-                }
-                $import->total_amount = $total;
+                $import->total_amount = $this->syncImportItems($import, $validated['items']);
             }
 
             $import->save();
 
             if (array_key_exists('imeis', $validated)) {
                 $import->items()->each(fn ($item) => $item->imeiCodes()->delete());
-                $this->syncImeis($import, $validated['imeis'] ?? []);
+                $this->syncImeis($import->fresh('items.productVariant.product.category'), $validated['imeis'] ?? []);
             }
 
             ActivityLogger::record($request->user(), [
@@ -180,7 +145,7 @@ class StockImportController extends Controller
 
     public function confirm(Request $request, string $code): JsonResponse
     {
-        $import = StockImport::with(['items.productVariant', 'items.imeiCodes'])
+        $import = StockImport::with(['items.productVariant.product.category', 'items.imeiCodes'])
             ->where('code', $code)->firstOrFail();
 
         if ($import->status === 'confirmed') {
@@ -189,6 +154,12 @@ class StockImportController extends Controller
 
         return DB::transaction(function () use ($import, $request) {
             foreach ($import->items as $item) {
+                if ($this->itemRequiresImei($item) && $item->imeiCodes->count() < (int) $item->quantity) {
+                    throw ValidationException::withMessages([
+                        'imeis' => 'Phiếu '.$import->code.' chưa đủ IMEI cho dòng '.$item->productVariant?->product?->name.'.',
+                    ]);
+                }
+
                 foreach ($item->imeiCodes as $imei) {
                     $imei->update(['status' => 'in_stock', 'import_cost' => $item->unit_cost]);
                 }
@@ -233,26 +204,206 @@ class StockImportController extends Controller
         });
     }
 
-    private function syncImeis(StockImport $import, array $imeis): void
+    private function validateImportPayload(Request $request, bool $creating): array
     {
-        $import->load('items');
-        $firstItem = $import->items->first();
-        if (! $firstItem) {
-            return;
+        $rules = [
+            'supplierId' => ($creating ? 'required' : 'sometimes').'|exists:suppliers,id',
+            'notes' => 'nullable|string',
+            'items' => ($creating ? 'required' : 'sometimes').'|array|min:1',
+            'items.*.productVariantId' => 'nullable|integer|exists:product_variants,id',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.unitPrice' => 'required_with:items|numeric|min:0',
+            'items.*.name' => 'nullable|string|max:255',
+            'items.*.brand' => 'nullable|string|max:100',
+            'items.*.category' => 'nullable|string|max:100',
+            'items.*.categoryId' => 'nullable|integer|exists:categories,id',
+            'items.*.color' => 'nullable|string|max:100',
+            'items.*.storage' => 'nullable|string|max:120',
+            'items.*.variant' => 'nullable|string|max:255',
+            'items.*.isNew' => 'nullable|boolean',
+            'imeis' => 'nullable|array',
+            'imeis.*' => 'string|size:15',
+        ];
+
+        if ($creating) {
+            $rules['code'] = 'required|string|unique:stock_imports,code';
         }
 
-        foreach ($imeis as $imei) {
-            if (ImeiCode::where('imei', $imei)->exists()) {
-                continue;
+        $validated = $request->validate($rules);
+
+        if (isset($validated['items'])) {
+            foreach ($validated['items'] as $index => $item) {
+                $hasVariant = ! empty($item['productVariantId']);
+                $hasNew = ! empty($item['name']) && (! empty($item['category']) || ! empty($item['categoryId']));
+                if (! $hasVariant && ! $hasNew) {
+                    throw ValidationException::withMessages([
+                        "items.$index" => 'Mỗi dòng hàng cần sản phẩm có sẵn hoặc thông tin sản phẩm mới (tên + danh mục).',
+                    ]);
+                }
             }
-            ImeiCode::create([
-                'product_variant_id' => $firstItem->product_variant_id,
-                'imei' => $imei,
-                'status' => 'defective',
-                'stock_import_item_id' => $firstItem->id,
-                'import_cost' => $firstItem->unit_cost,
+        }
+
+        return $validated;
+    }
+
+    private function syncImportItems(StockImport $import, array $items): float
+    {
+        $total = 0.0;
+
+        foreach ($items as $item) {
+            $variantId = $this->resolveProductVariantId($item);
+            $qty = (int) $item['quantity'];
+            $unit = (float) $item['unitPrice'];
+            $subtotal = $qty * $unit;
+            $total += $subtotal;
+
+            StockImportItem::create([
+                'stock_import_id' => $import->id,
+                'product_variant_id' => $variantId,
+                'quantity' => $qty,
+                'unit_cost' => $unit,
+                'subtotal' => $subtotal,
             ]);
         }
+
+        return round($total, 2);
+    }
+
+    private function resolveProductVariantId(array $item): int
+    {
+        if (! empty($item['productVariantId'])) {
+            return (int) $item['productVariantId'];
+        }
+
+        $category = $this->resolveCategory($item);
+        if (! $category) {
+            throw ValidationException::withMessages([
+                'items' => 'Không tìm thấy danh mục cho sản phẩm mới.',
+            ]);
+        }
+
+        $color = $item['color'] ?? null;
+        $storage = $item['storage'] ?? null;
+        if ((! $color || ! $storage) && ! empty($item['variant'])) {
+            $parts = array_values(array_filter(array_map('trim', explode('·', $item['variant']))));
+            $color = $color ?: ($parts[0] ?? null);
+            $storage = $storage ?: ($parts[1] ?? ($parts[0] ?? null));
+        }
+
+        $product = Product::create([
+            'name' => trim((string) $item['name']),
+            'category_id' => $category->id,
+            'brand' => isset($item['brand']) ? trim((string) $item['brand']) : null,
+            'is_active' => true,
+        ]);
+
+        $variant = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => $this->makeVariantSku($product, $color, $storage),
+            'color' => $color ? trim((string) $color) : null,
+            'storage' => $storage ? trim((string) $storage) : null,
+            'condition' => 'new',
+        ]);
+
+        $unit = (float) ($item['unitPrice'] ?? 0);
+        if ($unit > 0) {
+            ProductPrice::create([
+                'product_variant_id' => $variant->id,
+                'price_type' => 'import',
+                'amount' => $unit,
+                'effective_from' => now()->toDateString(),
+            ]);
+            ProductPrice::create([
+                'product_variant_id' => $variant->id,
+                'price_type' => 'retail',
+                'amount' => $unit,
+                'effective_from' => now()->toDateString(),
+            ]);
+        }
+
+        return $variant->id;
+    }
+
+    private function resolveCategory(array $item): ?Category
+    {
+        if (! empty($item['categoryId'])) {
+            return Category::find($item['categoryId']);
+        }
+
+        $raw = (string) ($item['category'] ?? '');
+        if ($raw === '') {
+            return null;
+        }
+
+        if (ctype_digit($raw)) {
+            return Category::find((int) $raw);
+        }
+
+        return Category::where('slug', $raw)->orWhere('name', $raw)->first();
+    }
+
+    private function makeVariantSku(Product $product, ?string $color, ?string $storage): string
+    {
+        $slugify = static function (?string $value): string {
+            $value = Str::ascii((string) $value);
+            $value = strtoupper(preg_replace('/[^A-Za-z0-9]+/', '-', $value) ?? '');
+
+            return trim($value, '-') ?: 'X';
+        };
+
+        $base = implode('-', array_filter([
+            $slugify($product->brand ?: 'SP'),
+            $slugify($product->name),
+            $slugify($color),
+            $slugify($storage),
+        ]));
+
+        $sku = Str::limit($base, 80, '');
+        if (! ProductVariant::where('sku', $sku)->exists()) {
+            return $sku;
+        }
+
+        return Str::limit($sku, 72, '').'-'.strtoupper(Str::random(4));
+    }
+
+    private function syncImeis(StockImport $import, array $imeis): void
+    {
+        $import->loadMissing(['items.productVariant.product.category']);
+        $cursor = 0;
+
+        foreach ($import->items as $item) {
+            $qty = $this->itemRequiresImei($item) ? (int) $item->quantity : 0;
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $slice = array_slice($imeis, $cursor, $qty);
+            $cursor += $qty;
+
+            foreach ($slice as $imei) {
+                if (ImeiCode::where('imei', $imei)->exists()) {
+                    continue;
+                }
+
+                ImeiCode::create([
+                    'product_variant_id' => $item->product_variant_id,
+                    'imei' => $imei,
+                    'status' => 'defective',
+                    'stock_import_item_id' => $item->id,
+                    'import_cost' => $item->unit_cost,
+                ]);
+            }
+        }
+    }
+
+    private function itemRequiresImei(StockImportItem $item): bool
+    {
+        $slug = $item->productVariant?->product?->category?->slug;
+        if (! $slug) {
+            return true;
+        }
+
+        return in_array($slug, self::IMEI_CATEGORY_SLUGS, true);
     }
 
     private function loadImportRows()
