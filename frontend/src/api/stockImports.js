@@ -56,12 +56,26 @@ export function getStockImport(code) {
 }
 
 function apiErrorMessage(err, fallback) {
-  return (
+  const raw =
     err?.response?.data?.message ||
     (err?.response?.data?.errors && Object.values(err.response.data.errors).flat()[0]) ||
     err?.message ||
     fallback
-  )
+
+  if (/already been taken/i.test(String(raw))) {
+    return 'Mã phiếu đã tồn tại — hệ thống sẽ cấp mã mới, hãy lưu lại.'
+  }
+
+  return raw
+}
+
+export async function fetchNextImportCode() {
+  try {
+    const data = await apiGet('/stock-imports/next-code')
+    return data?.code || repo.generateImportCode()
+  } catch {
+    return repo.generateImportCode()
+  }
 }
 
 /** Ghi phiếu nhập bắt buộc qua API — không fallback local (tránh “xác nhận xong biến mất”). */

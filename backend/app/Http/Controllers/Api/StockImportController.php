@@ -48,6 +48,15 @@ class StockImportController extends Controller
         ]);
     }
 
+    public function nextCode(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'code' => $this->allocateImportCode(),
+            ],
+        ]);
+    }
+
     public function show(string $code): JsonResponse
     {
         $import = StockImport::with([
@@ -64,8 +73,13 @@ class StockImportController extends Controller
         $validated = $this->validateImportPayload($request, creating: true);
 
         return DB::transaction(function () use ($validated, $request) {
+            $code = $validated['code'] ?? null;
+            if (! $code || StockImport::where('code', $code)->exists()) {
+                $code = $this->allocateImportCode();
+            }
+
             $import = StockImport::create([
-                'code' => $validated['code'],
+                'code' => $code,
                 'supplier_id' => $validated['supplierId'],
                 'user_id' => $request->user()->id,
                 'total_amount' => 0,
@@ -226,7 +240,8 @@ class StockImportController extends Controller
         ];
 
         if ($creating) {
-            $rules['code'] = 'required|string|unique:stock_imports,code';
+            // Mã có thể trùng từ màn hình create — server sẽ tự cấp mã mới nếu đã tồn tại.
+            $rules['code'] = 'nullable|string|max:50';
         }
 
         $validated = $request->validate($rules);
@@ -404,6 +419,27 @@ class StockImportController extends Controller
         }
 
         return in_array($slug, self::IMEI_CATEGORY_SLUGS, true);
+    }
+
+    private function allocateImportCode(): string
+    {
+        $prefix = 'PN-'.now()->format('Ymd').'-';
+        $latest = StockImport::query()
+            ->where('code', 'like', $prefix.'%')
+            ->orderByDesc('code')
+            ->value('code');
+
+        $next = 1;
+        if ($latest && preg_match('/-(\d+)$/', $latest, $matches)) {
+            $next = ((int) $matches[1]) + 1;
+        }
+
+        do {
+            $code = $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $next++;
+        } while (StockImport::where('code', $code)->exists());
+
+        return $code;
     }
 
     private function loadImportRows()
