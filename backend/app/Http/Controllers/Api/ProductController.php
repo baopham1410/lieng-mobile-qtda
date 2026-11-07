@@ -22,10 +22,11 @@ class ProductController extends Controller
     {
         $query = Product::with([
             'category',
-            'variants.prices',
-            'variants' => fn ($q) => $q->withCount([
-                'imeiCodes as in_stock_count' => fn ($q) => $q->where('status', 'in_stock'),
-            ]),
+            'variants' => fn ($q) => $q
+                ->with('prices')
+                ->withCount([
+                    'imeiCodes as in_stock_count' => fn ($q) => $q->where('status', 'in_stock'),
+                ]),
         ])->orderByDesc('updated_at');
 
         if ($search = $request->query('search')) {
@@ -329,9 +330,16 @@ class ProductController extends Controller
                     $q->whereNull('effective_to')->orWhere('effective_to', '>=', $today);
                 })
                 ->orderByDesc('effective_from')
+                ->orderByDesc('id')
                 ->first();
 
             if ($existing && (float) $existing->amount === $amount) {
+                continue;
+            }
+
+            // Same calendar day: update in place to avoid duplicate effective_from rows.
+            if ($existing && $existing->effective_from?->toDateString() === $today) {
+                $existing->update(['amount' => $amount, 'effective_to' => null]);
                 continue;
             }
 

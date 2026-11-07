@@ -74,15 +74,10 @@ class ProductListResource extends JsonResource
 
     private function priceFromVariant($variant, string $type): float
     {
-        if (! $variant || ! $variant->relationLoaded('prices')) {
+        if (! $variant) {
             return 0;
         }
 
-        $price = $variant->prices
-            ->where('price_type', $type)
-            ->sortByDesc('effective_from')
-            ->first();
-
-        return $price ? (float) $price->amount : 0;
+        return (float) ($variant->currentPrice($type) ?? 0);
     }
 }
