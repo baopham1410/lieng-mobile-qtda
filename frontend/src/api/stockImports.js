@@ -55,25 +55,38 @@ export function getStockImport(code) {
   )
 }
 
-export function createStockImport(payload) {
-  return withApiFallback(
-    () => apiWrite('post', '/stock-imports', payload),
-    () => repo.saveStockImport(payload),
+function apiErrorMessage(err, fallback) {
+  return (
+    err?.response?.data?.message ||
+    (err?.response?.data?.errors && Object.values(err.response.data.errors).flat()[0]) ||
+    err?.message ||
+    fallback
   )
 }
 
-export function updateStockImport(code, payload) {
-  return withApiFallback(
-    () => apiWrite('put', `/stock-imports/${code}`, payload),
-    () => repo.saveStockImport({ ...payload, code }),
-  )
+/** Ghi phiếu nhập bắt buộc qua API — không fallback local (tránh “xác nhận xong biến mất”). */
+export async function createStockImport(payload) {
+  try {
+    return await apiWrite('post', '/stock-imports', payload)
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, 'Không tạo được phiếu nhập'))
+  }
 }
 
-export function confirmStockImport(code) {
-  return withApiFallback(
-    () => apiWrite('post', `/stock-imports/${code}/confirm`),
-    () => repo.confirmStockImport(code),
-  )
+export async function updateStockImport(code, payload) {
+  try {
+    return await apiWrite('put', `/stock-imports/${code}`, payload)
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, 'Không cập nhật được phiếu nhập'))
+  }
+}
+
+export async function confirmStockImport(code) {
+  try {
+    return await apiWrite('post', `/stock-imports/${code}/confirm`)
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, 'Không xác nhận được phiếu nhập'))
+  }
 }
 
 export function listSuppliers() {
