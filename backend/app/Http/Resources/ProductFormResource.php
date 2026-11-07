@@ -42,15 +42,10 @@ class ProductFormResource extends JsonResource
 
     private function priceAmount($variant, string $type): ?float
     {
-        if (! $variant || ! $variant->relationLoaded('prices')) {
+        if (! $variant) {
             return null;
         }
 
-        $price = $variant->prices
-            ->where('price_type', $type)
-            ->sortByDesc('effective_from')
-            ->first();
-
-        return $price ? (float) $price->amount : null;
+        return $variant->currentPrice($type);
     }
 }
