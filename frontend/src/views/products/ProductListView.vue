@@ -10,7 +10,6 @@ import AppSlideOver from '@/components/common/AppSlideOver.vue'
 import ProductForm from '@/components/products/ProductForm.vue'
 import { fetchProducts, deleteProduct } from '@/api/products'
 import { downloadCsv } from '@/utils/exportCsv'
-import { withApiFallback } from '@/utils/apiFallback'
 import { useLocaleStore } from '@/stores/locale'
 import {
   productBrands as mockBrands,
