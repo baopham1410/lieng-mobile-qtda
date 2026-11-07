@@ -48,20 +48,43 @@ function closeEdit() {
 }
 
 async function refreshProducts() {
-  const data = await withApiFallback(fetchProducts, () => ({
-    rows: mockRows,
-    stats: mockStats,
-    categories: mockCategories,
-    brands: mockBrands,
-  }))
-  productRows.value = Array.isArray(data.rows) ? data.rows : [...mockRows]
-  productStats.value = data.stats ?? { ...mockStats }
-  categoryOptions.value = stripAllOption(data.categories?.length ? data.categories : mockCategories)
-  brandOptions.value = stripAllOption(data.brands?.length ? data.brands : mockBrands)
-  listReady.value = true
+  try {
+    const data = await fetchProducts()
+    productRows.value = Array.isArray(data.rows) ? data.rows : []
+    productStats.value = data.stats ?? { ...productStats.value }
+    categoryOptions.value = stripAllOption(data.categories?.length ? data.categories : categoryOptions.value)
+    brandOptions.value = stripAllOption(data.brands?.length ? data.brands : brandOptions.value)
+  } catch {
+    // Chi dung mock khi chua load duoc API lan dau — tranh ghi de list that bang mock sau khi Luu.
+    if (!listReady.value) {
+      productRows.value = [...mockRows]
+      productStats.value = { ...mockStats }
+      categoryOptions.value = stripAllOption(mockCategories)
+      brandOptions.value = stripAllOption(mockBrands)
+    }
+  } finally {
+    listReady.value = true
+  }
 }
 
-function handleProductSaved() {
+function handleProductSaved(updated) {
+  if (updated?.id) {
+    const idx = productRows.value.findIndex((p) => p.id === updated.id)
+    if (idx >= 0) {
+      const current = productRows.value[idx]
+      const prices = updated.prices ?? {}
+      productRows.value[idx] = {
+        ...current,
+        name: updated.name ?? current.name,
+        brand: updated.brand ?? current.brand,
+        modelCode: updated.modelCode ?? current.modelCode,
+        status: updated.isActive === false ? 'Tạm ẩn' : current.status,
+        retailPrice: prices.retail != null ? Number(prices.retail) : current.retailPrice,
+        wholesalePrice: prices.wholesale != null ? Number(prices.wholesale) : current.wholesalePrice,
+        importPrice: prices.import != null ? Number(prices.import) : current.importPrice,
+      }
+    }
+  }
   refreshProducts()
 }
 
