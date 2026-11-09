@@ -13,11 +13,11 @@ export const DEFAULT_QUAN_CATEGORIES: QuanCategory[] = [
   { value: 'khac', label: 'Khác' },
 ]
 
-export async function fetchQuanProducts(): Promise<{
+export async function fetchQuanProducts(params?: { active_only?: boolean }): Promise<{
   rows: QuanProduct[]
   categories: QuanCategory[]
 }> {
-  const { data } = await api.get('/quan/products')
+  const { data } = await api.get('/quan/products', { params })
   const rows = ((data.data ?? []) as QuanProduct[]).map((p) => ({
     ...p,
     category: p.category || 'khac',
@@ -48,6 +48,10 @@ export async function updateQuanProduct(
   return data.data as QuanProduct
 }
 
+export async function deleteQuanProduct(id: number) {
+  await api.delete(`/quan/products/${id}`)
+}
+
 export async function fetchQuanEntries(period = 'today', perPage = 200) {
   const { data } = await api.get('/quan/entries', {
     params: { period, per_page: perPage },
@@ -69,6 +73,15 @@ export async function fetchQuanEntries(period = 'today', perPage = 200) {
 export async function createQuanEntry(payload: Record<string, unknown>) {
   const { data } = await api.post('/quan/entries', payload)
   return data.data as QuanEntry
+}
+
+export async function updateQuanEntry(id: number, payload: Record<string, unknown>) {
+  const { data } = await api.put(`/quan/entries/${id}`, payload)
+  return data.data as QuanEntry
+}
+
+export async function deleteQuanEntry(id: number) {
+  await api.delete(`/quan/entries/${id}`)
 }
 
 export async function fetchQuanStatements(month?: string) {
