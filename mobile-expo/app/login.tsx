@@ -59,14 +59,14 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  if (!loading && user) return <Redirect href="/quay" />
+  if (!loading && user) return <Redirect href="/home" />
 
   async function onSubmit() {
     setSubmitting(true)
     setError('')
     try {
       await login(email, password)
-      router.replace('/quay')
+      router.replace('/home')
     } catch (e) {
       setError(e instanceof Error ? e.message : t('login.failed'))
     } finally {
@@ -84,7 +84,7 @@ export default function LoginScreen() {
       setSubmitting(true)
       try {
         await login(acc.email, 'password')
-        router.replace('/quay')
+        router.replace('/home')
       } catch (e) {
         setError(e instanceof Error ? e.message : t('login.failed'))
       } finally {

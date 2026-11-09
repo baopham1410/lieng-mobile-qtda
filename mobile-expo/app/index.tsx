@@ -22,5 +22,5 @@ export default function Index() {
     )
   }
 
-  return <Redirect href={user ? '/quay' : '/login'} />
+  return <Redirect href={user ? '/home' : '/login'} />
 }
