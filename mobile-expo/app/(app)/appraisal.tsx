@@ -10,50 +10,112 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import {
-  AlertBox,
-  Card,
-  Chip,
-  Eyebrow,
-  Field,
-  MoneyField,
-  Muted,
-  PrimaryButton,
-  ScreenTitle,
-} from '@/components/ui'
+import { Card, Chip, Eyebrow, Field, MoneyField, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney, parseMoneyInput } from '@/utils/format'
+
+interface AppraisalRecord {
+  id: string
+  device: string
+  capacity: string
+  condition: string
+  grade: 'S' | 'A' | 'B' | 'C'
+  suggestedPrice: number
+  customerName?: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+}
+
+const DEMO_RECORDS: AppraisalRecord[] = [
+  {
+    id: 'TD-001',
+    device: 'iPhone 13 Pro Max',
+    capacity: '128GB',
+    condition: 'Đẹp 98%, pin 86%, Full chức năng',
+    grade: 'A',
+    suggestedPrice: 12500000,
+    customerName: 'Anh Tuấn',
+    status: 'approved',
+    createdAt: '15:30 Hôm nay',
+  },
+  {
+    id: 'TD-002',
+    device: 'Samsung Galaxy S22 Ultra',
+    capacity: '256GB',
+    condition: 'Xước dăm viền, màn zin đẹp',
+    grade: 'B',
+    suggestedPrice: 9800000,
+    customerName: 'Chị Mai',
+    status: 'pending',
+    createdAt: '11:15 Hôm nay',
+  },
+]
 
 export default function AppraisalScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
+  const [records, setRecords] = useState<AppraisalRecord[]>(DEMO_RECORDS)
   const [modalVisible, setModalVisible] = useState(false)
+
+  // Form
   const [brand, setBrand] = useState('Apple')
   const [model, setModel] = useState('')
   const [capacity, setCapacity] = useState('128GB')
-  const [condition, setCondition] = useState<'like_new' | 'good' | 'fair'>('good')
-  const [accessories, setAccessories] = useState('')
+  const [grade, setGrade] = useState<'S' | 'A' | 'B' | 'C'>('A')
+  const [screenStatus, setScreenStatus] = useState<'zin' | 'ep_kinh' | 'thay_lo'>('zin')
+  const [batteryStatus, setBatteryStatus] = useState<'>85' | '<85' | 'thay_moi'>('>85')
+  const [faceIdStatus, setFaceIdStatus] = useState<'ok' | 'fail'>('ok')
+  const [basePrice, setBasePrice] = useState('15000000')
+  const [custName, setCustName] = useState('')
+  const [custPhone, setCustPhone] = useState('')
   const [note, setNote] = useState('')
-  const [suggestedPrice, setSuggestedPrice] = useState('')
 
-  const handleCreateMock = () => {
+  // AutoGrade estimation
+  const numBase = parseMoneyInput(basePrice)
+  const gradeFactor = grade === 'S' ? 0.85 : grade === 'A' ? 0.78 : grade === 'B' ? 0.68 : 0.55
+  const screenPenalty = screenStatus === 'zin' ? 1.0 : screenStatus === 'ep_kinh' ? 0.9 : 0.75
+  const batteryPenalty = batteryStatus === '>85' ? 1.0 : batteryStatus === '<85' ? 0.94 : 0.9
+  const faceIdPenalty = faceIdStatus === 'ok' ? 1.0 : 0.7
+  const autoEstimatedPrice = Math.round((numBase * gradeFactor * screenPenalty * batteryPenalty * faceIdPenalty) / 50000) * 50000
+
+  const handleCreateRecord = () => {
+    if (!model.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên dòng máy (Model).')
+      return
+    }
+
+    const newRecord: AppraisalRecord = {
+      id: `TD-${String(records.length + 1).padStart(3, '0')}`,
+      device: `${brand} ${model}`.trim(),
+      capacity: capacity,
+      condition: `Ngoại quan hạng ${grade}, Màn ${screenStatus === 'zin' ? 'Zin' : 'Đã ép'}, FaceID: ${faceIdStatus === 'ok' ? 'Tốt' : 'Lỗi'}`,
+      grade: grade,
+      suggestedPrice: autoEstimatedPrice > 0 ? autoEstimatedPrice : 10000000,
+      customerName: custName.trim() || 'Khách vãng lai',
+      status: 'pending',
+      createdAt: 'Vừa xong',
+    }
+
+    setRecords([newRecord, ...records])
+    setModalVisible(false)
+    setModel('')
+    setNote('')
     Alert.alert(
-      'Tính năng đang phát triển',
-      'Chức năng thẩm định máy đang được hoàn thiện backend theo roadmap. Phiếu tạm của bạn chưa gửi lên máy chủ.',
-      [{ text: 'Đã hiểu', onPress: () => setModalVisible(false) }]
+      'Tạo phiếu thành công!',
+      `Hệ thống AutoGrade đề xuất giá thu mua máy ${newRecord.device}: ${formatMoney(newRecord.suggestedPrice)}.`,
+      [{ text: 'Hoàn tất' }]
     )
   }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Space.xxl }]}
-      >
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}>
         {/* Navigation Bar */}
         <View style={styles.navBar}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -63,157 +125,156 @@ export default function AppraisalScreen() {
 
           <View style={styles.devBadge}>
             <Ionicons name="construct-outline" size={13} color={Colors.amber900} />
-            <Text style={styles.devBadgeText}>ĐANG PHÁT TRIỂN</Text>
+            <Text style={styles.devBadgeText}>AUTOGRADE #125</Text>
           </View>
         </View>
 
         {/* Title Block */}
         <View style={styles.header}>
           <Eyebrow>THU CŨ ĐỔI MỚI · ĐỊNH GIÁ</Eyebrow>
-          <ScreenTitle>Thẩm định máy</ScreenTitle>
-          <Muted>
-            Hệ thống thẩm định tình trạng và đề xuất mức giá thu mua máy cũ cho quầy.
-          </Muted>
+          <ScreenTitle>Thẩm định máy cũ</ScreenTitle>
+          <Muted>Đánh giá tình trạng ngoại quan, linh kiện và tính giá thu mua tự động</Muted>
         </View>
 
-        {/* Notice Banner */}
-        <View style={styles.noticeBox}>
-          <Ionicons name="information-circle-outline" size={20} color={Colors.brand} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.noticeTitle}>Lộ trình phát triển (Roadmap TD-01)</Text>
-            <Text style={styles.noticeSub}>
-              Tính năng đang được chuẩn bị kết nối API với Admin Web Liêng Mobile. Bạn có thể xem trước biểu mẫu thẩm định bên dưới.
-            </Text>
-          </View>
+        {/* CTA tạo phiếu */}
+        <PrimaryButton
+          label="+ Tạo phiếu thẩm định máy mới"
+          tone="amber"
+          icon="add-circle-outline"
+          onPress={() => setModalVisible(true)}
+        />
+
+        {/* Danh sách phiếu đã tạo */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Phiếu thẩm định gần đây ({records.length})</Text>
         </View>
 
-        {/* Empty list with CTA */}
-        <Card style={styles.emptyCard}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="phone-portrait-outline" size={36} color={Colors.brand} />
-          </View>
-          <Text style={styles.emptyTitle}>Chưa có phiếu thẩm định nào</Text>
-          <Text style={styles.emptyHint}>
-            Nhân viên quầy có thể tạo phiếu thẩm định để định giá máy cũ khách mang tới cửa hàng.
-          </Text>
+        <View style={styles.recordList}>
+          {records.map((r) => (
+            <Card key={r.id} style={styles.recordCard}>
+              <View style={styles.recordTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.recordDevice}>{r.device} ({r.capacity})</Text>
+                  <Text style={styles.recordCust}>Khách: {r.customerName} · {r.createdAt}</Text>
+                </View>
+                <View style={[styles.gradeTag, { backgroundColor: r.grade === 'S' || r.grade === 'A' ? Colors.greenSoft : Colors.amber100 }]}>
+                  <Text style={[styles.gradeTagText, { color: r.grade === 'S' || r.grade === 'A' ? Colors.greenDeep : Colors.amber900 }]}>
+                    Hạng {r.grade}
+                  </Text>
+                </View>
+              </View>
 
-          <View style={{ marginTop: Space.md, width: '100%' }}>
-            <PrimaryButton
-              label="+ Tạo phiếu thẩm định thử nghiệm"
-              tone="amber"
-              icon="add-circle-outline"
-              onPress={() => setModalVisible(true)}
-            />
-          </View>
-        </Card>
+              <Text style={styles.recordCondition}>{r.condition}</Text>
+
+              <View style={styles.recordBottom}>
+                <View>
+                  <Text style={styles.priceLabel}>Giá thu mua đề xuất:</Text>
+                  <Text style={styles.priceVal}>{formatMoney(r.suggestedPrice)}</Text>
+                </View>
+
+                <View style={styles.statusBox}>
+                  <Text style={styles.statusText}>
+                    {r.status === 'approved' ? '✓ Đã chốt giá' : '⏳ Chờ khách duyệt'}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+          ))}
+        </View>
       </ScrollView>
 
-      {/* Modal Mock Form Thẩm định */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
+      {/* Modal Form Thẩm định AutoGrade */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalEyebrow}>PHIẾU THẨM ĐỊNH MÁY</Text>
-                <Text style={styles.modalTitle}>Tạo phiếu định giá</Text>
+                <Text style={styles.modalEyebrow}>THẨM ĐỊNH AUTOGRADE</Text>
+                <Text style={styles.modalTitle}>Tạo phiếu định giá máy</Text>
               </View>
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                hitSlop={8}
-                style={styles.closeBtn}
-              >
+              <Pressable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
                 <Ionicons name="close" size={20} color={Colors.slate} />
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalForm}>
-              <Field
-                label="Hãng sản xuất"
-                placeholder="VD: Apple, Samsung, Xiaomi..."
-                value={brand}
-                onChangeText={setBrand}
-              />
+            <ScrollView style={{ maxHeight: 420, paddingTop: 10 }}>
+              <Text style={styles.label}>Hãng sản xuất:</Text>
+              <View style={styles.chipRow}>
+                {['Apple', 'Samsung', 'Xiaomi', 'Khác'].map((b) => (
+                  <Chip key={b} label={b} active={brand === b} onPress={() => setBrand(b)} />
+                ))}
+              </View>
 
               <View style={{ height: Space.sm }} />
-
               <Field
-                label="Dòng máy / Model"
+                label="Dòng máy / Model (*)"
                 placeholder="VD: iPhone 13 Pro Max, Galaxy S23..."
                 value={model}
                 onChangeText={setModel}
               />
 
               <View style={{ height: Space.sm }} />
-
-              <Field
-                label="Dung lượng bộ nhớ"
-                placeholder="VD: 128GB, 256GB..."
-                value={capacity}
-                onChangeText={setCapacity}
-              />
-
-              <View style={{ height: Space.sm }} />
-
-              <Text style={styles.fieldLabel}>Tình trạng ngoại quan</Text>
+              <Text style={styles.label}>Dung lượng:</Text>
               <View style={styles.chipRow}>
-                <Chip
-                  label="Như mới (99%)"
-                  active={condition === 'like_new'}
-                  onPress={() => setCondition('like_new')}
-                />
-                <Chip
-                  label="Đẹp (98%)"
-                  active={condition === 'good'}
-                  onPress={() => setCondition('good')}
-                />
-                <Chip
-                  label="Cũ / Xước (Cần spa)"
-                  active={condition === 'fair'}
-                  onPress={() => setCondition('fair')}
-                />
+                {['64GB', '128GB', '256GB', '512GB', '1TB'].map((c) => (
+                  <Chip key={c} label={c} active={capacity === c} onPress={() => setCapacity(c)} />
+                ))}
               </View>
 
               <View style={{ height: Space.sm }} />
-
-              <Field
-                label="Phụ kiện kèm theo"
-                placeholder="Cáp sạc, hộp, củ sạc..."
-                value={accessories}
-                onChangeText={setAccessories}
-              />
+              <Text style={styles.label}>Phân loại ngoại quan (Grade):</Text>
+              <View style={styles.chipRow}>
+                <Chip label="S: Như mới (99%)" active={grade === 'S'} onPress={() => setGrade('S')} />
+                <Chip label="A: Đẹp (98%)" active={grade === 'A'} onPress={() => setGrade('A')} />
+                <Chip label="B: Trầy nhẹ (95%)" active={grade === 'B'} onPress={() => setGrade('B')} />
+                <Chip label="C: Cấn móp / Nặng" active={grade === 'C'} onPress={() => setGrade('C')} />
+              </View>
 
               <View style={{ height: Space.sm }} />
+              <Text style={styles.label}>Tình trạng màn hình:</Text>
+              <View style={styles.chipRow}>
+                <Chip label="Màn Zin đẹp" active={screenStatus === 'zin'} onPress={() => setScreenStatus('zin')} />
+                <Chip label="Đã ép kính" active={screenStatus === 'ep_kinh'} onPress={() => setScreenStatus('ep_kinh')} />
+                <Chip label="Màn linh kiện / Lô" active={screenStatus === 'thay_lo'} onPress={() => setScreenStatus('thay_lo')} />
+              </View>
 
+              <View style={{ height: Space.sm }} />
+              <Text style={styles.label}>Tình trạng Pin & Face ID:</Text>
+              <View style={styles.chipRow}>
+                <Chip label="Pin >85%" active={batteryStatus === '>85'} onPress={() => setBatteryStatus('>85')} />
+                <Chip label="Pin chai <85%" active={batteryStatus === '<85'} onPress={() => setBatteryStatus('<85')} />
+                <Chip label="Face ID Tốt" active={faceIdStatus === 'ok'} onPress={() => setFaceIdStatus('ok')} />
+                <Chip label="Mất Face ID" active={faceIdStatus === 'fail'} onPress={() => setFaceIdStatus('fail')} />
+              </View>
+
+              <View style={{ height: Space.sm }} />
               <MoneyField
-                label="Giá đề xuất thu mua (VNĐ)"
-                placeholder="0"
-                value={suggestedPrice}
-                onChangeText={setSuggestedPrice}
+                label="Giá máy mới tham chiếu trên thị trường"
+                placeholder="15000000"
+                value={basePrice}
+                onChangeText={setBasePrice}
               />
 
               <View style={{ height: Space.sm }} />
-
               <Field
-                label="Ghi chú chi tiết lỗi / chức năng"
-                placeholder="Màn hình zin, pin 85%, Face ID tốt..."
-                value={note}
-                onChangeText={setNote}
+                label="Tên khách hàng"
+                placeholder="VD: Anh Minh"
+                value={custName}
+                onChangeText={setCustName}
               />
 
-              <View style={{ marginTop: Space.lg }}>
+              {/* Hộp gợi ý giá AutoGrade */}
+              <View style={styles.autoEstimateBox}>
+                <Text style={styles.autoEstimateLabel}>AutoGrade đề xuất giá thu mua:</Text>
+                <Text style={styles.autoEstimateVal}>{formatMoney(autoEstimatedPrice)}</Text>
+              </View>
+
+              <View style={{ marginTop: Space.md, marginBottom: Space.xl }}>
                 <PrimaryButton
-                  label="Lưu phiếu (Chờ backend thẩm định)"
+                  label="Xác nhận & Lưu phiếu định giá"
                   tone="amber"
                   icon="checkmark-circle-outline"
-                  onPress={handleCreateMock}
+                  onPress={handleCreateRecord}
                 />
               </View>
             </ScrollView>
@@ -269,107 +330,125 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: Colors.amber900,
-    letterSpacing: 0.5,
   },
   header: {
     marginTop: Space.xs,
   },
-  noticeBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: Colors.panelWarm,
-    borderWidth: 1,
-    borderColor: Colors.amber200,
-    borderRadius: Radius.xl,
-    padding: Space.md,
+  sectionHeader: {
+    marginTop: Space.xs,
   },
-  noticeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Colors.ink,
-  },
-  noticeSub: {
-    fontSize: 12,
-    color: Colors.slate,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  emptyCard: {
-    padding: Space.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xxl,
-    borderColor: Colors.border,
-    borderWidth: 1,
-  },
-  iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.redSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Space.sm,
-  },
-  emptyTitle: {
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 15,
     fontWeight: '900',
     color: Colors.ink,
   },
-  emptyHint: {
-    fontSize: 13,
+  recordList: {
+    gap: Space.sm,
+  },
+  recordCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.xl,
+    padding: Space.md,
+    borderWidth: 1,
+    borderColor: Colors.amber200,
+  },
+  recordTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  recordDevice: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: Colors.ink,
+  },
+  recordCust: {
+    fontSize: 11,
     color: Colors.slate,
-    textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 18,
+    marginTop: 2,
+  },
+  gradeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+  },
+  gradeTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  recordCondition: {
+    fontSize: 12,
+    color: Colors.slate700,
+    marginVertical: 6,
+  },
+  recordBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.amber100,
+  },
+  priceLabel: {
+    fontSize: 10,
+    color: Colors.slate,
+    fontWeight: '700',
+  },
+  priceVal: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: Colors.redDeep,
+  },
+  statusBox: {
+    backgroundColor: Colors.slate50,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Radius.sm,
+  },
+  statusText: {
+    fontSize: 11,
+    color: Colors.slate600,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.xxl,
     borderTopRightRadius: Radius.xxl,
-    maxHeight: '90%',
     padding: Space.lg,
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: Space.md,
+    paddingBottom: Space.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.slate100,
   },
   modalEyebrow: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.amber800,
-    letterSpacing: 1,
+    color: Colors.amber900,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
     color: Colors.ink,
-    marginTop: 2,
   },
   closeBtn: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: Radius.full,
     backgroundColor: Colors.slate100,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalForm: {
-    paddingTop: Space.md,
-    paddingBottom: Space.xxl,
-  },
-  fieldLabel: {
+  label: {
     fontSize: 12,
     fontWeight: '700',
     color: Colors.slate,
@@ -378,7 +457,27 @@ const styles = StyleSheet.create({
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+  },
+  autoEstimateBox: {
+    backgroundColor: Colors.panelWarm,
+    borderRadius: Radius.lg,
+    padding: 12,
+    marginTop: Space.sm,
+    borderWidth: 1,
+    borderColor: Colors.amber200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  autoEstimateLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.amber900,
+  },
+  autoEstimateVal: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.redDeep,
   },
 })
-

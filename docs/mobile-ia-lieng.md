@@ -113,3 +113,4 @@ app/
 - [x] Danh sách 5 Tabs mới tương ứng với các issue con #118 – #126.
 - [x] Thống nhất màu sắc thương hiệu `#7A0C10` (Đỏ Lieng), không dùng tone tím/indigo.
 - [x] Phân biệt rõ: Module Quán chỉ là sub-module phụ.
+
