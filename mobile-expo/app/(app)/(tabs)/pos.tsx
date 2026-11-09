@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { getErrorMessage } from '@/api/client'
 import * as posApi from '@/api/pos'
+import { ScannerModal } from '@/components/ScannerModal'
 import { Card, Chip, Eyebrow, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
@@ -56,6 +57,7 @@ export default function PosScreen() {
   // Cart
   const [cart, setCart] = useState<{ product: DisplayProduct; qty: number; selectedImeis?: string[] }[]>([])
   const [cartModal, setCartModal] = useState(false)
+  const [scannerOpen, setScannerOpen] = useState(false)
   const [payMethod, setPayMethod] = useState<'cash' | 'transfer' | 'mixed'>('cash')
   const [custName, setCustName] = useState('')
   const [custPhone, setCustPhone] = useState('')
@@ -228,7 +230,7 @@ export default function PosScreen() {
         </Pressable>
       </View>
 
-      {/* Ô tìm kiếm */}
+      {/* Ô tìm kiếm & Nút quét mã vạch Barcode */}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={18} color={Colors.slate400} style={{ marginRight: 8 }} />
         <TextInput
@@ -239,10 +241,16 @@ export default function PosScreen() {
           onChangeText={setSearch}
         />
         {!!search && (
-          <Pressable onPress={() => setSearch('')}>
+          <Pressable onPress={() => setSearch('')} style={{ marginRight: 8 }}>
             <Ionicons name="close-circle" size={16} color={Colors.slate400} />
           </Pressable>
         )}
+        <Pressable
+          onPress={() => setScannerOpen(true)}
+          style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }]}
+        >
+          <Ionicons name="scan-outline" size={18} color={Colors.brand} />
+        </Pressable>
       </View>
 
       {/* Chip danh mục */}
@@ -408,6 +416,17 @@ export default function PosScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Quét mã vạch Barcode */}
+      <ScannerModal
+        visible={scannerOpen}
+        title="Quét mã vạch sản phẩm POS"
+        hint="Đưa camera quét mã vạch SKU trên hộp máy hoặc phụ kiện"
+        onScan={(code) => {
+          setSearch(code)
+        }}
+        onClose={() => setScannerOpen(false)}
+      />
     </View>
   )
 }
@@ -467,6 +486,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.ink,
     padding: 0,
+  },
+  scanBtn: {
+    padding: 4,
+    backgroundColor: Colors.redSoft,
+    borderRadius: Radius.sm,
   },
   catRow: {
     paddingHorizontal: Space.lg,
