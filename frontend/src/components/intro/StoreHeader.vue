@@ -155,6 +155,7 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
             class="mt-2 rounded-lg bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
+            @click="closeMenu"
           >
             Gọi {{ storeInfo.hotlineDisplay }}
           </a>

@@ -115,6 +115,13 @@ export const adminNavGroups = [
         phosphor: 'ph-duotone ph-scales',
         roles: ['admin', 'sales_staff'],
       },
+      {
+        name: 'consult',
+        label: 'Tư vấn',
+        to: '/consult',
+        phosphor: 'ph-duotone ph-headset',
+        roles: ['admin', 'sales_staff'],
+      },
     ],
   },
   {
@@ -177,6 +184,10 @@ export const pageMeta = {
   appraisal: {
     title: 'Thẩm định máy',
     subtitle: 'AutoGrade — ảnh YOLO/OCR, khấu hao, FinalPrice',
+  },
+  consult: {
+    title: 'Quầy tư vấn',
+    subtitle: 'Tiếp nhận hotline — ghi KH, ghi chú, ghi âm cuộc gọi',
   },
   users: { title: 'Nhân viên', subtitle: 'Tạo và quản lý tài khoản đăng nhập' },
   profile: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin tài khoản và bảo mật' },
