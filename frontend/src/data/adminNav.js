@@ -108,6 +108,13 @@ export const adminNavGroups = [
         phosphor: 'ph-duotone ph-shield-check',
         roles: ['admin', 'sales_staff', 'warehouse_staff'],
       },
+      {
+        name: 'appraisal',
+        label: 'Thẩm định',
+        to: '/appraisal',
+        phosphor: 'ph-duotone ph-scales',
+        roles: ['admin', 'sales_staff'],
+      },
     ],
   },
   {
@@ -167,6 +174,10 @@ export const pageMeta = {
   'lao-listen': { title: 'Nghe tiếng Lào', subtitle: 'Nhận giọng nói Lào và dịch sang tiếng Việt' },
   reports: { title: 'Báo cáo', subtitle: 'Doanh thu và tồn kho theo kỳ' },
   warranty: { title: 'Bảo hành', subtitle: 'Tra cứu IMEI và phiếu sửa chữa' },
+  appraisal: {
+    title: 'Thẩm định máy',
+    subtitle: 'AutoGrade — ảnh YOLO/OCR, khấu hao, FinalPrice',
+  },
   users: { title: 'Nhân viên', subtitle: 'Tạo và quản lý tài khoản đăng nhập' },
   profile: { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin tài khoản và bảo mật' },
 }
