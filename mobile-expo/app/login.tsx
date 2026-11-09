@@ -82,9 +82,6 @@ export default function LoginScreen() {
   }, [])
 
   function getTargetRoute(u: AppUser | null): string {
-    if (u?.roleName === 'quan_manager' || u?.roleName === 'quan_staff') {
-      return '/quay'
-    }
     return '/home'
   }
 
