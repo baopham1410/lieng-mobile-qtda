@@ -12,8 +12,8 @@ export default function TabsLayout() {
       initialRouteName="home"
     >
       {/* 5 Tab chính của Shell Cửa hàng Lieng Mobile (Issue #115 & #116) */}
-      <Tabs.Screen name="home" options={{ title: 'Trang chủ' }} />
-      <Tabs.Screen name="pos" options={{ title: 'Bán hàng' }} />
+      <Tabs.Screen name="home" options={{ title: 'Tổng quan' }} />
+      <Tabs.Screen name="pos" options={{ title: 'Quầy POS' }} />
       <Tabs.Screen name="orders" options={{ title: 'Đơn hàng' }} />
       <Tabs.Screen name="services" options={{ title: 'Dịch vụ' }} />
       <Tabs.Screen name="account" options={{ title: 'Tôi' }} />

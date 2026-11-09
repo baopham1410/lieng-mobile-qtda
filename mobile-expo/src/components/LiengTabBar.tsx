@@ -9,14 +9,14 @@ const TAB_ICONS: Record<
   string,
   { icon: keyof typeof Ionicons.glyphMap; iconOn: keyof typeof Ionicons.glyphMap; label: string }
 > = {
-  home: { icon: 'home-outline', iconOn: 'home', label: 'Trang chủ' },
-  pos: { icon: 'calculator-outline', iconOn: 'calculator', label: 'Bán hàng' },
+  home: { icon: 'pie-chart-outline', iconOn: 'pie-chart', label: 'Tổng quan' },
+  pos: { icon: 'cart-outline', iconOn: 'cart', label: 'Quầy POS' },
   orders: { icon: 'receipt-outline', iconOn: 'receipt', label: 'Đơn hàng' },
-  services: { icon: 'construct-outline', iconOn: 'construct', label: 'Dịch vụ' },
+  services: { icon: 'shield-checkmark-outline', iconOn: 'shield-checkmark', label: 'Dịch vụ' },
   account: { icon: 'person-outline', iconOn: 'person', label: 'Tôi' },
 
   // Giữ fallback tạm cho route cũ nếu có
-  quay: { icon: 'storefront-outline', iconOn: 'storefront', label: 'Quầy' },
+  quay: { icon: 'storefront-outline', iconOn: 'storefront', label: 'Quầy nhỏ' },
   statement: { icon: 'stats-chart-outline', iconOn: 'stats-chart', label: 'Sao kê' },
   expense: { icon: 'add-circle-outline', iconOn: 'add-circle', label: 'Ghi chi' },
   archive: { icon: 'folder-open-outline', iconOn: 'folder-open', label: 'Kho' },
@@ -70,7 +70,7 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
                     pressed && { opacity: 0.88, transform: [{ scale: 0.96 }] },
                   ]}
                 >
-                  <Ionicons name="calculator" size={26} color={Colors.white} />
+                  <Ionicons name="cart" size={26} color={Colors.white} />
                 </Pressable>
                 <Text style={[styles.fabLabel, focused && styles.fabLabelFocused]}>
                   {label}
