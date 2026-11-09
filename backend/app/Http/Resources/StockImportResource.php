@@ -20,6 +20,7 @@ class StockImportResource extends JsonResource
                 'variant' => trim(implode(' · ', array_filter([$variant?->color, $variant?->storage]))),
                 'quantity' => $item->quantity,
                 'unitPrice' => (float) $item->unit_cost,
+                'warrantyMonths' => $variant?->resolvedWarrantyMonths() ?? 12,
             ];
         });
 

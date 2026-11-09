@@ -227,6 +227,7 @@ class StockImportController extends Controller
             'items.*.productVariantId' => 'nullable|integer|exists:product_variants,id',
             'items.*.quantity' => 'required_with:items|integer|min:1',
             'items.*.unitPrice' => 'required_with:items|numeric|min:0',
+            'items.*.warrantyMonths' => 'nullable|integer|min:0|max:120',
             'items.*.name' => 'nullable|string|max:255',
             'items.*.brand' => 'nullable|string|max:100',
             'items.*.category' => 'nullable|string|max:100',
@@ -287,7 +288,14 @@ class StockImportController extends Controller
     private function resolveProductVariantId(array $item): int
     {
         if (! empty($item['productVariantId'])) {
-            return (int) $item['productVariantId'];
+            $variantId = (int) $item['productVariantId'];
+            if (array_key_exists('warrantyMonths', $item) && $item['warrantyMonths'] !== null && $item['warrantyMonths'] !== '') {
+                ProductVariant::whereKey($variantId)->update([
+                    'warranty_months' => $this->normalizeWarrantyMonths($item['warrantyMonths']),
+                ]);
+            }
+
+            return $variantId;
         }
 
         $category = $this->resolveCategory($item);
@@ -318,6 +326,7 @@ class StockImportController extends Controller
             'color' => $color ? trim((string) $color) : null,
             'storage' => $storage ? trim((string) $storage) : null,
             'condition' => 'new',
+            'warranty_months' => $this->normalizeWarrantyMonths($item['warrantyMonths'] ?? 12),
         ]);
 
         $unit = (float) ($item['unitPrice'] ?? 0);
@@ -473,5 +482,14 @@ class StockImportController extends Controller
         }
 
         return str_starts_with($iso, now()->format('Y-m-d'));
+    }
+
+    private function normalizeWarrantyMonths(mixed $value): int
+    {
+        if ($value === null || $value === '') {
+            return 12;
+        }
+
+        return max(0, min(120, (int) $value));
     }
 }

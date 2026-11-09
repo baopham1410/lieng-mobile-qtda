@@ -15,7 +15,13 @@ class FinalizeOrderPaymentService
     public function finalize(Order $order, array $context = []): Order
     {
         return DB::transaction(function () use ($order, $context) {
-            $order->loadMissing(['items.imeiCode', 'items.productVariant.prices', 'customer', 'user']);
+            $order->loadMissing([
+                'items.imeiCode.productVariant',
+                'items.productVariant',
+                'items.productVariant.prices',
+                'customer',
+                'user',
+            ]);
 
             if ($order->payment_status === 'paid' && $order->status === 'completed') {
                 return $order;
@@ -39,17 +45,22 @@ class FinalizeOrderPaymentService
                 }
 
                 if ($order->customer_id) {
-                    Warranty::firstOrCreate(
-                        ['imei_code_id' => $imei->id],
-                        [
-                            'customer_id' => $order->customer_id,
-                            'order_id' => $order->id,
-                            'start_date' => now()->toDateString(),
-                            'end_date' => now()->addMonths(12)->toDateString(),
-                            'warranty_months' => 12,
-                            'status' => 'active',
-                        ]
-                    );
+                    $months = $item->productVariant?->resolvedWarrantyMonths()
+                        ?? $imei->productVariant?->resolvedWarrantyMonths()
+                        ?? 12;
+                    if ($months > 0) {
+                        Warranty::firstOrCreate(
+                            ['imei_code_id' => $imei->id],
+                            [
+                                'customer_id' => $order->customer_id,
+                                'order_id' => $order->id,
+                                'start_date' => now()->toDateString(),
+                                'end_date' => now()->addMonths($months)->toDateString(),
+                                'warranty_months' => $months,
+                                'status' => 'active',
+                            ]
+                        );
+                    }
                 }
             }
 

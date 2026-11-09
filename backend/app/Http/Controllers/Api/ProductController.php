@@ -100,6 +100,7 @@ class ProductController extends Controller
                     'brand' => $product?->brand ?? '',
                     'variant' => $parts ? implode(' · ', $parts) : ($variant->sku ?? '—'),
                     'unitPrice' => (float) ($variant->currentPrice('import') ?? 0),
+                    'warrantyMonths' => $variant->resolvedWarrantyMonths(),
                 ];
             })
             ->values();
@@ -135,6 +136,9 @@ class ProductController extends Controller
                 'storage' => $validated['variant']['storage'] ?? null,
                 'ram' => $validated['variant']['ram'] ?? null,
                 'condition' => $validated['variant']['condition'] ?? 'new',
+                'warranty_months' => $this->normalizeWarrantyMonths(
+                    $validated['variant']['warranty_months'] ?? $validated['warranty_months'] ?? 12
+                ),
             ]);
 
             $this->syncVariantPrices($variant, $validated['prices'] ?? []);
@@ -176,13 +180,20 @@ class ProductController extends Controller
                 $variant = ProductVariant::create(['product_id' => $product->id]);
             }
 
-            $variant->update([
+            $variantPayload = [
                 'sku' => $validated['variant']['sku'] ?? null,
                 'color' => $validated['variant']['color'] ?? null,
                 'storage' => $validated['variant']['storage'] ?? null,
                 'ram' => $validated['variant']['ram'] ?? null,
                 'condition' => $validated['variant']['condition'] ?? 'new',
-            ]);
+            ];
+            if (array_key_exists('warranty_months', $validated['variant'] ?? [])
+                || array_key_exists('warranty_months', $validated)) {
+                $variantPayload['warranty_months'] = $this->normalizeWarrantyMonths(
+                    $validated['variant']['warranty_months'] ?? $validated['warranty_months']
+                );
+            }
+            $variant->update($variantPayload);
 
             $this->syncVariantPrices($variant, $validated['prices'] ?? []);
 
@@ -305,12 +316,23 @@ class ProductController extends Controller
             'variant.storage' => 'nullable|string|max:50',
             'variant.ram' => 'nullable|string|max:50',
             'variant.condition' => 'nullable|in:new,likenew_99,used',
+            'variant.warranty_months' => 'nullable|integer|min:0|max:120',
+            'warranty_months' => 'nullable|integer|min:0|max:120',
             'prices.import' => 'nullable|numeric|min:0',
             'prices.retail' => 'nullable|numeric|min:0',
             'prices.wholesale' => 'nullable|numeric|min:0',
         ];
 
         return $request->validate($rules);
+    }
+
+    private function normalizeWarrantyMonths(mixed $value): int
+    {
+        if ($value === null || $value === '') {
+            return 12;
+        }
+
+        return max(0, min(120, (int) $value));
     }
 
     private function syncVariantPrices(ProductVariant $variant, array $prices): void

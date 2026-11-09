@@ -67,11 +67,22 @@ export function buildProductPayload(form, categories = []) {
     model_code: form.modelCode?.trim() || null,
     description: form.description?.trim() || null,
     is_active: form.isActive !== false,
-    variant: buildProductVariantFields(categorySlug, form),
+    variant: {
+      ...buildProductVariantFields(categorySlug, form),
+      warranty_months: normalizeWarrantyMonths(form.warrantyMonths),
+    },
+    warranty_months: normalizeWarrantyMonths(form.warrantyMonths),
     prices: {
       import: form.importPrice !== '' && form.importPrice != null ? Number(form.importPrice) : null,
       retail: form.retailPrice !== '' && form.retailPrice != null ? Number(form.retailPrice) : null,
       wholesale: form.wholesalePrice !== '' && form.wholesalePrice != null ? Number(form.wholesalePrice) : null,
     },
   }
+}
+
+function normalizeWarrantyMonths(value) {
+  if (value === '' || value == null) return 12
+  const months = Math.trunc(Number(value))
+  if (!Number.isFinite(months)) return 12
+  return Math.max(0, Math.min(120, months))
 }
