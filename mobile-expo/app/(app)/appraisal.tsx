@@ -15,7 +15,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Card, Chip, Eyebrow, Field, MoneyField, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
+import { Card, Chip, Eyebrow, Field, MoneyField, Muted, PrimaryButton, ScreenTitle, StatCard } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney, parseMoneyInput } from '@/utils/format'
 
@@ -134,6 +134,43 @@ export default function AppraisalScreen() {
           <Eyebrow>THU CŨ ĐỔI MỚI · ĐỊNH GIÁ</Eyebrow>
           <ScreenTitle>Thẩm định máy cũ</ScreenTitle>
           <Muted>Đánh giá tình trạng ngoại quan, linh kiện và tính giá thu mua tự động</Muted>
+        </View>
+
+        {/* ── 3 Thẻ chỉ số chuẩn Web AppraisalListView.vue ── */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCol}>
+            <StatCard
+              label="Tổng phiếu"
+              value={`${records.length}`}
+              icon="income"
+              iconColor={Colors.brand}
+              iconBg={Colors.redSoft}
+              valueColor={Colors.redDeep}
+              hint="Phiếu AutoGrade"
+            />
+          </View>
+          <View style={styles.statCol}>
+            <StatCard
+              label="Đã báo giá"
+              value={`${records.filter((r) => r.status === 'pending').length}`}
+              icon="transfer"
+              iconColor={Colors.amber700}
+              iconBg={Colors.amber100}
+              valueColor={Colors.amber900}
+              hint="Có FinalPrice"
+            />
+          </View>
+          <View style={styles.statCol}>
+            <StatCard
+              label="Đã chốt thu"
+              value={`${records.filter((r) => r.status === 'approved').length}`}
+              icon="net"
+              iconColor={Colors.greenDeep}
+              iconBg={Colors.greenSoft}
+              valueColor={Colors.greenDeep}
+              hint="Khách đồng ý"
+            />
+          </View>
         </View>
 
         {/* CTA tạo phiếu */}
@@ -293,6 +330,13 @@ const styles = StyleSheet.create({
   content: {
     padding: Space.lg,
     gap: Space.md,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statCol: {
+    flex: 1,
   },
   navBar: {
     flexDirection: 'row',
