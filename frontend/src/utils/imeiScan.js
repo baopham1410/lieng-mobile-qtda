@@ -96,54 +96,61 @@ export function collectCandidatesWithMetadata(rawText) {
   const candidates = []
   const seen = new Set()
 
+  function pushCandidate(candidate15, src) {
+    if (!candidate15 || candidate15.length !== 15 || !isValidImeiFormat(candidate15)) return
+    if (seen.has(candidate15)) return
+    seen.add(candidate15)
+    candidates.push({
+      imei: candidate15,
+      luhn: isValidImeiLuhn(candidate15),
+      commonTac: isCommonPhoneTac(candidate15),
+      source: src,
+    })
+  }
+
   function addCandidate(rawCandidate, source = 'general') {
     if (!rawCandidate) return
+    const rawStr = String(rawCandidate)
+
     // 1. Thử trực tiếp dạng số
-    let digits = rawCandidate.replace(/\D/g, '')
+    const digits = rawStr.replace(/\D/g, '')
 
-    // 2. Nếu có độ dài 16 số (IMEISV thường có /01 hoặc /02), lấy 15 số đầu
-    if (digits.length === 16 && isValidImeiLuhn(digits.slice(0, 15))) {
-      digits = digits.slice(0, 15)
-    }
-
-    // 3. Nếu là 15 số
-    if (digits.length === 15 && isValidImeiFormat(digits)) {
-      if (!seen.has(digits)) {
-        seen.add(digits)
-        candidates.push({
-          imei: digits,
-          luhn: isValidImeiLuhn(digits),
-          commonTac: isCommonPhoneTac(digits),
-          source,
-        })
+    if (digits.length >= 15) {
+      // Chuỗi số >= 15 ký tự:
+      // Luôn lấy 15 số đầu tiên (đặc biệt khi có nhãn IMEI/MEID hoặc IMEISV 16-17 số)
+      pushCandidate(digits.slice(0, 15), source)
+      // Nếu chuỗi dài hơn 15 số và không phải nhãn trực tiếp (ví dụ GS1 hoặc chuỗi dài),
+      // kiểm tra xem có sliding window nào pass Luhn hoặc TAC không
+      if (digits.length > 15 && !source.startsWith('labeled')) {
+        for (let i = 1; i <= digits.length - 15; i += 1) {
+          const slice = digits.slice(i, i + 15)
+          if (isValidImeiLuhn(slice) || isCommonPhoneTac(slice)) {
+            pushCandidate(slice, `${source}-window`)
+          }
+        }
       }
       return
     }
 
-    // 4. Nếu bị dính chữ cái OCR nhầm
-    const cleaned = normalizeOcrDigits(rawCandidate).replace(/\D/g, '')
-    let candidate15 = ''
-    if (cleaned.length === 15) {
-      candidate15 = cleaned
-    } else if (cleaned.length === 16 && isValidImeiLuhn(cleaned.slice(0, 15))) {
-      candidate15 = cleaned.slice(0, 15)
-    }
-
-    if (candidate15 && isValidImeiFormat(candidate15) && !seen.has(candidate15)) {
-      seen.add(candidate15)
-      candidates.push({
-        imei: candidate15,
-        luhn: isValidImeiLuhn(candidate15),
-        commonTac: isCommonPhoneTac(candidate15),
-        source: `${source}-ocr-corrected`,
-      })
+    // 2. Thử chuẩn hóa OCR (thay O->0, l->1, S->5, B->8, Z->2, G->6)
+    const cleaned = normalizeOcrDigits(rawStr).replace(/\D/g, '')
+    if (cleaned.length >= 15) {
+      pushCandidate(cleaned.slice(0, 15), `${source}-ocr-corrected`)
+      if (cleaned.length > 15 && !source.startsWith('labeled')) {
+        for (let i = 1; i <= cleaned.length - 15; i += 1) {
+          const slice = cleaned.slice(i, i + 15)
+          if (isValidImeiLuhn(slice) || isCommonPhoneTac(slice)) {
+            pushCandidate(slice, `${source}-ocr-window`)
+          }
+        }
+      }
     }
   }
 
   // --- CHIẾN LƯỢC 1: Tìm theo nhãn tem chính xác (IMEI, IMEI1, IMEI2, MEID) ---
   // Ví dụ: "IMEI: 35 6789 12 345678 9", "IMEI1: 351234/56/789012/3", "IMEI 2: 861234567890123"
   const labelRegex =
-    /(?:IMEI\s*[12]?|MEID|IMEI\/MEID)[\s:=-]+([0-9OIlSBZg\s/-]{14,24})/gi
+    /(?:IMEI\s*[12]?|MEID|IMEI\/MEID)[\s:=-]+([0-9OIlSBZg\s/-]{14,35})/gi
   let match
   while ((match = labelRegex.exec(text)) !== null) {
     if (match[1]) {
@@ -151,12 +158,22 @@ export function collectCandidatesWithMetadata(rawText) {
     }
   }
 
-  // --- CHIẾN LƯỢC 2: Tìm các cụm số 14-16 ký tự được gom nhóm ---
-  // Ví dụ: "35 678912 345678 9" hoặc "351234-56-789012-3"
-  const groupedRegex = /\b([0-9OIlSBZ]{2,4}[\s/-][0-9OIlSBZ\s/-]{10,20})\b/gi
-  while ((match = groupedRegex.exec(text)) !== null) {
-    if (match[1]) {
-      addCandidate(match[1], 'grouped-digits')
+  // --- CHIẾN LƯỢC 2: Duyệt theo từng dòng văn bản có nhãn IMEI/MEID ---
+  const lines = text.split(/\r?\n/)
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+
+    // Nếu dòng có chữ IMEI hoặc MEID
+    if (/IMEI|MEID/i.test(trimmed)) {
+      const afterLabel = trimmed.replace(/^.*?(?:IMEI\s*[12]?|MEID|IMEI\/MEID)[\s:=-]*/i, '')
+      if (afterLabel) {
+        addCandidate(afterLabel, 'labeled-line')
+      }
+      const parts = trimmed.split(/[:\s=-]+/)
+      for (const part of parts) {
+        addCandidate(part, 'line-imei-token')
+      }
     }
   }
 
@@ -168,18 +185,12 @@ export function collectCandidatesWithMetadata(rawText) {
     }
   }
 
-  // --- CHIẾN LƯỢC 4: Duyệt theo dòng văn bản ---
-  const lines = text.split(/\r?\n/)
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-
-    // Nếu dòng có chữ IMEI hoặc MEID
-    if (/IMEI|MEID/i.test(trimmed)) {
-      const parts = trimmed.split(/[:\s=-]+/)
-      for (const part of parts) {
-        addCandidate(part, 'line-imei-token')
-      }
+  // --- CHIẾN LƯỢC 4: Tìm các cụm số 14-16 ký tự được gom nhóm ---
+  // Ví dụ: "35 678912 345678 9" hoặc "351234-56-789012-3"
+  const groupedRegex = /\b([0-9OIlSBZ]{2,4}[\s/-][0-9OIlSBZ\s/-]{10,25})\b/gi
+  while ((match = groupedRegex.exec(text)) !== null) {
+    if (match[1]) {
+      addCandidate(match[1], 'grouped-digits')
     }
   }
 
@@ -189,21 +200,34 @@ export function collectCandidatesWithMetadata(rawText) {
     if (allDigits.length === 15) {
       addCandidate(allDigits, 'fallback-exact')
     } else if (allDigits.length > 15) {
-      // Slicing window
+      // 5.1 Thử sliding window có luhn + tac
       for (let i = 0; i <= allDigits.length - 15; i += 1) {
         const slice = allDigits.slice(i, i + 15)
         if (isValidImeiLuhn(slice) && isCommonPhoneTac(slice)) {
           addCandidate(slice, 'fallback-luhn-tac')
         }
       }
+      // 5.2 Thử sliding window chỉ cần luhn
+      if (candidates.length === 0) {
+        for (let i = 0; i <= allDigits.length - 15; i += 1) {
+          const slice = allDigits.slice(i, i + 15)
+          if (isValidImeiLuhn(slice)) {
+            addCandidate(slice, 'fallback-luhn')
+          }
+        }
+      }
+      // 5.3 Fallback cuối cùng: lấy 15 số đầu tiên
+      if (candidates.length === 0) {
+        addCandidate(allDigits.slice(0, 15), 'fallback-first15')
+      }
     }
   }
 
   // Xếp hạng ứng viên:
   // 1. Nhãn tem có luhn + common tac
-  // 2. Có luhn + common tac
-  // 3. Có luhn
-  // 4. Nhãn tem (kể cả trượt luhn do 1 số bị mờ)
+  // 2. Nhãn tem
+  // 3. Có luhn + common tac
+  // 4. Có luhn
   // 5. Khác
   candidates.sort((a, b) => {
     const score = (item) => {
@@ -221,9 +245,11 @@ export function collectCandidatesWithMetadata(rawText) {
 
 /**
  * Lấy IMEI 15 số từ chuỗi súng quét / barcode / OCR.
- * Ưu tiên ứng viên đúng Luhn và nhãn IMEI; fallback 15 số đầu tiên.
+ * Ưu tiên ứng viên nhãn tem và đúng Luhn; fallback 15 số đầu tiên.
  */
 export function extractImeiFromScan(raw) {
+  const all = extractAllImeisFromScan(raw)
+  if (all.length > 0) return all[0]
   const candidates = collectCandidatesWithMetadata(raw)
   if (!candidates.length) return ''
   return candidates[0].imei
@@ -234,9 +260,15 @@ export function extractAllImeisFromScan(raw) {
   const candidates = collectCandidatesWithMetadata(raw)
   if (!candidates.length) return []
 
-  // Lọc ra các IMEI: ưu tiên luhn hoặc nhãn rõ ràng
+  const labeledCandidates = candidates.filter((c) => c.source.startsWith('labeled'))
   const luhnCandidates = candidates.filter((c) => c.luhn)
-  const targetList = luhnCandidates.length ? luhnCandidates : candidates
+
+  let targetList = candidates
+  if (labeledCandidates.length > 0) {
+    targetList = labeledCandidates
+  } else if (luhnCandidates.length > 0) {
+    targetList = luhnCandidates
+  }
 
   // Trả về danh sách chuỗi 15 số duy nhất
   return [...new Set(targetList.map((c) => c.imei))]
