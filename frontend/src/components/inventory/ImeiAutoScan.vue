@@ -399,29 +399,32 @@ async function runOcrFallback() {
   }
 }
 
-/** Xử lý ảnh tải lên hoặc dán từ clipboard */
+/** Xử lý ảnh kéo thả hoặc tải lên — CHỈ QUÉT MÃ VẠCH (Barcode 1D) */
 async function processImageFile(file) {
   if (!file || props.disabled) return
 
   ocrBusy.value = true
   lastFailReason.value = ''
-  showFlash('Đang phân tích mã vạch trong ảnh...', 'warning', 8000)
+  showFlash('Đang quét sọc mã vạch trong ảnh...', 'warning', 6000)
 
   try {
     const url = URL.createObjectURL(file)
     previewUrl.value = url
     const img = await loadImage(url)
 
-    // Bước 1: Thử giải mã vạch (Barcode) từ ảnh trước
-    let barcodeFound = false
+    const foundBarcodes = []
+
+    // 1. Quét mã vạch trực tiếp bằng BarcodeDetector (hỗ trợ đọc đồng thời nhiều mã vạch trên ảnh)
     if (nativeBarcodeDetector) {
       try {
         const detected = await nativeBarcodeDetector.detect(img)
         if (detected && detected.length > 0) {
           for (const b of detected) {
-            if (b.rawValue && commitImei(b.rawValue, 'image-barcode')) {
-              barcodeFound = true
-              break
+            if (b.rawValue) {
+              const imei = extractImeiFromScan(b.rawValue)
+              if (imei && !foundBarcodes.includes(imei)) {
+                foundBarcodes.push(imei)
+              }
             }
           }
         }
@@ -430,43 +433,47 @@ async function processImageFile(file) {
       }
     }
 
-    if (barcodeFound) {
-      ocrBusy.value = false
-      return
-    }
+    // 2. Fallback ZXing Barcode Reader trên canvas nếu chưa thấy
+    if (foundBarcodes.length === 0) {
+      const canvas = document.createElement('canvas')
+      const maxW = 1800
+      const scale = img.width > maxW ? maxW / img.width : 1
+      canvas.width = Math.floor(img.width * scale)
+      canvas.height = Math.floor(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
 
-    // Bước 2: Thử ZXing Barcode trên ảnh
-    const canvas = document.createElement('canvas')
-    const maxW = 1800
-    const scale = img.width > maxW ? maxW / img.width : 1
-    canvas.width = Math.floor(img.width * scale)
-    canvas.height = Math.floor(img.height * scale)
-    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-
-    try {
-      const reader = buildReader()
-      const res = reader.decodeFromCanvas(canvas)
-      if (res?.getText?.() && commitImei(res.getText(), 'image-zxing')) {
-        ocrBusy.value = false
-        return
+      try {
+        const reader = buildReader()
+        const res = reader.decodeFromCanvas(canvas)
+        if (res?.getText?.()) {
+          const imei = extractImeiFromScan(res.getText())
+          if (imei && !foundBarcodes.includes(imei)) {
+            foundBarcodes.push(imei)
+          }
+        }
+      } catch {
+        /* không tìm thấy barcode */
       }
-    } catch {
-      /* không tìm thấy barcode */
     }
 
-    // Bước 3: Nếu ảnh không có mã vạch, fallback sang đọc chữ OCR
-    showFlash('Không có mã vạch, đang đọc chữ số OCR...', 'warning', 6000)
-    const prepared = preprocessCanvasForOcr(canvas, { scale: 2.2 })
-    const worker = await ensureOcrWorker()
-    const { data } = await worker.recognize(prepared)
-    const text = data?.text ?? ''
-    lastRaw.value = text.replace(/\s+/g, ' ').trim()
-
-    if (!commitMany(text, 'file-ocr')) {
-      lastFailReason.value = lastRaw.value
-        ? `Ảnh tem đọc được chữ: "${lastRaw.value.slice(0, 60)}" nhưng không có mã vạch hoặc thiếu 15 số IMEI.`
-        : 'Không tìm thấy mã vạch hợp lệ trong ảnh.'
-      showFlash(lastFailReason.value, 'error', 6000)
+    // 3. Xử lý kết quả: Chỉ nhận mã vạch, không đọc chữ số OCR
+    if (foundBarcodes.length > 0) {
+      if (foundBarcodes.length === 1) {
+        commitImei(foundBarcodes[0], 'image-barcode')
+      } else {
+        const result = appendManyImeisToText(props.modelValue, foundBarcodes)
+        if (result.added.length > 0) {
+          emit('update:modelValue', result.text)
+          result.added.forEach((imei) => emit('scanned', { imei, source: 'image-barcode-multi' }))
+          showFlash(`✓ Quét mã vạch thành công ${result.added.length} IMEI: ${result.added.join(', ')}`, 'success', 4000)
+          triggerSuccessUI(result.added[0], 'Mã vạch Barcode')
+        } else {
+          showFlash('Mã vạch trong ảnh đã có sẵn trong phiếu này', 'warning', 3500)
+        }
+      }
+    } else {
+      lastFailReason.value = 'Không tìm thấy sọc mã vạch hợp lệ trong ảnh. Vui lòng chọn ảnh chụp rõ nét các thanh sọc mã vạch (Barcode 1D / Code 128).'
+      showFlash(lastFailReason.value, 'error', 5500)
     }
   } catch (err) {
     lastFailReason.value = err?.message || 'Không thể mở ảnh'
