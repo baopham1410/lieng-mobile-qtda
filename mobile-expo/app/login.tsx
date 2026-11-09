@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Redirect, router } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,8 +20,11 @@ import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import type { AppLocale } from '@/i18n/messages'
+import type { AppUser } from '@/types'
 
 // ─── Demo accounts ────────────────────────────────────────────────────────────
+const REMEMBER_EMAIL_KEY = 'lieng_remember_email'
+
 const DEMO_ACCOUNTS = [
   {
     id: 'banhang',
@@ -63,18 +67,40 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('banhang@liengmobile.com')
   const [password, setPassword] = useState('password')
+  const [remember, setRemember] = useState(true)
   const [showPass, setShowPass] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  if (!loading && user) return <Redirect href="/home" />
+  useEffect(() => {
+    AsyncStorage.getItem(REMEMBER_EMAIL_KEY).then((saved) => {
+      if (saved) {
+        setEmail(saved)
+        setRemember(true)
+      }
+    })
+  }, [])
+
+  function getTargetRoute(u: AppUser | null): string {
+    if (u?.roleName === 'quan_manager' || u?.roleName === 'quan_staff') {
+      return '/quay'
+    }
+    return '/home'
+  }
+
+  if (!loading && user) return <Redirect href={getTargetRoute(user) as any} />
 
   async function onSubmit() {
     setSubmitting(true)
     setError('')
     try {
-      await login(email, password)
-      router.replace('/home')
+      if (remember) {
+        await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, email)
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY)
+      }
+      const loggedUser = await login(email, password)
+      router.replace(getTargetRoute(loggedUser) as any)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('login.failed'))
     } finally {
@@ -91,8 +117,8 @@ export default function LoginScreen() {
     setTimeout(async () => {
       setSubmitting(true)
       try {
-        await login(acc.email, 'password')
-        router.replace('/home')
+        const loggedUser = await login(acc.email, 'password')
+        router.replace(getTargetRoute(loggedUser) as any)
       } catch (e) {
         setError(e instanceof Error ? e.message : t('login.failed'))
       } finally {
@@ -215,6 +241,21 @@ export default function LoginScreen() {
                   color={Colors.slate400}
                 />
               </Pressable>
+            </View>
+
+            {/* Checkbox Ghi nhớ email */}
+            <View style={styles.rememberRow}>
+              <Pressable
+                onPress={() => setRemember(!remember)}
+                style={styles.rememberPressable}
+              >
+                <View style={[styles.checkbox, remember && styles.checkboxActive]}>
+                  {remember && <Ionicons name="checkmark" size={12} color={Colors.white} />}
+                </View>
+                <Text style={styles.rememberText}>Ghi nhớ tài khoản trên máy</Text>
+              </Pressable>
+
+              <Text style={styles.forgotText}>Quên mật khẩu?</Text>
             </View>
 
             {/* Error */}
@@ -494,6 +535,44 @@ const styles = StyleSheet.create({
   },
   eyeBtn: {
     paddingLeft: 8,
+  },
+
+  // ── Remember & Forgot ──
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Space.sm,
+    paddingHorizontal: 4,
+  },
+  rememberPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.slate400,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxActive: {
+    backgroundColor: Colors.brand,
+    borderColor: Colors.brand,
+  },
+  rememberText: {
+    fontSize: 12,
+    color: Colors.slate600,
+    fontWeight: '500',
+  },
+  forgotText: {
+    fontSize: 12,
+    color: Colors.slate400,
+    fontWeight: '500',
   },
 
   // ── Login button ──
