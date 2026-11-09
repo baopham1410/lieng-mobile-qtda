@@ -40,6 +40,11 @@ const previewUrl = ref('')
 const isDragging = ref(false)
 const lastDetectedImeis = ref([])
 
+// Tính năng tự động quét (Auto-scan) và thông báo thành công
+const autoScanEnabled = ref(true)
+const modalSuccessImei = ref('')
+const isSuccessFlashing = ref(false)
+
 let codeReader = null
 let controls = null
 let ocrWorker = null
@@ -47,6 +52,7 @@ let lastCameraHit = ''
 let lastHitAt = 0
 let wedgeBuffer = ''
 let wedgeTimer = null
+let autoScanTimer = null
 
 const remaining = computed(() => Math.max(0, props.requiredCount - props.importedCount))
 const progressLabel = computed(() => `${props.importedCount}/${props.requiredCount}`)
@@ -54,7 +60,28 @@ const canUseCamera = computed(
   () => typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia,
 )
 
-function showFlash(message, type = 'success', duration = 3000) {
+/** Phát âm thanh bíp ngắn khi quét thành công */
+function playSuccessBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime) // Nốt La (A5)
+    gain.gain.setValueAtTime(0.18, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.15)
+  } catch {
+    /* audio không hỗ trợ hoặc bị chặn */
+  }
+}
+
+function showFlash(message, type = 'success', duration = 3500) {
   scanFlash.value = message
   scanFlashType.value = type
   clearTimeout(showFlash._t)
@@ -63,11 +90,29 @@ function showFlash(message, type = 'success', duration = 3000) {
   }, duration)
 }
 
+function triggerSuccessUI(imei) {
+  playSuccessBeep()
+  modalSuccessImei.value = imei
+  isSuccessFlashing.value = true
+
+  clearTimeout(triggerSuccessUI._t)
+  triggerSuccessUI._t = setTimeout(() => {
+    isSuccessFlashing.value = false
+  }, 2200)
+
+  // Nếu đã nạp đủ số lượng yêu cầu, tự động đóng camera sau 1.5s
+  if (remaining.value <= 0) {
+    setTimeout(() => {
+      if (cameraOpen.value) closeCamera()
+    }, 1500)
+  }
+}
+
 function commitImei(raw, source = 'scan') {
   if (props.disabled) return false
   const result = appendImeiToText(props.modelValue, raw)
   if (!result.imei && result.reason === 'invalid') {
-    lastFailReason.value = 'Chưa đọc được IMEI 15 số hợp lệ — hãy đưa gần hơn hoặc kiểm tra tem.'
+    lastFailReason.value = 'Chưa đọc được IMEI 15 số hợp lệ — hãy đưa tem gần hơn.'
     showFlash(lastFailReason.value, 'error', 4000)
     return false
   }
@@ -80,7 +125,8 @@ function commitImei(raw, source = 'scan') {
   lastDetectedImeis.value = [result.imei]
   emit('update:modelValue', result.text)
   emit('scanned', { imei: result.imei, source })
-  showFlash(`✓ Đã nạp thành công IMEI: ${result.imei}`, 'success', 3000)
+  showFlash(`✓ Quét thành công IMEI: ${result.imei}`, 'success', 3500)
+  triggerSuccessUI(result.imei)
   return true
 }
 
@@ -106,15 +152,17 @@ function commitMany(rawText, source) {
   emit('update:modelValue', result.text)
   result.added.forEach((imei) => emit('scanned', { imei, source }))
 
+  const primaryImei = result.added[0]
   if (result.added.length === 1) {
-    showFlash(`✓ Đã nạp IMEI: ${result.added[0]}`, 'success')
+    showFlash(`✓ Quét thành công IMEI: ${primaryImei}`, 'success')
   } else {
     showFlash(
-      `✓ Đã nạp ${result.added.length} IMEI (Dual SIM): ${result.added.join(', ')}`,
+      `✓ Quét thành công ${result.added.length} IMEI (Dual SIM): ${result.added.join(', ')}`,
       'success',
       4000,
     )
   }
+  triggerSuccessUI(primaryImei)
   return true
 }
 
@@ -130,14 +178,13 @@ function acceptCameraText(raw, source) {
   }
 
   const now = Date.now()
-  if (imei === lastCameraHit && now - lastHitAt < 1600) return false
+  if (imei === lastCameraHit && now - lastHitAt < 2000) return false
   lastCameraHit = imei
   lastHitAt = now
 
   const ok = commitImei(imei, source)
   if (ok) {
     scanningLabel.value = `✓ Quét thành công: ${imei}`
-    if (remaining.value <= 0) closeCamera()
   }
   return ok
 }
@@ -203,6 +250,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('paste', handleGlobalPaste)
+  stopAutoScanLoop()
 })
 
 function handleGlobalPaste(event) {
@@ -261,7 +309,7 @@ function captureFrame() {
   if (!w || !h) return null
 
   const cropW = Math.floor(w * 0.9)
-  const cropH = Math.floor(h * 0.4)
+  const cropH = Math.floor(h * 0.42)
   const sx = Math.floor((w - cropW) / 2)
   const sy = Math.floor((h - cropH) / 2)
 
@@ -292,8 +340,7 @@ async function recognizeCanvas(sourceCanvas, source) {
   lastRaw.value = text.replace(/\s+/g, ' ').trim().slice(0, 120)
 
   if (commitMany(text, source)) {
-    scanningLabel.value = `✓ Đã nhận diện được IMEI: ${extractAllImeisFromScan(text).join(', ')}`
-    if (remaining.value <= 0) closeCamera()
+    scanningLabel.value = `✓ Quét thành công: ${extractAllImeisFromScan(text).join(', ')}`
     return true
   }
 
@@ -304,13 +351,48 @@ async function recognizeCanvas(sourceCanvas, source) {
   if (text2) {
     lastRaw.value = text2.replace(/\s+/g, ' ').trim().slice(0, 120)
     if (commitMany(text2, `${source}-bin`)) {
-      scanningLabel.value = `✓ Đã nhận diện được IMEI: ${extractAllImeisFromScan(text2).join(', ')}`
-      if (remaining.value <= 0) closeCamera()
+      scanningLabel.value = `✓ Quét thành công: ${extractAllImeisFromScan(text2).join(', ')}`
       return true
     }
   }
 
   return false
+}
+
+/** Vòng lặp tự động quét liên tục (Auto Continuous Scan) */
+function startAutoScanLoop() {
+  stopAutoScanLoop()
+  autoScanTimer = setInterval(async () => {
+    if (
+      !cameraOpen.value ||
+      !autoScanEnabled.value ||
+      ocrBusy.value ||
+      remaining.value <= 0 ||
+      isSuccessFlashing.value
+    ) {
+      return
+    }
+
+    const canvas = captureFrame()
+    if (!canvas) return
+
+    try {
+      ocrBusy.value = true
+      scanningLabel.value = '🟢 Đang tự động quét tem liên tục...'
+      await recognizeCanvas(canvas, 'auto-scan')
+    } catch {
+      /* ignore loop error */
+    } finally {
+      ocrBusy.value = false
+    }
+  }, 1100) // quét mỗi 1.1 giây
+}
+
+function stopAutoScanLoop() {
+  if (autoScanTimer) {
+    clearInterval(autoScanTimer)
+    autoScanTimer = null
+  }
 }
 
 async function runOcrOnce() {
@@ -324,7 +406,7 @@ async function runOcrOnce() {
   ocrBusy.value = true
   scanningLabel.value = 'Đang nhận diện số IMEI trong khung...'
   try {
-    const ok = await recognizeCanvas(canvas, 'camera-ocr')
+    const ok = await recognizeCanvas(canvas, 'manual-ocr')
     if (!ok) {
       scanningLabel.value = lastRaw.value
         ? `Đọc được: "${lastRaw.value.slice(0, 45)}" — chưa đủ 15 số, đưa tem gần hơn`
@@ -400,6 +482,8 @@ async function openCamera() {
   lastRaw.value = ''
   lastCameraHit = ''
   lastHitAt = 0
+  modalSuccessImei.value = ''
+  isSuccessFlashing.value = false
 
   if (!canUseCamera.value) {
     cameraError.value =
@@ -431,7 +515,9 @@ async function openCamera() {
       },
     )
 
-    scanningLabel.value = 'Camera đã sẵn sàng — Căn tem vào khung rồi bấm "Chụp OCR ngay"'
+    scanningLabel.value = '🟢 Đang tự động quét tem... Căn tem vào khung'
+    // Bắt đầu vòng lặp tự động quét liên tục
+    startAutoScanLoop()
   } catch (err) {
     cameraError.value =
       err?.message ||
@@ -443,10 +529,13 @@ async function openCamera() {
 }
 
 async function closeCamera() {
+  stopAutoScanLoop()
   cameraOpen.value = false
   cameraError.value = ''
   cameraBusy.value = false
   scanningLabel.value = ''
+  modalSuccessImei.value = ''
+  isSuccessFlashing.value = false
   try {
     controls?.stop()
   } catch {
@@ -461,18 +550,6 @@ async function closeCamera() {
   codeReader = null
   focusScanBox()
 }
-
-onBeforeUnmount(async () => {
-  await closeCamera()
-  if (ocrWorker) {
-    try {
-      await ocrWorker.terminate()
-    } catch {
-      /* ignore */
-    }
-    ocrWorker = null
-  }
-})
 </script>
 
 <template>
@@ -481,13 +558,13 @@ onBeforeUnmount(async () => {
     <div class="flex flex-wrap items-end justify-between gap-2.5">
       <div>
         <div class="flex items-center gap-2">
-          <span class="inline-flex h-2 w-2 rounded-full bg-red-600"></span>
+          <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-ping"></span>
           <p class="text-xs font-black uppercase tracking-wider text-[#7A0C10]">
             Nạp IMEI tự động (AutoScan)
           </p>
         </div>
         <p class="mt-1 text-xs text-slate-500">
-          Hỗ trợ: <strong class="text-slate-700">Ảnh chụp tem</strong> · Súng quét USB · Camera OCR
+          Chế độ: <strong class="text-emerald-700">Tự động quét liên tục</strong> · Ảnh tem · Súng USB
           — Còn thiếu:
           <span
             class="font-black"
@@ -519,11 +596,11 @@ onBeforeUnmount(async () => {
 
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-[12px] border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+          class="inline-flex items-center gap-1.5 rounded-[12px] bg-red-600 px-3.5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
           :disabled="disabled"
           @click="openCamera"
         >
-          <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -537,7 +614,7 @@ onBeforeUnmount(async () => {
               d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          Mở camera
+          Mở camera tự quét
         </button>
 
         <input
@@ -581,7 +658,7 @@ onBeforeUnmount(async () => {
             Kéo thả ảnh tem vào đây, hoặc nhấn <kbd class="rounded border border-slate-300 bg-slate-100 px-1 py-0.5 font-mono text-[10px]">Ctrl + V</kbd> để dán ảnh trực tiếp
           </p>
           <p class="text-[11px] text-slate-500">
-            Hệ thống tự động lọc số IMEI (15 chữ số), hỗ trợ cả tem Dual SIM (IMEI 1 & 2)
+            Tự động nhận diện dãy 15 số IMEI, hỗ trợ cả máy 2 SIM (IMEI 1 & IMEI 2)
           </p>
         </div>
       </div>
@@ -611,42 +688,41 @@ onBeforeUnmount(async () => {
       />
     </div>
 
-    <!-- Thông báo kết quả / Thành công -->
+    <!-- Banner THÔNG BÁO QUÉT THÀNH CÔNG RỰC RỠ -->
     <div
       v-if="scanFlash"
-      class="flex items-center gap-2 rounded-[12px] px-3.5 py-2.5 text-xs font-semibold shadow-sm transition"
+      class="flex items-center justify-between gap-2.5 rounded-[14px] p-3 shadow-md transition-all duration-300"
       :class="{
-        'border border-emerald-300 bg-emerald-50 text-emerald-800': scanFlashType === 'success',
+        'border-2 border-emerald-500 bg-emerald-500 text-white animate-pulse': scanFlashType === 'success',
         'border border-amber-300 bg-amber-50 text-amber-900': scanFlashType === 'warning',
         'border border-rose-300 bg-rose-50 text-rose-800': scanFlashType === 'error',
       }"
     >
-      <svg
+      <div class="flex items-center gap-2.5">
+        <div
+          v-if="scanFlashType === 'success'"
+          class="flex h-7 w-7 items-center justify-center rounded-full bg-white text-emerald-600 shadow"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-black tracking-wide" :class="scanFlashType === 'success' ? 'text-white' : ''">
+            {{ scanFlash }}
+          </p>
+          <p v-if="scanFlashType === 'success'" class="text-[11px] text-emerald-100 font-medium">
+            Đã tự động thêm vào danh sách IMEI của phiếu nhập
+          </p>
+        </div>
+      </div>
+
+      <span
         v-if="scanFlashType === 'success'"
-        class="h-4 w-4 shrink-0 text-emerald-600"
-        fill="currentColor"
-        viewBox="0 0 20 20"
+        class="rounded-full bg-white/20 px-2.5 py-1 font-mono text-[11px] font-black text-white"
       >
-        <path
-          fill-rule="evenodd"
-          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-          clip-rule="evenodd"
-        />
-      </svg>
-      <svg
-        v-else
-        class="h-4 w-4 shrink-0"
-        :class="scanFlashType === 'error' ? 'text-rose-600' : 'text-amber-600'"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path
-          fill-rule="evenodd"
-          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-          clip-rule="evenodd"
-        />
-      </svg>
-      <p class="leading-relaxed">{{ scanFlash }}</p>
+        {{ progressLabel }}
+      </span>
     </div>
 
     <!-- Hộp gợi ý & Khắc phục khi quét/OCR thất bại (AC2) -->
@@ -700,21 +776,40 @@ onBeforeUnmount(async () => {
       </div>
     </div>
 
-    <!-- Modal Camera quét live -->
+    <!-- Modal Camera TỰ QUÉT LIÊN TỤC & THÔNG BÁO THÀNH CÔNG -->
     <AppModal :open="cameraOpen" @close="closeCamera">
-      <div class="w-full max-w-lg overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-xl">
+      <div class="w-full max-w-lg overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-2xl">
         <div class="flex items-center justify-between border-b border-red-100 px-4 py-3 bg-[#FFF7F7]">
-          <div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-[#7A0C10]">Camera quét</p>
-            <h3 class="text-base font-black text-[#111118]">Quét mã vạch & OCR IMEI</h3>
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-[#7A0C10]">Camera tự động</p>
+              <h3 class="text-base font-black text-[#111118]">Tự động quét tem IMEI liên tục</h3>
+            </div>
           </div>
-          <button
-            type="button"
-            class="rounded-[10px] px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100"
-            @click="closeCamera"
-          >
-            Đóng
-          </button>
+
+          <div class="flex items-center gap-2">
+            <!-- Nút bật/tắt tự động quét -->
+            <button
+              type="button"
+              class="rounded-full px-2.5 py-1 text-[11px] font-bold transition"
+              :class="autoScanEnabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600'"
+              @click="autoScanEnabled = !autoScanEnabled"
+            >
+              {{ autoScanEnabled ? '🟢 Tự quét: BẬT' : '⚪ Tự quét: TẮT' }}
+            </button>
+
+            <button
+              type="button"
+              class="rounded-[10px] px-2.5 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100"
+              @click="closeCamera"
+            >
+              Đóng
+            </button>
+          </div>
         </div>
 
         <div class="space-y-3 p-4">
@@ -726,28 +821,80 @@ onBeforeUnmount(async () => {
           <div class="relative overflow-hidden rounded-[16px] bg-black">
             <video
               ref="videoRef"
-              class="max-h-[360px] w-full object-cover"
+              class="max-h-[380px] w-full object-cover"
               playsinline
               muted
               autoplay
             />
-            <!-- Khung đỏ hướng dẫn căn IMEI -->
+
+            <!-- Khung căn chỉnh quét (Đổi sang xanh lá khi quét thành công!) -->
             <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div class="h-[40%] w-[90%] rounded-[12px] border-2 border-red-500/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                <div class="absolute -top-3 left-3 bg-red-600 px-2 py-0.5 rounded text-[10px] font-black text-white">
-                  Căn dòng IMEI hoặc Barcode vào đây
+              <div
+                class="relative h-[42%] w-[90%] rounded-[14px] border-2 transition-all duration-300 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
+                :class="isSuccessFlashing ? 'border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.7)]' : 'border-red-500/90'"
+              >
+                <!-- Tia quét laser động khi đang tự động quét -->
+                <div
+                  v-if="autoScanEnabled && !isSuccessFlashing"
+                  class="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                  style="animation: scanLaser 2s infinite ease-in-out;"
+                ></div>
+
+                <div
+                  class="absolute -top-3 left-3 px-2 py-0.5 rounded text-[10px] font-black text-white transition-colors"
+                  :class="isSuccessFlashing ? 'bg-emerald-600' : 'bg-red-600'"
+                >
+                  {{ isSuccessFlashing ? '✓ ĐÃ NHẬN DIỆN THÀNH CÔNG!' : 'Căn tem IMEI vào khung này' }}
                 </div>
               </div>
             </div>
-            <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-              <p class="text-center text-xs font-bold text-white">
-                {{ scanningLabel || 'Căn tem vào khung đỏ rồi bấm "Chụp OCR ngay"' }}
+
+            <!-- POPUP THÔNG BÁO QUÉT THÀNH CÔNG NỔI BẬT NGAY TRÊN CAMERA -->
+            <div
+              v-if="isSuccessFlashing && modalSuccessImei"
+              class="absolute inset-x-3 top-3 z-20 flex items-center justify-between rounded-[14px] bg-emerald-600 p-3.5 text-white shadow-2xl animate-bounce"
+            >
+              <div class="flex items-center gap-2.5">
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-600 shadow">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wider text-emerald-100">
+                    🎉 QUÉT THÀNH CÔNG!
+                  </p>
+                  <p class="font-mono text-base font-black tracking-widest text-white">
+                    {{ modalSuccessImei }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="text-right">
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-xs font-black text-white">
+                  {{ progressLabel }}
+                </span>
+                <p class="mt-1 text-[10px] font-semibold text-emerald-100">
+                  {{ remaining > 0 ? `Còn thiếu ${remaining}` : 'Đã đủ số lượng!' }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Status bar đáy camera -->
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3">
+              <p class="text-center text-xs font-bold text-white flex items-center justify-center gap-1.5">
+                <span
+                  class="inline-block h-2 w-2 rounded-full"
+                  :class="autoScanEnabled ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'"
+                ></span>
+                {{ scanningLabel || 'Đang tự động quét liên tục...' }}
               </p>
             </div>
           </div>
 
           <canvas ref="canvasRef" class="hidden" />
 
+          <!-- Các nút điều khiển camera -->
           <div class="flex flex-wrap items-center gap-2 pt-1">
             <button
               type="button"
@@ -755,8 +902,9 @@ onBeforeUnmount(async () => {
               :disabled="!!cameraError || cameraBusy || ocrBusy"
               @click="runOcrOnce"
             >
-              {{ ocrBusy ? 'Đang phân tích ảnh...' : 'Chụp OCR ngay' }}
+              {{ ocrBusy ? 'Đang nhận diện...' : 'Chụp OCR ngay' }}
             </button>
+
             <button
               type="button"
               class="rounded-[12px] border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
@@ -765,21 +913,35 @@ onBeforeUnmount(async () => {
             >
               Chọn ảnh tem
             </button>
+
             <button
               type="button"
-              class="rounded-[12px] border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              class="rounded-[12px] bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800"
               @click="closeCamera"
             >
-              Hoàn tất
+              Xong
             </button>
           </div>
 
           <p class="text-[11px] leading-relaxed text-slate-500">
-            Mẹo: Camera webcam laptop có tiêu cự cố định nên khó chụp nét chữ nhỏ. Chụp bằng điện thoại và dùng nút
-            <strong>"Chọn ảnh tem"</strong> sẽ cho độ chính xác cao nhất (≥ 98%).
+            💡 <strong>Tự động quét liên tục đang bật:</strong> Chỉ cần giữ tem điện thoại thẳng vào khung đỏ, máy sẽ tự động đọc và kêu bíp khi nạp thành công mà không cần bấm nút.
           </p>
         </div>
       </div>
     </AppModal>
   </div>
 </template>
+
+<style scoped>
+@keyframes scanLaser {
+  0% {
+    top: 5%;
+  }
+  50% {
+    top: 90%;
+  }
+  100% {
+    top: 5%;
+  }
+}
+</style>
