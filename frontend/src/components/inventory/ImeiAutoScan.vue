@@ -462,13 +462,13 @@ async function decodeBarcodesFromCanvas(sourceCanvas) {
   return foundList
 }
 
-/** Xử lý ảnh kéo thả hoặc chọn từ máy — Quét mã vạch đa hướng & Fallback thông minh */
+/** Xử lý ảnh kéo thả hoặc chọn từ máy — Quét mã vạch + OCR song song */
 async function processImageFile(file) {
   if (!file || props.disabled) return
 
   ocrBusy.value = true
   lastFailReason.value = ''
-  showFlash('Đang phân tích mã vạch trong ảnh...', 'warning', 8000)
+  showFlash('Đang quét mã vạch & đọc số IMEI trong ảnh...', 'warning', 10000)
 
   try {
     const url = URL.createObjectURL(file)
@@ -484,50 +484,66 @@ async function processImageFile(file) {
     const ctx = canvas.getContext('2d')
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-    // TẦNG 1: Quét mã vạch Barcode 1D (hỗ trợ xoay ngang/dọc 0°, 90°, 270°, 180°)
-    let foundBarcodes = await decodeBarcodesFromCanvas(canvas)
-
-    // TẦNG 2: Nếu chưa tìm thấy, thử tiền xử lý kéo dãn tương phản rồi quét lại mã vạch
-    if (foundBarcodes.length === 0) {
-      const enhancedCanvas = preprocessCanvasForOcr(canvas, { scale: 1.0 })
-      foundBarcodes = await decodeBarcodesFromCanvas(enhancedCanvas)
-    }
-
-    // Nếu tìm thấy mã vạch
-    if (foundBarcodes.length > 0) {
-      if (foundBarcodes.length === 1) {
-        commitImei(foundBarcodes[0], 'image-barcode')
-      } else {
-        const result = appendManyImeisToText(props.modelValue, foundBarcodes)
-        if (result.added.length > 0) {
-          emit('update:modelValue', result.text)
-          result.added.forEach((imei) => emit('scanned', { imei, source: 'image-barcode-multi' }))
-          showFlash(`✓ Quét mã vạch thành công ${result.added.length} IMEI: ${result.added.join(', ')}`, 'success', 4000)
-          triggerSuccessUI(result.added[0], 'Mã vạch Barcode')
-        } else {
-          showFlash('Mã vạch trong ảnh đã có sẵn trong phiếu này', 'warning', 3500)
-        }
-      }
-      return
-    }
-
-    // TẦNG 3: FALLBACK THÔNG MINH
-    // Nếu sọc mã vạch bị mờ/lóa không đọc được, tự động đọc dãy số IMEI in trên tem
-    showFlash('Mã vạch bị mờ, đang tự động đọc số IMEI trên tem...', 'warning', 6000)
+    // ─── TẦNG 1 + 3 chạy SONG SONG: Barcode + OCR cùng lúc ───────────────────
+    const enhancedCanvas = preprocessCanvasForOcr(canvas, { scale: 1.0 })
     const preparedOcr = preprocessCanvasForOcr(canvas, { scale: 2.2 })
     const worker = await ensureOcrWorker()
-    const { data } = await worker.recognize(preparedOcr)
-    const text = data?.text ?? ''
-    lastRaw.value = text.replace(/\s+/g, ' ').trim()
 
-    if (commitMany(text, 'image-ocr-fallback')) {
-      showFlash(`✓ Đã nạp thành công IMEI từ tem: ${extractAllImeisFromScan(text).join(', ')}`, 'success', 4000)
-      return
+    const [barcodesRaw, barcodesEnhanced, ocrResult] = await Promise.all([
+      decodeBarcodesFromCanvas(canvas),
+      decodeBarcodesFromCanvas(enhancedCanvas),
+      worker.recognize(preparedOcr),
+    ])
+
+    // Gộp tất cả IMEI từ barcode (loại trùng)
+    const foundBarcodes = [...new Set([...barcodesRaw, ...barcodesEnhanced])]
+
+    // OCR text
+    const ocrText = ocrResult?.data?.text ?? ''
+    lastRaw.value = ocrText.replace(/\s+/g, ' ').trim()
+    const ocrImeis = extractAllImeisFromScan(ocrText)
+
+    // ─── Gộp kết quả barcode + OCR ───────────────────────────────────────────
+    // Ưu tiên: barcode trước (chính xác hơn), sau đó OCR bổ sung nếu chưa đủ
+    const allImeis = [...new Set([...foundBarcodes, ...ocrImeis])]
+
+    if (allImeis.length > 0) {
+      const result = appendManyImeisToText(props.modelValue, allImeis)
+      if (result.added.length > 0) {
+        lastFailReason.value = ''
+        lastDetectedImeis.value = result.added
+        emit('update:modelValue', result.text)
+        result.added.forEach((imei) => {
+          const src = foundBarcodes.includes(imei) ? 'image-barcode' : 'image-ocr'
+          emit('scanned', { imei, source: src })
+        })
+
+        const srcLabel = foundBarcodes.length > 0 && ocrImeis.length > 0
+          ? 'Barcode + OCR'
+          : foundBarcodes.length > 0
+            ? 'Mã vạch Barcode'
+            : 'Đọc số trên tem (OCR)'
+
+        if (result.added.length === 1) {
+          showFlash(`✓ ${srcLabel}: ${result.added[0]}`, 'success', 4000)
+        } else {
+          showFlash(
+            `✓ ${srcLabel}: Đã nạp ${result.added.length} IMEI: ${result.added.join(', ')}`,
+            'success',
+            5000,
+          )
+        }
+        triggerSuccessUI(result.added[0], srcLabel)
+        return
+      } else {
+        showFlash('IMEI trong ảnh đã có sẵn trong phiếu này', 'warning', 3500)
+        return
+      }
     }
 
     // Nếu cả mã vạch lẫn OCR số đều không thấy dãy 15 số
     lastFailReason.value = lastRaw.value
-      ? `Không tìm thấy mã vạch hay số IMEI 15 số trong ảnh. Văn bản đọc được: "${lastRaw.value.slice(0, 60)}..."`
+      ? `Không tìm thấy mã vạch hay số IMEI 15 số trong ảnh. Văn bản đọc được: "${lastRaw.value.slice(0, 80)}..."`
       : 'Không tìm thấy mã vạch hoặc thông tin IMEI trong ảnh vừa chọn.'
     showFlash(lastFailReason.value, 'error', 6000)
   } catch (err) {
