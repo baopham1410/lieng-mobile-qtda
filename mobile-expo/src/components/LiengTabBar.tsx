@@ -93,6 +93,11 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
                   size={20}
                   color={focused ? Colors.brand : Colors.slate500}
                 />
+                {options.tabBarBadge !== undefined && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
+                  </View>
+                )}
               </View>
               <Text style={[styles.label, focused && styles.labelOn]} numberOfLines={1}>
                 {label}
@@ -200,6 +205,23 @@ const styles = StyleSheet.create({
   },
   fabLabelFocused: {
     color: Colors.brand,
+    fontWeight: '800',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -10,
+    backgroundColor: Colors.brand,
+    borderRadius: Radius.full,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 9,
     fontWeight: '800',
   },
 })
