@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -217,6 +218,47 @@ export default function ServicesScreen() {
               </Text>
             </View>
           </Pressable>
+        </View>
+
+        {/* Lịch sử xử lý bảo hành gần đây (Khớp web Warranty) */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Phiếu tiếp nhận dịch vụ gần đây</Text>
+        </View>
+
+        <View style={styles.ticketList}>
+          <Card style={styles.ticketItem}>
+            <View style={styles.ticketTop}>
+              <View>
+                <Text style={styles.ticketCode}>BH-20261109-001</Text>
+                <Text style={styles.ticketModel}>iPhone 13 Pro 128GB (IMEI: 356891***012)</Text>
+              </View>
+              <View style={[styles.ticketBadge, { backgroundColor: Colors.amber100, borderColor: Colors.amber200 }]}>
+                <Text style={[styles.ticketBadgeText, { color: Colors.amber900 }]}>Đang sửa chữa</Text>
+              </View>
+            </View>
+            <View style={styles.ticketDivider} />
+            <View style={styles.ticketBottom}>
+              <Text style={styles.ticketSymptom}>Tình trạng: Màn hình chớp nháy sau va đập</Text>
+              <Text style={styles.ticketCustomer}>Khách: Anh Minh (0982***678)</Text>
+            </View>
+          </Card>
+
+          <Card style={styles.ticketItem}>
+            <View style={styles.ticketTop}>
+              <View>
+                <Text style={styles.ticketCode}>BH-20261108-004</Text>
+                <Text style={styles.ticketModel}>Samsung S22 Ultra (IMEI: 352345***341)</Text>
+              </View>
+              <View style={[styles.ticketBadge, { backgroundColor: Colors.greenSoft, borderColor: Colors.greenBorder }]}>
+                <Text style={[styles.ticketBadgeText, { color: Colors.greenDeep }]}>Đã trả khách</Text>
+              </View>
+            </View>
+            <View style={styles.ticketDivider} />
+            <View style={styles.ticketBottom}>
+              <Text style={styles.ticketSymptom}>Tình trạng: Lỗi chân sạc, đã thay thế linh kiện</Text>
+              <Text style={styles.ticketCustomer}>Khách: Chị Mai (0912***456)</Text>
+            </View>
+          </Card>
         </View>
       </ScrollView>
 
@@ -560,5 +602,69 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: Colors.greenDeep,
+  },
+
+  // ── Ticket List Styles ──
+  sectionHeader: {
+    marginTop: Space.md,
+    marginBottom: Space.xs,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: Colors.ink,
+  },
+  ticketList: {
+    gap: Space.sm,
+  },
+  ticketItem: {
+    backgroundColor: Colors.white,
+    padding: Space.md,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  ticketTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  ticketCode: {
+    fontSize: 13,
+    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: Colors.brand,
+  },
+  ticketModel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.ink,
+    marginTop: 2,
+  },
+  ticketBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+  },
+  ticketBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  ticketDivider: {
+    height: 1,
+    backgroundColor: Colors.slate100,
+    marginVertical: 8,
+  },
+  ticketBottom: {
+    gap: 3,
+  },
+  ticketSymptom: {
+    fontSize: 12,
+    color: Colors.slate700,
+  },
+  ticketCustomer: {
+    fontSize: 11,
+    color: Colors.slate,
   },
 })
