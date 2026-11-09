@@ -2,19 +2,22 @@ import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
-import { Card, Chip, Eyebrow, Muted, ScreenTitle } from '@/components/ui'
+import { Card, Chip, Eyebrow, Muted, PrimaryButton, ScreenTitle, StatCard } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
 
@@ -40,43 +43,45 @@ interface DisplayOrder {
 const FALLBACK_ORDERS: DisplayOrder[] = [
   {
     id: 1,
-    code: 'HD-20261109-003',
-    customerName: 'Anh Minh',
+    code: 'HD-20260714-023',
+    customerName: 'Nguyễn Văn A',
     customerPhone: '0982345678',
-    total: 15990000,
+    total: 19990000,
     itemCount: 1,
-    itemsSummary: 'iPhone 13 128GB Midnight (IMEI: 356891002345012)',
+    itemsSummary: 'iPhone 15 Pro 128GB Titan Tự Nhiên (IMEI: 356891002345012)',
     paymentMethod: 'transfer',
     status: 'completed',
-    createdAt: '16:45 Hôm nay',
-    items: [{ name: 'iPhone 13 128GB Midnight', qty: 1, price: 15990000, imeis: ['356891002345012'] }],
+    createdAt: '14:30 Hôm nay',
+    items: [{ name: 'iPhone 15 Pro 128GB Titan', qty: 1, price: 19990000, imeis: ['356891002345012'] }],
   },
   {
     id: 2,
-    code: 'HD-20261109-002',
-    customerName: 'Chị Hạnh',
+    code: 'HD-20260714-022',
+    customerName: 'Trần Thị B',
     customerPhone: '0901234888',
-    total: 2510000,
-    itemCount: 2,
-    itemsSummary: 'Củ sạc 20W + Tai nghe Type-C',
+    total: 16990000,
+    itemCount: 1,
+    itemsSummary: 'Samsung Galaxy S24 256GB Vàng Amber',
     paymentMethod: 'cash',
     status: 'completed',
-    createdAt: '15:20 Hôm nay',
-    items: [
-      { name: 'Củ sạc nhanh Apple 20W', qty: 1, price: 490000 },
-      { name: 'Tai nghe Type-C chính hãng', qty: 1, price: 2020000 },
-    ],
+    createdAt: '13:15 Hôm nay',
+    items: [{ name: 'Samsung Galaxy S24 256GB', qty: 1, price: 16990000, imeis: ['352345119902341'] }],
   },
   {
     id: 3,
-    code: 'HD-20261109-001',
-    customerName: 'Khách vãng lai',
-    total: 350000,
-    itemCount: 1,
-    itemsSummary: 'Ốp lưng MagSafe iPhone 15',
+    code: 'HD-20260714-021',
+    customerName: 'Lê Minh C',
+    customerPhone: '0978999123',
+    total: 14990000,
+    itemCount: 2,
+    itemsSummary: 'Xiaomi 14 512GB + Củ sạc 90W',
     paymentMethod: 'cash',
     status: 'completed',
-    createdAt: '14:10 Hôm nay',
+    createdAt: '11:45 Hôm nay',
+    items: [
+      { name: 'Xiaomi 14 512GB', qty: 1, price: 13990000, imeis: ['864901024567890'] },
+      { name: 'Củ sạc siêu nhanh 90W Xiaomi', qty: 1, price: 1000000 },
+    ],
   },
 ]
 
@@ -84,11 +89,13 @@ export default function OrdersScreen() {
   const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending'>('all')
+  const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'cancelled'>('all')
   const [orders, setOrders] = useState<DisplayOrder[]>(FALLBACK_ORDERS)
 
   // Order detail modal
   const [selectedOrder, setSelectedOrder] = useState<DisplayOrder | null>(null)
+  const [cancelling, setCancelling] = useState(false)
 
   const loadOrders = useCallback(async () => {
     try {
@@ -131,10 +138,53 @@ export default function OrdersScreen() {
     loadOrders()
   }, [loadOrders])
 
+  // Lọc theo search & filterStatus
   const filtered = orders.filter((o) => {
-    if (filterStatus === 'all') return true
-    return o.status === filterStatus
+    const matchStatus = filterStatus === 'all' || o.status === filterStatus
+    const q = search.trim().toLowerCase()
+    if (!q) return matchStatus
+    const matchCode = o.code.toLowerCase().includes(q)
+    const matchName = o.customerName.toLowerCase().includes(q)
+    const matchPhone = o.customerPhone?.toLowerCase().includes(q)
+    const matchItem = o.itemsSummary.toLowerCase().includes(q)
+    return matchStatus && (matchCode || matchName || matchPhone || matchItem)
   })
+
+  // Thống kê nhanh đơn
+  const totalRevenue = orders
+    .filter((o) => o.status === 'completed')
+    .reduce((sum, it) => sum + it.total, 0)
+  const completedCount = orders.filter((o) => o.status === 'completed').length
+  const pendingCount = orders.filter((o) => o.status === 'pending' || o.status === 'pending_payment').length
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return
+    const doCancel = async () => {
+      setCancelling(true)
+      try {
+        await ordersApi.cancelOrder(selectedOrder.id)
+        setOrders((prev) =>
+          prev.map((o) => (o.id === selectedOrder.id ? { ...o, status: 'cancelled' } : o)),
+        )
+        setSelectedOrder((prev) => (prev ? { ...prev, status: 'cancelled' } : null))
+      } catch (err: any) {
+        Alert.alert('Lỗi', err.response?.data?.message || err.message || 'Không thể hủy đơn.')
+      } finally {
+        setCancelling(false)
+      }
+    }
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng ${selectedOrder.code}?`)) {
+        await doCancel()
+      }
+    } else {
+      Alert.alert('Hủy đơn hàng', `Bạn có chắc muốn hủy đơn hàng ${selectedOrder.code}?`, [
+        { text: 'Bỏ qua', style: 'cancel' },
+        { text: 'Xác nhận hủy', style: 'destructive', onPress: doCancel },
+      ])
+    }
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -144,15 +194,68 @@ export default function OrdersScreen() {
         <Muted>Tra cứu lịch sử đơn, thông tin khách và số IMEI đã xuất</Muted>
       </View>
 
-      {/* Filter Chips */}
+      {/* ── Thống kê nhanh đơn hàng (Web-aligned Stats) ── */}
+      <View style={styles.statsStrip}>
+        <View style={styles.statCol}>
+          <StatCard
+            label="Doanh số hoàn tất"
+            value={formatMoney(totalRevenue)}
+            icon="income"
+            iconColor={Colors.brand}
+            iconBg={Colors.redSoft}
+            valueColor={Colors.redDeep}
+          />
+        </View>
+        <View style={styles.statCol}>
+          <StatCard
+            label="Đơn thành công"
+            value={`${completedCount} đơn`}
+            icon="net"
+            iconColor={Colors.greenDeep}
+            iconBg={Colors.greenSoft}
+            valueColor={Colors.greenDeep}
+          />
+        </View>
+        <View style={styles.statCol}>
+          <StatCard
+            label="Chờ xử lý"
+            value={`${pendingCount} đơn`}
+            icon="transfer"
+            iconColor={Colors.amber700}
+            iconBg={Colors.amber100}
+            valueColor={Colors.amber900}
+          />
+        </View>
+      </View>
+
+      {/* ── Search Box ── */}
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={17} color={Colors.slate400} style={styles.searchIcon} />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Tìm mã đơn, tên khách, số điện thoại..."
+          placeholderTextColor={Colors.slate400}
+          style={styles.searchInput}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {!!search && (
+          <Pressable onPress={() => setSearch('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={18} color={Colors.slate400} />
+          </Pressable>
+        )}
+      </View>
+
+      {/* ── Filter Chips ── */}
       <View style={styles.filterRow}>
         <Chip
-          label="Tất cả đơn"
+          label="Tất cả"
           active={filterStatus === 'all'}
           onPress={() => setFilterStatus('all')}
         />
         <Chip
-          label="Đã hoàn tất"
+          label="Hoàn tất"
           active={filterStatus === 'completed'}
           onPress={() => setFilterStatus('completed')}
         />
@@ -160,6 +263,11 @@ export default function OrdersScreen() {
           label="Chờ xử lý"
           active={filterStatus === 'pending'}
           onPress={() => setFilterStatus('pending')}
+        />
+        <Chip
+          label="Đã hủy"
+          active={filterStatus === 'cancelled'}
+          onPress={() => setFilterStatus('cancelled')}
         />
       </View>
 
@@ -183,11 +291,20 @@ export default function OrdersScreen() {
             />
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }]}
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Ionicons name="receipt-outline" size={44} color={Colors.slate400} />
+              <Text style={styles.emptyTitle}>Không tìm thấy đơn hàng</Text>
+              <Text style={styles.emptyDesc}>
+                Thử thay đổi từ khóa tìm kiếm hoặc chuyển bộ lọc trạng thái khác.
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <Pressable onPress={() => setSelectedOrder(item)}>
               <Card style={styles.orderCard}>
                 <View style={styles.orderTop}>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.orderCode}>{item.code}</Text>
                     <Text style={styles.orderTime}>{item.createdAt}</Text>
                   </View>
@@ -210,7 +327,7 @@ export default function OrdersScreen() {
                 <View style={styles.orderMiddle}>
                   <Text style={styles.customerName}>
                     Khách: <Text style={{ fontWeight: '700', color: Colors.ink }}>{item.customerName}</Text>
-                    {item.customerPhone ? ` (${item.customerPhone})` : ''}
+                    {item.customerPhone ? ` · ${item.customerPhone}` : ''}
                   </Text>
                   <Text style={styles.itemSummary} numberOfLines={2}>
                     {item.itemsSummary}
@@ -218,10 +335,48 @@ export default function OrdersScreen() {
                 </View>
 
                 <View style={styles.orderBottom}>
-                  <View style={styles.statusCompletedBadge}>
-                    <Ionicons name="checkmark-circle" size={13} color={Colors.greenDeep} />
-                    <Text style={styles.statusCompletedText}>
-                      {item.status === 'completed' ? 'Đã thanh toán' : 'Chờ xử lý'}
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      item.status === 'completed'
+                        ? styles.statusCompleted
+                        : item.status === 'cancelled'
+                          ? styles.statusCancelled
+                          : styles.statusPending,
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        item.status === 'completed'
+                          ? 'checkmark-circle'
+                          : item.status === 'cancelled'
+                            ? 'close-circle'
+                            : 'time'
+                      }
+                      size={13}
+                      color={
+                        item.status === 'completed'
+                          ? Colors.greenDeep
+                          : item.status === 'cancelled'
+                            ? Colors.redDeep
+                            : Colors.amber900
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.statusText,
+                        item.status === 'completed'
+                          ? { color: Colors.greenDeep }
+                          : item.status === 'cancelled'
+                            ? { color: Colors.redDeep }
+                            : { color: Colors.amber900 },
+                      ]}
+                    >
+                      {item.status === 'completed'
+                        ? 'Đã thanh toán'
+                        : item.status === 'cancelled'
+                          ? 'Đã hủy'
+                          : 'Chờ xử lý'}
                     </Text>
                   </View>
 
@@ -236,7 +391,7 @@ export default function OrdersScreen() {
         />
       )}
 
-      {/* Modal Chi tiết đơn hàng */}
+      {/* ── Modal Chi tiết đơn hàng (Web-aligned SlideOver) ── */}
       <Modal visible={!!selectedOrder} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -252,7 +407,7 @@ export default function OrdersScreen() {
                   </Pressable>
                 </View>
 
-                <ScrollView style={{ maxHeight: 380, paddingTop: 10 }}>
+                <ScrollView style={{ maxHeight: 420, paddingTop: 10 }}>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Khách hàng:</Text>
                     <Text style={styles.infoVal}>{selectedOrder.customerName}</Text>
@@ -271,6 +426,28 @@ export default function OrdersScreen() {
                     <Text style={styles.infoLabel}>Hình thức TT:</Text>
                     <Text style={styles.infoVal}>
                       {selectedOrder.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Trạng thái:</Text>
+                    <Text
+                      style={[
+                        styles.infoVal,
+                        {
+                          color:
+                            selectedOrder.status === 'completed'
+                              ? Colors.greenDeep
+                              : selectedOrder.status === 'cancelled'
+                                ? Colors.redDeep
+                                : Colors.amber900,
+                        },
+                      ]}
+                    >
+                      {selectedOrder.status === 'completed'
+                        ? 'Đã thanh toán'
+                        : selectedOrder.status === 'cancelled'
+                          ? 'Đã hủy đơn'
+                          : 'Chờ thanh toán'}
                     </Text>
                   </View>
 
@@ -305,6 +482,19 @@ export default function OrdersScreen() {
                     <Text style={styles.totalBoxLabel}>Tổng tiền thanh toán:</Text>
                     <Text style={styles.totalBoxVal}>{formatMoney(selectedOrder.total)}</Text>
                   </View>
+
+                  {/* Nút Hủy đơn nếu đơn chưa bị hủy */}
+                  {selectedOrder.status !== 'cancelled' && (
+                    <View style={{ marginTop: Space.md }}>
+                      <PrimaryButton
+                        label={cancelling ? 'Đang hủy...' : 'HỦY ĐƠN HÀNG'}
+                        tone="red"
+                        icon="trash-outline"
+                        onPress={handleCancelOrder}
+                        disabled={cancelling}
+                      />
+                    </View>
+                  )}
                 </ScrollView>
               </>
             )}
@@ -323,6 +513,36 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Space.lg,
     paddingTop: Space.sm,
+  },
+  statsStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: Space.lg,
+    marginTop: Space.sm,
+  },
+  statCol: {
+    flex: 1,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+    paddingHorizontal: 14,
+    height: 44,
+    marginHorizontal: Space.lg,
+    marginTop: Space.sm,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.ink,
+    paddingVertical: 0,
   },
   filterRow: {
     flexDirection: 'row',
@@ -344,6 +564,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space.lg,
     gap: Space.sm,
   },
+  emptyBox: {
+    alignItems: 'center',
+    paddingVertical: Space.xl * 2,
+    gap: 6,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.ink,
+    marginTop: 4,
+  },
+  emptyDesc: {
+    fontSize: 12,
+    color: Colors.slate,
+    textAlign: 'center',
+    maxWidth: 240,
+  },
   orderCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.xl,
@@ -362,7 +599,7 @@ const styles = StyleSheet.create({
   },
   orderCode: {
     fontSize: 14,
-    fontFamily: 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '900',
     color: Colors.brand,
   },
@@ -417,19 +654,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.slate50,
   },
-  statusCompletedBadge: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.greenSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radius.full,
+    borderWidth: 1,
   },
-  statusCompletedText: {
+  statusCompleted: {
+    backgroundColor: Colors.greenSoft,
+    borderColor: Colors.greenBorder,
+  },
+  statusCancelled: {
+    backgroundColor: Colors.redSoft,
+    borderColor: Colors.redBorder,
+  },
+  statusPending: {
+    backgroundColor: Colors.amber100,
+    borderColor: Colors.amber200,
+  },
+  statusText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.greenDeep,
   },
   detailBtn: {
     flexDirection: 'row',
@@ -498,9 +746,6 @@ const styles = StyleSheet.create({
   },
   itemsSection: {
     marginTop: Space.sm,
-    paddingTop: Space.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.slate100,
   },
   itemsSectionHeading: {
     fontSize: 12,
@@ -509,23 +754,20 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   itemDetailBox: {
-    backgroundColor: Colors.panelWarm,
+    backgroundColor: Colors.canvas,
+    padding: Space.sm,
     borderRadius: Radius.md,
-    padding: 10,
     marginBottom: 6,
-    borderWidth: 1,
-    borderColor: Colors.amber200,
   },
   itemDetailName: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     color: Colors.ink,
-    flex: 1,
   },
   itemDetailTotal: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: Colors.redDeep,
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.brand,
   },
   itemDetailSub: {
     fontSize: 11,
@@ -533,48 +775,44 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   imeiBox: {
-    marginTop: 6,
+    marginTop: 4,
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: Colors.amber200,
+    borderTopColor: Colors.border,
   },
   imeiBoxLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.amber900,
+    color: Colors.slate,
   },
   imeiCode: {
     fontSize: 11,
-    fontFamily: 'monospace',
-    color: Colors.slate700,
-    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: Colors.brand,
   },
   itemSummaryText: {
     fontSize: 12,
-    color: Colors.slate700,
-    fontStyle: 'italic',
+    color: Colors.slate,
   },
   totalBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.redSoft,
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: Space.sm,
-    marginBottom: Space.xl,
+    padding: Space.md,
+    borderRadius: Radius.lg,
+    marginTop: Space.md,
     borderWidth: 1,
     borderColor: Colors.redBorder,
   },
   totalBoxLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.redDeep,
+    color: Colors.brandDeep,
   },
   totalBoxVal: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
-    color: Colors.redDeep,
+    color: Colors.brand,
   },
 })

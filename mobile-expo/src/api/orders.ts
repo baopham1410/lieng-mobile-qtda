@@ -33,3 +33,8 @@ export async function fetchOrderDetail(id: number | string) {
   return data
 }
 
+export async function cancelOrder(id: number | string) {
+  const { data } = await api.post(`/orders/${id}/cancel`)
+  return data
+}
+
