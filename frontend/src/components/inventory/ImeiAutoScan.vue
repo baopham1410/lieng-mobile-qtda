@@ -33,26 +33,26 @@ const scanningLabel = ref('')
 const lastRaw = ref('')
 const lastFailReason = ref('')
 const ocrBusy = ref(false)
-const ocrReady = ref(false)
 const videoRef = ref(null)
 const canvasRef = ref(null)
 const previewUrl = ref('')
 const isDragging = ref(false)
 const lastDetectedImeis = ref([])
 
-// Tính năng tự động quét (Auto-scan) và thông báo thành công
-const autoScanEnabled = ref(true)
+// Trạng thái quét mã vạch & thông báo thành công
 const modalSuccessImei = ref('')
 const isSuccessFlashing = ref(false)
+const lastBarcodeFormat = ref('')
 
 let codeReader = null
 let controls = null
 let ocrWorker = null
+let nativeBarcodeDetector = null
+let animationFrameId = null
 let lastCameraHit = ''
 let lastHitAt = 0
 let wedgeBuffer = ''
 let wedgeTimer = null
-let autoScanTimer = null
 
 const remaining = computed(() => Math.max(0, props.requiredCount - props.importedCount))
 const progressLabel = computed(() => `${props.importedCount}/${props.requiredCount}`)
@@ -60,7 +60,7 @@ const canUseCamera = computed(
   () => typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia,
 )
 
-/** Phát âm thanh bíp ngắn khi quét thành công */
+/** Phát âm thanh bíp xác nhận quét thành công */
 function playSuccessBeep() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
@@ -69,15 +69,15 @@ function playSuccessBeep() {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.type = 'sine'
-    osc.frequency.setValueAtTime(880, ctx.currentTime) // Nốt La (A5)
-    gain.gain.setValueAtTime(0.18, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+    osc.frequency.setValueAtTime(980, ctx.currentTime) // Nốt cao rõ ràng
+    gain.gain.setValueAtTime(0.2, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.16)
     osc.connect(gain)
     gain.connect(ctx.destination)
     osc.start()
-    osc.stop(ctx.currentTime + 0.15)
+    osc.stop(ctx.currentTime + 0.16)
   } catch {
-    /* audio không hỗ trợ hoặc bị chặn */
+    /* audio không hỗ trợ */
   }
 }
 
@@ -90,17 +90,18 @@ function showFlash(message, type = 'success', duration = 3500) {
   }, duration)
 }
 
-function triggerSuccessUI(imei) {
+function triggerSuccessUI(imei, format = 'Mã vạch') {
   playSuccessBeep()
   modalSuccessImei.value = imei
+  lastBarcodeFormat.value = format
   isSuccessFlashing.value = true
 
   clearTimeout(triggerSuccessUI._t)
   triggerSuccessUI._t = setTimeout(() => {
     isSuccessFlashing.value = false
-  }, 2200)
+  }, 2400)
 
-  // Nếu đã nạp đủ số lượng yêu cầu, tự động đóng camera sau 1.5s
+  // Nếu đã nạp đủ số lượng máy, tự động đóng camera sau 1.5s
   if (remaining.value <= 0) {
     setTimeout(() => {
       if (cameraOpen.value) closeCamera()
@@ -112,7 +113,7 @@ function commitImei(raw, source = 'scan') {
   if (props.disabled) return false
   const result = appendImeiToText(props.modelValue, raw)
   if (!result.imei && result.reason === 'invalid') {
-    lastFailReason.value = 'Chưa đọc được IMEI 15 số hợp lệ — hãy đưa tem gần hơn.'
+    lastFailReason.value = 'Mã vạch vừa quét không chứa dãy 15 số IMEI hợp lệ.'
     showFlash(lastFailReason.value, 'error', 4000)
     return false
   }
@@ -125,8 +126,8 @@ function commitImei(raw, source = 'scan') {
   lastDetectedImeis.value = [result.imei]
   emit('update:modelValue', result.text)
   emit('scanned', { imei: result.imei, source })
-  showFlash(`✓ Quét thành công IMEI: ${result.imei}`, 'success', 3500)
-  triggerSuccessUI(result.imei)
+  showFlash(`✓ Đã quét mã vạch thành công: ${result.imei}`, 'success', 3500)
+  triggerSuccessUI(result.imei, source.includes('barcode') ? 'Mã vạch Barcode' : 'IMEI')
   return true
 }
 
@@ -135,15 +136,15 @@ function commitMany(rawText, source) {
   const list = extractAllImeisFromScan(rawText)
   if (!list.length) {
     lastFailReason.value = lastRaw.value
-      ? `Không tìm thấy dãy 15 số IMEI trên tem. Văn bản đọc được: "${lastRaw.value.slice(0, 60)}..."`
-      : 'Không nhận diện được số IMEI trong ảnh tem.'
+      ? `Không tìm thấy mã vạch / IMEI 15 số. Dữ liệu đọc được: "${lastRaw.value.slice(0, 60)}..."`
+      : 'Không nhận diện được mã vạch trong ảnh.'
     showFlash(lastFailReason.value, 'error', 5000)
     return false
   }
 
   const result = appendManyImeisToText(props.modelValue, list)
   if (!result.added.length) {
-    showFlash('Tất cả IMEI trong ảnh đã có sẵn trong phiếu', 'warning', 3500)
+    showFlash('IMEI đã có sẵn trong phiếu này', 'warning', 3500)
     return false
   }
 
@@ -154,42 +155,37 @@ function commitMany(rawText, source) {
 
   const primaryImei = result.added[0]
   if (result.added.length === 1) {
-    showFlash(`✓ Quét thành công IMEI: ${primaryImei}`, 'success')
+    showFlash(`✓ Quét mã vạch thành công IMEI: ${primaryImei}`, 'success')
   } else {
     showFlash(
-      `✓ Quét thành công ${result.added.length} IMEI (Dual SIM): ${result.added.join(', ')}`,
+      `✓ Đã nạp ${result.added.length} IMEI: ${result.added.join(', ')}`,
       'success',
       4000,
     )
   }
-  triggerSuccessUI(primaryImei)
+  triggerSuccessUI(primaryImei, 'Mã vạch Barcode')
   return true
 }
 
-function acceptCameraText(raw, source) {
-  const text = String(raw ?? '').trim()
+/** Nhận kết quả giải mã vạch trực tiếp từ camera */
+function acceptBarcodeResult(rawBarcode, format = 'barcode') {
+  const text = String(rawBarcode ?? '').trim()
   if (!text) return false
-  lastRaw.value = text.replace(/\s+/g, ' ').slice(0, 100)
-
-  const imei = extractImeiFromScan(text)
-  if (!imei) {
-    scanningLabel.value = `Đọc được ký tự nhưng chưa đủ 15 số: ${lastRaw.value.slice(0, 36)}`
-    return false
-  }
 
   const now = Date.now()
-  if (imei === lastCameraHit && now - lastHitAt < 2000) return false
-  lastCameraHit = imei
+  if (text === lastCameraHit && now - lastHitAt < 2200) return false
+  lastCameraHit = text
   lastHitAt = now
 
-  const ok = commitImei(imei, source)
+  lastRaw.value = text
+  const ok = commitImei(text, format)
   if (ok) {
-    scanningLabel.value = `✓ Quét thành công: ${imei}`
+    scanningLabel.value = `✓ Quét thành công mã vạch: ${text}`
   }
   return ok
 }
 
-/** Súng quét barcode qua cổng USB: gom ký tự gõ cực nhanh rồi Enter */
+/** Súng quét barcode cầm tay cắm cổng USB (Nhận diện chuỗi phím bấm cực nhanh) */
 function onScanKeydown(event) {
   if (props.disabled) return
 
@@ -198,7 +194,7 @@ function onScanKeydown(event) {
     const raw = scanInput.value || wedgeBuffer
     scanInput.value = ''
     wedgeBuffer = ''
-    commitImei(raw, 'wedge')
+    commitImei(raw, 'usb-gun')
     return
   }
 
@@ -210,7 +206,7 @@ function onScanKeydown(event) {
         const raw = wedgeBuffer
         wedgeBuffer = ''
         scanInput.value = ''
-        commitImei(raw, 'wedge-auto')
+        commitImei(raw, 'usb-gun-auto')
       }
     }, 80)
   }
@@ -246,11 +242,31 @@ async function focusScanBox() {
 onMounted(() => {
   focusScanBox()
   window.addEventListener('paste', handleGlobalPaste)
+
+  // Khởi tạo BarcodeDetector nếu trình duyệt hỗ trợ
+  if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+    try {
+      nativeBarcodeDetector = new window.BarcodeDetector({
+        formats: [
+          'code_128',
+          'code_39',
+          'code_93',
+          'ean_13',
+          'ean_8',
+          'itf',
+          'qr_code',
+          'data_matrix',
+        ],
+      })
+    } catch {
+      nativeBarcodeDetector = null
+    }
+  }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('paste', handleGlobalPaste)
-  stopAutoScanLoop()
+  stopBarcodeLoop()
 })
 
 function handleGlobalPaste(event) {
@@ -275,161 +291,151 @@ function buildReader() {
   hints.set(DecodeHintType.POSSIBLE_FORMATS, [
     BarcodeFormat.CODE_128,
     BarcodeFormat.CODE_39,
-    BarcodeFormat.CODE_93,
-    BarcodeFormat.ITF,
-    BarcodeFormat.CODABAR,
     BarcodeFormat.EAN_13,
-    BarcodeFormat.EAN_8,
-    BarcodeFormat.UPC_A,
-    BarcodeFormat.UPC_E,
+    BarcodeFormat.ITF,
     BarcodeFormat.QR_CODE,
-    BarcodeFormat.DATA_MATRIX,
   ])
   return new BrowserMultiFormatReader(hints)
 }
 
 async function ensureOcrWorker() {
   if (ocrWorker) return ocrWorker
-  scanningLabel.value = 'Đang khởi động bộ OCR nhận diện số...'
+  scanningLabel.value = 'Đang nạp bộ đọc chữ OCR...'
   ocrWorker = await createWorker('eng', 1, { logger: () => {} })
   await ocrWorker.setParameters({
     tessedit_char_whitelist: '0123456789IMEIimeiMEIDmeidSNsn/: -/.',
     tessedit_pageseg_mode: '6',
   })
-  ocrReady.value = true
   return ocrWorker
 }
 
-function captureFrame() {
+/** Vòng lặp giải mã vạch Barcode thời gian thực (60 FPS qua GPU) */
+function startBarcodeLoop() {
+  stopBarcodeLoop()
+
+  let lastFrameTime = 0
+  async function tick(now) {
+    if (!cameraOpen.value || !videoRef.value) return
+
+    // Giới hạn quét mã vạch mỗi 60ms (~16 FPS) để không gây nóng máy nhưng cực kỳ mượt mà
+    if (now - lastFrameTime >= 60 && !isSuccessFlashing.value && remaining.value > 0) {
+      lastFrameTime = now
+      const video = videoRef.value
+
+      if (video.readyState >= 2) {
+        // 1. Quét bằng BarcodeDetector phần cứng (Siêu tốc < 10ms)
+        if (nativeBarcodeDetector) {
+          try {
+            const detected = await nativeBarcodeDetector.detect(video)
+            if (detected && detected.length > 0) {
+              for (const item of detected) {
+                if (item.rawValue) {
+                  const ok = acceptBarcodeResult(item.rawValue, `barcode-${item.format || '1d'}`)
+                  if (ok) return
+                }
+              }
+            }
+          } catch {
+            /* ignore detect error */
+          }
+        }
+      }
+    }
+
+    if (cameraOpen.value) {
+      animationFrameId = requestAnimationFrame(tick)
+    }
+  }
+
+  animationFrameId = requestAnimationFrame(tick)
+}
+
+function stopBarcodeLoop() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
+}
+
+/** Chụp OCR chữ khi tem không có sọc mã vạch */
+async function runOcrFallback() {
+  if (ocrBusy.value || !cameraOpen.value) return
   const video = videoRef.value
   const canvas = canvasRef.value
-  if (!video || !canvas || video.readyState < 2) return null
-  const w = video.videoWidth
-  const h = video.videoHeight
-  if (!w || !h) return null
-
-  const cropW = Math.floor(w * 0.9)
-  const cropH = Math.floor(h * 0.42)
-  const sx = Math.floor((w - cropW) / 2)
-  const sy = Math.floor((h - cropH) / 2)
-
-  canvas.width = cropW
-  canvas.height = cropH
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, cropW, cropH)
-  return canvas
-}
-
-async function recognizeCanvas(sourceCanvas, source) {
-  // 1. Thử quét mã vạch (Barcode) trước
-  try {
-    const reader = buildReader()
-    const result = reader.decodeFromCanvas(sourceCanvas)
-    if (result?.getText?.() && acceptCameraText(result.getText(), `${source}-barcode`)) {
-      return true
-    }
-  } catch {
-    /* không có barcode */
-  }
-
-  // 2. OCR ảnh với tiền xử lý tương phản động
-  const prepared = preprocessCanvasForOcr(sourceCanvas, { scale: 2.2 })
-  const worker = await ensureOcrWorker()
-  const { data } = await worker.recognize(prepared)
-  const text = data?.text ?? ''
-  lastRaw.value = text.replace(/\s+/g, ' ').trim().slice(0, 120)
-
-  if (commitMany(text, source)) {
-    scanningLabel.value = `✓ Quét thành công: ${extractAllImeisFromScan(text).join(', ')}`
-    return true
-  }
-
-  // 3. Nếu chưa được, thử pass 2 với nhị phân hóa (Binarization)
-  const binaryPrepared = preprocessCanvasForOcr(sourceCanvas, { scale: 2.2, binarize: true })
-  const { data: data2 } = await worker.recognize(binaryPrepared)
-  const text2 = data2?.text ?? ''
-  if (text2) {
-    lastRaw.value = text2.replace(/\s+/g, ' ').trim().slice(0, 120)
-    if (commitMany(text2, `${source}-bin`)) {
-      scanningLabel.value = `✓ Quét thành công: ${extractAllImeisFromScan(text2).join(', ')}`
-      return true
-    }
-  }
-
-  return false
-}
-
-/** Vòng lặp tự động quét liên tục (Auto Continuous Scan) */
-function startAutoScanLoop() {
-  stopAutoScanLoop()
-  autoScanTimer = setInterval(async () => {
-    if (
-      !cameraOpen.value ||
-      !autoScanEnabled.value ||
-      ocrBusy.value ||
-      remaining.value <= 0 ||
-      isSuccessFlashing.value
-    ) {
-      return
-    }
-
-    const canvas = captureFrame()
-    if (!canvas) return
-
-    try {
-      ocrBusy.value = true
-      scanningLabel.value = '🟢 Đang tự động quét tem liên tục...'
-      await recognizeCanvas(canvas, 'auto-scan')
-    } catch {
-      /* ignore loop error */
-    } finally {
-      ocrBusy.value = false
-    }
-  }, 1100) // quét mỗi 1.1 giây
-}
-
-function stopAutoScanLoop() {
-  if (autoScanTimer) {
-    clearInterval(autoScanTimer)
-    autoScanTimer = null
-  }
-}
-
-async function runOcrOnce() {
-  if (ocrBusy.value || !cameraOpen.value) return
-  const canvas = captureFrame()
-  if (!canvas) {
-    scanningLabel.value = 'Camera chưa sẵn sàng — vui lòng đợi 1 giây rồi thử lại'
+  if (!video || !canvas || video.readyState < 2) {
+    scanningLabel.value = 'Camera chưa sẵn sàng'
     return
   }
 
+  const w = video.videoWidth
+  const h = video.videoHeight
+  if (!w || !h) return
+
+  const cropW = Math.floor(w * 0.9)
+  const cropH = Math.floor(h * 0.45)
+  canvas.width = cropW
+  canvas.height = cropH
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(video, (w - cropW) / 2, (h - cropH) / 2, cropW, cropH, 0, 0, cropW, cropH)
+
   ocrBusy.value = true
-  scanningLabel.value = 'Đang nhận diện số IMEI trong khung...'
+  scanningLabel.value = 'Đang đọc chữ số OCR...'
   try {
-    const ok = await recognizeCanvas(canvas, 'manual-ocr')
-    if (!ok) {
-      scanningLabel.value = lastRaw.value
-        ? `Đọc được: "${lastRaw.value.slice(0, 45)}" — chưa đủ 15 số, đưa tem gần hơn`
-        : 'Chưa đọc được — căn tem vào giữa khung đỏ và giữ vững tay'
+    const prepared = preprocessCanvasForOcr(canvas, { scale: 2.2 })
+    const worker = await ensureOcrWorker()
+    const { data } = await worker.recognize(prepared)
+    const text = data?.text ?? ''
+    lastRaw.value = text.replace(/\s+/g, ' ').trim()
+
+    if (commitMany(text, 'camera-ocr')) {
+      scanningLabel.value = `✓ Nhận diện thành công: ${extractAllImeisFromScan(text).join(', ')}`
+    } else {
+      scanningLabel.value = 'Chưa đọc được chữ số — hãy đưa tem sát khung hơn'
     }
   } catch (err) {
-    scanningLabel.value = err?.message || 'Lỗi nhận diện — nên dùng chức năng Chọn ảnh tem'
+    scanningLabel.value = err?.message || 'Lỗi OCR chữ'
   } finally {
     ocrBusy.value = false
   }
 }
 
+/** Xử lý ảnh tải lên hoặc dán từ clipboard */
 async function processImageFile(file) {
   if (!file || props.disabled) return
 
   ocrBusy.value = true
   lastFailReason.value = ''
-  showFlash('Đang phân tích ảnh tem...', 'warning', 10000)
+  showFlash('Đang phân tích mã vạch trong ảnh...', 'warning', 8000)
 
   try {
     const url = URL.createObjectURL(file)
     previewUrl.value = url
     const img = await loadImage(url)
+
+    // Bước 1: Thử giải mã vạch (Barcode) từ ảnh trước
+    let barcodeFound = false
+    if (nativeBarcodeDetector) {
+      try {
+        const detected = await nativeBarcodeDetector.detect(img)
+        if (detected && detected.length > 0) {
+          for (const b of detected) {
+            if (b.rawValue && commitImei(b.rawValue, 'image-barcode')) {
+              barcodeFound = true
+              break
+            }
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (barcodeFound) {
+      ocrBusy.value = false
+      return
+    }
+
+    // Bước 2: Thử ZXing Barcode trên ảnh
     const canvas = document.createElement('canvas')
     const maxW = 1800
     const scale = img.width > maxW ? maxW / img.width : 1
@@ -437,15 +443,33 @@ async function processImageFile(file) {
     canvas.height = Math.floor(img.height * scale)
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
 
-    const ok = await recognizeCanvas(canvas, 'file-upload')
-    if (!ok) {
+    try {
+      const reader = buildReader()
+      const res = reader.decodeFromCanvas(canvas)
+      if (res?.getText?.() && commitImei(res.getText(), 'image-zxing')) {
+        ocrBusy.value = false
+        return
+      }
+    } catch {
+      /* không tìm thấy barcode */
+    }
+
+    // Bước 3: Nếu ảnh không có mã vạch, fallback sang đọc chữ OCR
+    showFlash('Không có mã vạch, đang đọc chữ số OCR...', 'warning', 6000)
+    const prepared = preprocessCanvasForOcr(canvas, { scale: 2.2 })
+    const worker = await ensureOcrWorker()
+    const { data } = await worker.recognize(prepared)
+    const text = data?.text ?? ''
+    lastRaw.value = text.replace(/\s+/g, ' ').trim()
+
+    if (!commitMany(text, 'file-ocr')) {
       lastFailReason.value = lastRaw.value
-        ? `Ảnh tem đọc được: "${lastRaw.value.slice(0, 60)}" nhưng chưa trích xuất được 15 số IMEI.`
-        : 'Không tìm thấy thông tin IMEI trong ảnh vừa chọn.'
+        ? `Ảnh tem đọc được chữ: "${lastRaw.value.slice(0, 60)}" nhưng không có mã vạch hoặc thiếu 15 số IMEI.`
+        : 'Không tìm thấy mã vạch hợp lệ trong ảnh.'
       showFlash(lastFailReason.value, 'error', 6000)
     }
   } catch (err) {
-    lastFailReason.value = err?.message || 'Không thể mở tệp ảnh'
+    lastFailReason.value = err?.message || 'Không thể mở ảnh'
     showFlash(lastFailReason.value, 'error', 4000)
   } finally {
     ocrBusy.value = false
@@ -478,7 +502,7 @@ function loadImage(url) {
 
 async function openCamera() {
   cameraError.value = ''
-  scanningLabel.value = 'Đang mở camera...'
+  scanningLabel.value = 'Đang mở camera quét mã vạch...'
   lastRaw.value = ''
   lastCameraHit = ''
   lastHitAt = 0
@@ -487,7 +511,7 @@ async function openCamera() {
 
   if (!canUseCamera.value) {
     cameraError.value =
-      'Thiết bị không hỗ trợ hoặc bị chặn camera. Vui lòng Chọn ảnh tem hoặc dùng súng quét.'
+      'Thiết bị không hỗ trợ camera. Vui lòng Chọn ảnh tem hoặc dùng súng quét USB.'
     cameraOpen.value = true
     return
   }
@@ -497,7 +521,6 @@ async function openCamera() {
   await nextTick()
 
   try {
-    ensureOcrWorker().catch(() => {})
     codeReader = buildReader()
     const devices = await BrowserMultiFormatReader.listVideoInputDevices()
     if (!devices.length) throw new Error('Không tìm thấy thiết bị camera.')
@@ -505,19 +528,20 @@ async function openCamera() {
     const preferred =
       devices.find((d) => /back|rear|environment|sau/i.test(d.label)) ?? devices[0]
 
+    // ZXing video decoder chạy song song
     controls = await codeReader.decodeFromVideoDevice(
       preferred.deviceId,
       videoRef.value,
       (result, _err, ctrl) => {
         controls = ctrl
         if (!result) return
-        acceptCameraText(result.getText(), 'barcode')
+        acceptBarcodeResult(result.getText(), 'barcode-zxing')
       },
     )
 
-    scanningLabel.value = '🟢 Đang tự động quét tem... Căn tem vào khung'
-    // Bắt đầu vòng lặp tự động quét liên tục
-    startAutoScanLoop()
+    scanningLabel.value = '⚡ Đang quét sọc mã vạch thời gian thực...'
+    // Bắt đầu vòng lặp Native BarcodeDetector (phần cứng siêu tốc)
+    startBarcodeLoop()
   } catch (err) {
     cameraError.value =
       err?.message ||
@@ -529,7 +553,7 @@ async function openCamera() {
 }
 
 async function closeCamera() {
-  stopAutoScanLoop()
+  stopBarcodeLoop()
   cameraOpen.value = false
   cameraError.value = ''
   cameraBusy.value = false
@@ -560,11 +584,11 @@ async function closeCamera() {
         <div class="flex items-center gap-2">
           <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-ping"></span>
           <p class="text-xs font-black uppercase tracking-wider text-[#7A0C10]">
-            Nạp IMEI tự động (AutoScan)
+            Quét mã vạch IMEI tự động (Barcode Scanner)
           </p>
         </div>
         <p class="mt-1 text-xs text-slate-500">
-          Chế độ: <strong class="text-emerald-700">Tự động quét liên tục</strong> · Ảnh tem · Súng USB
+          Chế độ: <strong class="text-emerald-700">Mã vạch 1D (Code 128 / Barcode sọc)</strong> · Súng USB
           — Còn thiếu:
           <span
             class="font-black"
@@ -591,7 +615,7 @@ async function closeCamera() {
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          {{ ocrBusy ? 'Đang đọc ảnh...' : 'Chọn ảnh tem' }}
+          Chọn ảnh có mã vạch
         </button>
 
         <button
@@ -605,16 +629,10 @@ async function closeCamera() {
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-            />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+              d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
             />
           </svg>
-          Mở camera tự quét
+          Quét camera mã vạch
         </button>
 
         <input
@@ -655,10 +673,10 @@ async function closeCamera() {
         </div>
         <div class="text-left">
           <p class="text-xs font-bold text-slate-800">
-            Kéo thả ảnh tem vào đây, hoặc nhấn <kbd class="rounded border border-slate-300 bg-slate-100 px-1 py-0.5 font-mono text-[10px]">Ctrl + V</kbd> để dán ảnh trực tiếp
+            Kéo thả ảnh mã vạch tem vào đây, hoặc nhấn <kbd class="rounded border border-slate-300 bg-slate-100 px-1 py-0.5 font-mono text-[10px]">Ctrl + V</kbd> để dán ảnh
           </p>
           <p class="text-[11px] text-slate-500">
-            Tự động nhận diện dãy 15 số IMEI, hỗ trợ cả máy 2 SIM (IMEI 1 & IMEI 2)
+            Hệ thống ưu tiên giải mã trực tiếp từ <strong>các sọc mã vạch</strong> (Code 128 / Barcode 1D)
           </p>
         </div>
       </div>
@@ -668,7 +686,7 @@ async function closeCamera() {
     <div class="rounded-[16px] border border-emerald-300 bg-emerald-50/60 p-3 ring-1 ring-emerald-200">
       <div class="flex items-center justify-between">
         <label class="mb-1 block text-[10px] font-black uppercase tracking-wider text-emerald-800">
-          Ô nhận súng quét USB / Gõ tay IMEI (Nhấn Enter để nạp)
+          Ô nhận súng quét mã vạch USB (Bóp cò súng quét trực tiếp)
         </label>
         <span class="text-[10px] font-semibold text-emerald-700">Tự động bắt 15 chữ số</span>
       </div>
@@ -680,7 +698,7 @@ async function closeCamera() {
         inputmode="numeric"
         autocomplete="off"
         :disabled="disabled"
-        placeholder="Click vào đây rồi bóp súng quét hoặc gõ 15 số..."
+        placeholder="Click vào đây rồi bóp súng quét mã vạch..."
         class="w-full rounded-[12px] border border-emerald-300 bg-white px-3.5 py-2.5 font-mono text-sm font-semibold tracking-wider text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 disabled:opacity-60"
         @keydown="onScanKeydown"
         @paste="onScanPaste"
@@ -725,7 +743,7 @@ async function closeCamera() {
       </span>
     </div>
 
-    <!-- Hộp gợi ý & Khắc phục khi quét/OCR thất bại (AC2) -->
+    <!-- Hộp gợi ý & Khắc phục khi quét thất bại -->
     <div
       v-if="lastFailReason"
       class="rounded-[16px] border border-rose-200 bg-rose-50/70 p-3.5 text-xs text-rose-900"
@@ -740,7 +758,7 @@ async function closeCamera() {
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <span>Gợi ý khắc phục khi quét tem không nhận:</span>
+          <span>Gợi ý căn mã vạch:</span>
         </div>
         <button
           type="button"
@@ -752,10 +770,9 @@ async function closeCamera() {
       </div>
 
       <ul class="mt-2 list-inside list-disc space-y-1 pl-1 text-[11px] text-rose-800/90 leading-relaxed">
-        <li><strong>Chụp cận cảnh:</strong> Đưa camera điện thoại cách tem 10–15cm, đủ sáng, không rung tay.</li>
-        <li><strong>Tránh bóng đèn:</strong> Không để ánh đèn neon hoặc flash chiếu thẳng vào tem gây vệt chói trắng.</li>
-        <li><strong>Tem có mã vạch:</strong> Căn thẳng thanh mã vạch dài bên dưới dòng chữ IMEI để quét barcode trực tiếp.</li>
-        <li><strong>Tem chữ in mờ:</strong> Dùng súng quét mã vạch qua cổng USB hoặc gõ nhanh 15 số vào ô màu xanh ở trên.</li>
+        <li><strong>Căn sọc mã vạch:</strong> Hướng camera thẳng vào các thanh sọc đen trắng (mã vạch), không cần đưa vào dãy số.</li>
+        <li><strong>Khoảng cách:</strong> Giữ camera cách mã vạch 10–18cm để các sọc không bị mờ do out nét.</li>
+        <li><strong>Tránh chói sáng:</strong> Nghiêng nhẹ tem nếu bị ánh đèn neon phản chiếu vệt trắng lên sọc mã vạch.</li>
       </ul>
 
       <div class="mt-2.5 flex flex-wrap gap-2">
@@ -771,12 +788,12 @@ async function closeCamera() {
           class="rounded-[8px] border border-rose-300 bg-white px-3 py-1.5 text-[11px] font-bold text-rose-800 hover:bg-rose-50"
           @click="focusScanBox"
         >
-          Gõ tay / Súng quét
+          Dùng súng quét USB / Gõ tay
         </button>
       </div>
     </div>
 
-    <!-- Modal Camera TỰ QUÉT LIÊN TỤC & THÔNG BÁO THÀNH CÔNG -->
+    <!-- Modal Camera QUÉT MÃ VẠCH THỜI GIAN THỰC -->
     <AppModal :open="cameraOpen" @close="closeCamera">
       <div class="w-full max-w-lg overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-2xl">
         <div class="flex items-center justify-between border-b border-red-100 px-4 py-3 bg-[#FFF7F7]">
@@ -786,30 +803,18 @@ async function closeCamera() {
               <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
             </span>
             <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-[#7A0C10]">Camera tự động</p>
-              <h3 class="text-base font-black text-[#111118]">Tự động quét tem IMEI liên tục</h3>
+              <p class="text-[10px] font-black uppercase tracking-widest text-[#7A0C10]">Camera Quét Mã Vạch</p>
+              <h3 class="text-base font-black text-[#111118]">Căn các sọc mã vạch (Barcode 1D)</h3>
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
-            <!-- Nút bật/tắt tự động quét -->
-            <button
-              type="button"
-              class="rounded-full px-2.5 py-1 text-[11px] font-bold transition"
-              :class="autoScanEnabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600'"
-              @click="autoScanEnabled = !autoScanEnabled"
-            >
-              {{ autoScanEnabled ? '🟢 Tự quét: BẬT' : '⚪ Tự quét: TẮT' }}
-            </button>
-
-            <button
-              type="button"
-              class="rounded-[10px] px-2.5 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100"
-              @click="closeCamera"
-            >
-              Đóng
-            </button>
-          </div>
+          <button
+            type="button"
+            class="rounded-[10px] px-2.5 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100"
+            @click="closeCamera"
+          >
+            Đóng
+          </button>
         </div>
 
         <div class="space-y-3 p-4">
@@ -827,44 +832,44 @@ async function closeCamera() {
               autoplay
             />
 
-            <!-- Khung căn chỉnh quét (Đổi sang xanh lá khi quét thành công!) -->
+            <!-- Khung căn chỉnh chuyên dụng cho sọc mã vạch -->
             <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div
-                class="relative h-[42%] w-[90%] rounded-[14px] border-2 transition-all duration-300 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
-                :class="isSuccessFlashing ? 'border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.7)]' : 'border-red-500/90'"
+                class="relative h-[36%] w-[92%] rounded-[14px] border-2 transition-all duration-200 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
+                :class="isSuccessFlashing ? 'border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.8)]' : 'border-red-500/90'"
               >
-                <!-- Tia quét laser động khi đang tự động quét -->
+                <!-- Tia quét laser động căn theo sọc mã vạch -->
                 <div
-                  v-if="autoScanEnabled && !isSuccessFlashing"
-                  class="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                  style="animation: scanLaser 2s infinite ease-in-out;"
+                  v-if="!isSuccessFlashing"
+                  class="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.9)]"
+                  style="animation: scanLaser 1.5s infinite ease-in-out;"
                 ></div>
 
                 <div
                   class="absolute -top-3 left-3 px-2 py-0.5 rounded text-[10px] font-black text-white transition-colors"
                   :class="isSuccessFlashing ? 'bg-emerald-600' : 'bg-red-600'"
                 >
-                  {{ isSuccessFlashing ? '✓ ĐÃ NHẬN DIỆN THÀNH CÔNG!' : 'Căn tem IMEI vào khung này' }}
+                  {{ isSuccessFlashing ? '✓ ĐÃ NHẬN DIỆN MÃ VẠCH!' : 'CĂN CÁC SỌC MÃ VẠCH VÀO ĐÂY' }}
                 </div>
               </div>
             </div>
 
-            <!-- POPUP THÔNG BÁO QUÉT THÀNH CÔNG NỔI BẬT NGAY TRÊN CAMERA -->
+            <!-- POPUP THÔNG BÁO QUÉT MÃ VẠCH THÀNH CÔNG RỰC RỠ -->
             <div
               v-if="isSuccessFlashing && modalSuccessImei"
               class="absolute inset-x-3 top-3 z-20 flex items-center justify-between rounded-[14px] bg-emerald-600 p-3.5 text-white shadow-2xl animate-bounce"
             >
               <div class="flex items-center gap-2.5">
-                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-600 shadow">
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-emerald-600 shadow">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
                 <div>
-                  <p class="text-xs font-black uppercase tracking-wider text-emerald-100">
-                    🎉 QUÉT THÀNH CÔNG!
+                  <p class="text-[11px] font-black uppercase tracking-wider text-emerald-100">
+                    🎉 ĐÃ QUÉT MÃ VẠCH THÀNH CÔNG!
                   </p>
-                  <p class="font-mono text-base font-black tracking-widest text-white">
+                  <p class="font-mono text-lg font-black tracking-widest text-white">
                     {{ modalSuccessImei }}
                   </p>
                 </div>
@@ -883,11 +888,8 @@ async function closeCamera() {
             <!-- Status bar đáy camera -->
             <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3">
               <p class="text-center text-xs font-bold text-white flex items-center justify-center gap-1.5">
-                <span
-                  class="inline-block h-2 w-2 rounded-full"
-                  :class="autoScanEnabled ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'"
-                ></span>
-                {{ scanningLabel || 'Đang tự động quét liên tục...' }}
+                <span class="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                {{ scanningLabel || 'Đang quét sọc mã vạch thời gian thực...' }}
               </p>
             </div>
           </div>
@@ -898,20 +900,11 @@ async function closeCamera() {
           <div class="flex flex-wrap items-center gap-2 pt-1">
             <button
               type="button"
-              class="flex-1 rounded-[12px] bg-[#DC2626] px-4 py-2.5 text-xs font-black text-white shadow transition hover:bg-[#B91C1C] disabled:opacity-50"
-              :disabled="!!cameraError || cameraBusy || ocrBusy"
-              @click="runOcrOnce"
-            >
-              {{ ocrBusy ? 'Đang nhận diện...' : 'Chụp OCR ngay' }}
-            </button>
-
-            <button
-              type="button"
-              class="rounded-[12px] border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              class="flex-1 rounded-[12px] border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               :disabled="ocrBusy"
-              @click="fileInputEl?.click()"
+              @click="runOcrFallback"
             >
-              Chọn ảnh tem
+              {{ ocrBusy ? 'Đang đọc chữ...' : 'Chụp đọc chữ OCR (Nếu tem không có mã vạch)' }}
             </button>
 
             <button
@@ -919,12 +912,12 @@ async function closeCamera() {
               class="rounded-[12px] bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800"
               @click="closeCamera"
             >
-              Xong
+              Hoàn tất
             </button>
           </div>
 
           <p class="text-[11px] leading-relaxed text-slate-500">
-            💡 <strong>Tự động quét liên tục đang bật:</strong> Chỉ cần giữ tem điện thoại thẳng vào khung đỏ, máy sẽ tự động đọc và kêu bíp khi nạp thành công mà không cần bấm nút.
+            ⚡ <strong>Quét mã vạch tự động:</strong> Camera nhận diện trực tiếp các <strong>sọc đen trắng</strong> của mã vạch và bíp thành công ngay lập tức. Nếu tem chỉ in chữ số mà không có mã vạch, hãy bấm nút chụp OCR ở trên.
           </p>
         </div>
       </div>
