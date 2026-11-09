@@ -60,6 +60,7 @@ const form = ref({
   variantDesc: '',
   condition: 'new',
   sku: '',
+  warrantyMonths: 12,
   importPrice: '',
   retailPrice: '',
   wholesalePrice: '',
@@ -122,6 +123,7 @@ function applyProduct(product) {
   form.value.isActive = product.isActive !== false
   const slug = product.categorySlug ?? resolveCategorySlug(product.categoryId, categories.value)
   applyProductVariantToForm(form.value, product, slug)
+  form.value.warrantyMonths = product.warrantyMonths ?? product.variant?.warrantyMonths ?? 12
   form.value.importPrice = product.prices?.import ?? ''
   form.value.retailPrice = product.prices?.retail ?? ''
   form.value.wholesalePrice = product.prices?.wholesale ?? ''
@@ -368,6 +370,19 @@ watch(
               <label :class="labelClass">Giá bán sỉ</label>
               <AppMoneyInput v-model="form.wholesalePrice" :hide-zero="false" :input-class="inputClass" placeholder="27.900.000" />
             </div>
+            <div>
+              <label :class="labelClass">Bảo hành (tháng)</label>
+              <input
+                v-model.number="form.warrantyMonths"
+                type="number"
+                min="0"
+                max="120"
+                step="1"
+                :class="inputClass"
+                placeholder="12"
+              />
+              <p class="mt-1 text-[11px] text-slate-400">0 = không lập phiếu BH khi bán. Mặc định 12 tháng.</p>
+            </div>
           </div>
         </div>
 
@@ -539,6 +554,19 @@ watch(
                   :hide-zero="false"
                   input-class="w-full rounded-[16px] border border-red-200 bg-red-50/60 px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:border-red-400"
                 />
+              </div>
+              <div>
+                <label :class="labelClass">Bảo hành (tháng)</label>
+                <input
+                  v-model.number="form.warrantyMonths"
+                  type="number"
+                  min="0"
+                  max="120"
+                  step="1"
+                  class="w-full rounded-[16px] border border-red-200 bg-red-50/60 px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:border-red-400"
+                  placeholder="12"
+                />
+                <p class="mt-1 text-xs text-slate-400">0 = không lập phiếu BH khi bán. Mặc định 12 tháng.</p>
               </div>
             </div>
           </div>

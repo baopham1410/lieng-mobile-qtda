@@ -31,7 +31,9 @@ class ProductFormResource extends JsonResource
                 'storage' => $variant->storage,
                 'ram' => $variant->ram,
                 'condition' => $variant->condition ?? 'new',
+                'warrantyMonths' => $variant->resolvedWarrantyMonths(),
             ] : null,
+            'warrantyMonths' => $variant?->resolvedWarrantyMonths() ?? 12,
             'prices' => [
                 'import' => $this->priceAmount($variant, 'import'),
                 'retail' => $this->priceAmount($variant, 'retail'),

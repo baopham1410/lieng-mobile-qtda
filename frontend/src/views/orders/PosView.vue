@@ -812,21 +812,34 @@ onBeforeUnmount(() => {
     <div v-if="checkoutMessage" class="rounded-[14px] bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-100">
       {{ checkoutMessage }}
     </div>
-    <div
-      v-if="checkoutError"
-      class="flex items-start justify-between gap-3 rounded-[14px] bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 ring-1 ring-red-100"
-      role="alert"
-    >
-      <p class="min-w-0 flex-1">{{ checkoutError }}</p>
-      <button
-        type="button"
-        class="shrink-0 rounded-lg px-2 py-0.5 text-xs font-bold text-red-500 hover:bg-red-100"
-        aria-label="Đóng lỗi"
-        @click="dismissCheckoutError"
+
+    <AppModal :open="Boolean(checkoutError)" @close="dismissCheckoutError">
+      <div
+        class="w-full max-w-md overflow-hidden rounded-[24px] border border-red-200 bg-white shadow-2xl"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="pos-checkout-error-title"
       >
-        Đóng
-      </button>
-    </div>
+        <div class="p-6 text-center">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 ring-1 ring-red-100">
+            <span class="text-xl font-black text-red-600">!</span>
+          </div>
+          <p id="pos-checkout-error-title" class="mt-4 text-[11px] font-bold uppercase tracking-widest text-red-600">
+            Thông báo
+          </p>
+          <p class="mt-2 text-base font-semibold leading-relaxed text-[#111118]">
+            {{ checkoutError }}
+          </p>
+          <button
+            type="button"
+            class="mt-6 w-full rounded-[14px] bg-red-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700"
+            @click="dismissCheckoutError"
+          >
+            Đã hiểu
+          </button>
+        </div>
+      </div>
+    </AppModal>
 
     <AppModal
       :open="showPaymentModal"

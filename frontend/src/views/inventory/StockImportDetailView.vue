@@ -60,6 +60,7 @@ const catalogVariants = ref([])
 const selectedVariant = ref(null)
 const addQuantity = ref(1)
 const addUnitPrice = ref(0)
+const addWarrantyMonths = ref(12)
 const newProductForm = ref({
   name: '',
   category: '',
@@ -257,6 +258,7 @@ function openAddProduct() {
   selectedVariant.value = null
   addQuantity.value = 1
   addUnitPrice.value = 0
+  addWarrantyMonths.value = 12
   newProductForm.value = {
     name: '',
     category: categories.value[0]?.id ?? '',
@@ -286,6 +288,14 @@ async function loadCatalogVariants() {
 function selectVariant(variant) {
   selectedVariant.value = variant
   addUnitPrice.value = variant.unitPrice
+  addWarrantyMonths.value = normalizeWarrantyMonths(variant.warrantyMonths)
+}
+
+function normalizeWarrantyMonths(value) {
+  if (value === '' || value == null) return 12
+  const months = Math.trunc(Number(value))
+  if (!Number.isFinite(months)) return 12
+  return Math.max(0, Math.min(120, months))
 }
 
 async function confirmAddProduct() {
@@ -300,11 +310,13 @@ function confirmAddFromCatalog() {
   if (!selectedVariant.value) return
   const qty = Math.max(1, Number(addQuantity.value) || 1)
   const price = Math.max(0, Number(addUnitPrice.value) || 0)
+  const warrantyMonths = normalizeWarrantyMonths(addWarrantyMonths.value)
   const existing = items.value.find((i) => i.productVariantId === selectedVariant.value.productVariantId)
 
   if (existing) {
     existing.quantity += qty
     existing.unitPrice = price
+    existing.warrantyMonths = warrantyMonths
   } else {
     items.value.push({
       id: nextItemId++,
@@ -314,6 +326,7 @@ function confirmAddFromCatalog() {
       variant: selectedVariant.value.variant,
       quantity: qty,
       unitPrice: price,
+      warrantyMonths,
       isNew: false,
     })
   }
@@ -344,6 +357,7 @@ async function confirmAddNewProduct() {
   const categorySlug = resolveCategorySlug(categoryKey)
   const qty = Math.max(1, Number(addQuantity.value) || 1)
   const price = Math.max(0, Number(addUnitPrice.value) || 0)
+  const warrantyMonths = normalizeWarrantyMonths(addWarrantyMonths.value)
   const variantLabel = buildImportVariantLabel(categorySlug, f)
   const existing = items.value.find(
     (i) => i.isNew && i.name === f.name.trim() && i.variant === variantLabel && i.category === categorySlug,
@@ -352,6 +366,7 @@ async function confirmAddNewProduct() {
   if (existing) {
     existing.quantity += qty
     existing.unitPrice = price
+    existing.warrantyMonths = warrantyMonths
   } else {
     items.value.push({
       id: nextItemId++,
@@ -366,6 +381,7 @@ async function confirmAddNewProduct() {
       variant: variantLabel,
       quantity: qty,
       unitPrice: price,
+      warrantyMonths,
     })
   }
 
@@ -385,6 +401,11 @@ function updateItemQuantity(id, value) {
 function updateItemUnitPrice(id, value) {
   const item = items.value.find((i) => i.id === id)
   if (item) item.unitPrice = Math.max(0, Number(value) || 0)
+}
+
+function updateItemWarrantyMonths(id, value) {
+  const item = items.value.find((i) => i.id === id)
+  if (item) item.warrantyMonths = normalizeWarrantyMonths(value)
 }
 
 async function persistDraft() {
@@ -640,7 +661,7 @@ onMounted(loadImport)
                       Xóa dòng
                     </button>
                   </div>
-                  <div class="grid min-w-[280px] grid-cols-3 gap-3 text-sm">
+                  <div class="grid min-w-[320px] grid-cols-2 gap-3 text-sm sm:min-w-[420px] sm:grid-cols-4">
                     <div class="rounded-[16px] bg-red-50/60 px-3 py-2 text-center ring-1 ring-red-100">
                       <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Số lượng</p>
                       <input
@@ -676,6 +697,20 @@ onMounted(loadImport)
                         @update:model-value="updateItemUnitPrice(item.id, $event)"
                       />
                       <p v-else class="mt-1 font-bold text-red-600">{{ formatCurrency(item.unitPrice) }}</p>
+                    </div>
+                    <div class="rounded-[16px] bg-red-50/60 px-3 py-2 text-center ring-1 ring-red-100">
+                      <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">BH (tháng)</p>
+                      <input
+                        v-if="!isReadonly"
+                        type="number"
+                        min="0"
+                        max="120"
+                        step="1"
+                        class="mt-1 w-full bg-transparent text-center font-bold text-slate-700 outline-none"
+                        :value="item.warrantyMonths ?? 12"
+                        @input="updateItemWarrantyMonths(item.id, $event.target.value)"
+                      />
+                      <p v-else class="mt-1 font-bold text-slate-700">{{ item.warrantyMonths ?? 12 }}</p>
                     </div>
                   </div>
                 </div>
@@ -974,7 +1009,7 @@ onMounted(loadImport)
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-slate-400">Số lượng</label>
                   <input
@@ -992,6 +1027,18 @@ onMounted(loadImport)
                     input-class="w-full rounded-[14px] border border-red-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-400"
                   />
                 </div>
+                <div>
+                  <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-slate-400">BH (tháng)</label>
+                  <input
+                    v-model.number="addWarrantyMonths"
+                    type="number"
+                    min="0"
+                    max="120"
+                    step="1"
+                    class="w-full rounded-[14px] border border-red-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-400"
+                    placeholder="12"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1000,7 +1047,7 @@ onMounted(loadImport)
             <p class="truncate text-sm font-semibold text-slate-700">
               {{ selectedVariant.name }} — {{ selectedVariant.variant }}
             </p>
-            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-slate-400">Số lượng</label>
                 <input
@@ -1016,6 +1063,18 @@ onMounted(loadImport)
                   v-model="addUnitPrice"
                   :hide-zero="false"
                   input-class="w-full rounded-[14px] border border-red-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-400"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-slate-400">BH (tháng)</label>
+                <input
+                  v-model.number="addWarrantyMonths"
+                  type="number"
+                  min="0"
+                  max="120"
+                  step="1"
+                  class="w-full rounded-[14px] border border-red-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-400"
+                  placeholder="12"
                 />
               </div>
             </div>

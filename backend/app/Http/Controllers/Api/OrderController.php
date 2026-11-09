@@ -205,15 +205,18 @@ class OrderController extends Controller
                 $imei->update(['status' => 'sold', 'order_item_id' => $item->id]);
 
                 if ($order->customer_id) {
-                    Warranty::create([
-                        'imei_code_id' => $imei->id,
-                        'customer_id' => $order->customer_id,
-                        'order_id' => $order->id,
-                        'start_date' => now()->toDateString(),
-                        'end_date' => now()->addMonths(12)->toDateString(),
-                        'warranty_months' => 12,
-                        'status' => 'active',
-                    ]);
+                    $months = $item->productVariant?->resolvedWarrantyMonths() ?? 12;
+                    if ($months > 0) {
+                        Warranty::create([
+                            'imei_code_id' => $imei->id,
+                            'customer_id' => $order->customer_id,
+                            'order_id' => $order->id,
+                            'start_date' => now()->toDateString(),
+                            'end_date' => now()->addMonths($months)->toDateString(),
+                            'warranty_months' => $months,
+                            'status' => 'active',
+                        ]);
+                    }
                 }
             }
 
