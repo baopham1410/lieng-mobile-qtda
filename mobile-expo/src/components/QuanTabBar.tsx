@@ -63,9 +63,9 @@ export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps
                   accessibilityRole="button"
                   accessibilityLabel={options.title ?? label}
                   onPress={onPress}
-                  style={styles.fab}
+                  style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
                 >
-                  <Ionicons name="add" size={32} color={Colors.white} />
+                  <Ionicons name="add" size={30} color={Colors.white} />
                 </Pressable>
                 <Text style={styles.fabLabel}>{label}</Text>
               </View>
@@ -78,17 +78,21 @@ export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps
               accessibilityRole="button"
               accessibilityState={{ selected: focused, disabled: locked }}
               onPress={onPress}
-              style={[styles.item, locked && styles.itemLocked]}
+              style={[
+                styles.item,
+                focused && styles.itemFocused,
+                locked && styles.itemLocked,
+              ]}
             >
-              <View>
+              <View style={styles.iconContainer}>
                 <Ionicons
                   name={focused ? meta.iconOn : meta.icon}
-                  size={22}
-                  color={locked ? Colors.slate400 : focused ? Colors.brand : Colors.tabInactive}
+                  size={20}
+                  color={locked ? Colors.slate400 : focused ? Colors.brand : Colors.slate500}
                 />
                 {locked ? (
                   <View style={styles.lockBadge}>
-                    <Ionicons name="lock-closed" size={10} color={Colors.white} />
+                    <Ionicons name="lock-closed" size={9} color={Colors.white} />
                   </View>
                 ) : null}
               </View>
@@ -98,6 +102,7 @@ export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps
                   focused && !locked && styles.labelOn,
                   locked && styles.labelLocked,
                 ]}
+                numberOfLines={1}
               >
                 {label}
               </Text>
@@ -118,26 +123,25 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   bar: {
-    marginHorizontal: 16,
+    marginHorizontal: 12,
     backgroundColor: Colors.panel,
     borderRadius: Radius.xxl,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingTop: 10,
-    paddingBottom: 8,
-    minHeight: 64,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    minHeight: 62,
     borderWidth: 1,
     borderColor: Colors.border,
     ...Platform.select({
       ios: {
         shadowColor: Colors.brand,
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.14,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 6 },
       },
-      android: { elevation: 10 },
+      android: { elevation: 12 },
       default: {},
     }),
   },
@@ -145,58 +149,73 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderRadius: Radius.lg,
     gap: 3,
-    paddingBottom: 4,
-    minHeight: 48,
   },
-  itemLocked: { opacity: 0.72 },
+  itemFocused: {
+    backgroundColor: Colors.redSoft,
+  },
+  itemLocked: {
+    opacity: 0.45,
+  },
+  iconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -6,
+    backgroundColor: Colors.slate400,
+    borderRadius: 999,
+    padding: 2,
+  },
   label: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.tabInactive,
+    color: Colors.slate500,
+    textAlign: 'center',
   },
-  labelOn: { color: Colors.brand },
-  labelLocked: { color: Colors.slate400 },
-  lockBadge: {
-    position: 'absolute',
-    right: -6,
-    top: -4,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: Colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
+  labelOn: {
+    color: Colors.brand,
+    fontWeight: '800',
+  },
+  labelLocked: {
+    color: Colors.slate400,
   },
   centerSlot: {
-    width: 72,
+    flex: 1,
     alignItems: 'center',
-    marginTop: -28,
+    justifyContent: 'center',
+    top: -14,
   },
   fab: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 52,
+    height: 52,
+    borderRadius: 999,
     backgroundColor: Colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: Colors.canvas,
+    borderWidth: 3,
+    borderColor: Colors.white,
     ...Platform.select({
       ios: {
         shadowColor: Colors.brand,
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
       },
       android: { elevation: 8 },
       default: {},
     }),
   },
   fabLabel: {
-    marginTop: 2,
     fontSize: 10,
     fontWeight: '800',
     color: Colors.brand,
+    marginTop: 2,
   },
 })
