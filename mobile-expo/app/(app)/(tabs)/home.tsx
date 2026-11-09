@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
-import { Card, Eyebrow, Muted, ScreenTitle, StatCard } from '@/components/ui'
+import { Card, StatCard } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
@@ -29,35 +30,36 @@ interface RecentOrder {
   status: string
 }
 
+// Dữ liệu fallback chuẩn web dashboardMock.js
 const FALLBACK_RECENT: RecentOrder[] = [
   {
     id: 1,
-    code: 'HD-20261109-003',
-    customerName: 'Anh Minh',
-    total: 15990000,
+    code: 'HD-20260714-023',
+    customerName: 'Nguyễn Văn A',
+    total: 19990000,
     itemCount: 1,
-    summary: 'iPhone 13 128GB Midnight (IMEI: 356891***012)',
-    createdAt: '16:45 Hôm nay',
+    summary: 'iPhone 15 Pro 128GB Titan Tự Nhiên',
+    createdAt: '14:30 Hôm nay',
     status: 'completed',
   },
   {
     id: 2,
-    code: 'HD-20261109-002',
-    customerName: 'Chị Hạnh',
-    total: 2510000,
-    itemCount: 2,
-    summary: 'Củ sạc 20W + Tai nghe Type-C',
-    createdAt: '15:20 Hôm nay',
+    code: 'HD-20260714-022',
+    customerName: 'Trần Thị B',
+    total: 16990000,
+    itemCount: 1,
+    summary: 'Samsung Galaxy S24 256GB Vàng Amber',
+    createdAt: '13:15 Hôm nay',
     status: 'completed',
   },
   {
     id: 3,
-    code: 'HD-20261109-001',
-    customerName: 'Khách vãng lai',
-    total: 350000,
-    itemCount: 1,
-    summary: 'Ốp lưng MagSafe iPhone 15',
-    createdAt: '14:10 Hôm nay',
+    code: 'HD-20260714-021',
+    customerName: 'Lê Minh C',
+    total: 14990000,
+    itemCount: 2,
+    summary: 'Xiaomi 14 512GB + Củ sạc 90W',
+    createdAt: '11:45 Hôm nay',
     status: 'completed',
   },
 ]
@@ -70,11 +72,14 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true)
 
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>(FALLBACK_RECENT)
+  // Khớp 100% với dashboardStats của web
   const [stats, setStats] = useState({
-    todayRevenue: 18850000,
-    completedOrders: 3,
-    pendingAppraisals: 2,
-    activeWarranties: 1,
+    revenueToday: 51970000,
+    ordersToday: 3,
+    imeiInStock: 5,
+    revenueMonth: 51970000,
+    pendingImports: 1,
+    lowStockVariants: 2,
   })
 
   const loadDashboard = useCallback(async () => {
@@ -97,12 +102,12 @@ export default function HomeScreen() {
         const totalRev = mapped.reduce((sum, it) => sum + it.total, 0)
         setStats((prev) => ({
           ...prev,
-          todayRevenue: totalRev > 0 ? totalRev : 18850000,
-          completedOrders: mapped.length,
+          revenueToday: totalRev > 0 ? totalRev : 51970000,
+          ordersToday: mapped.length,
         }))
       }
     } catch {
-      // Dùng fallback nếu API chưa có data
+      // Dùng fallback chuẩn web nếu API chưa có kết nối
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -118,6 +123,8 @@ export default function HomeScreen() {
     loadDashboard()
   }
 
+  const roleDisplay = user?.roleDisplayName || user?.roleName || 'Nhân viên bán hàng'
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
@@ -126,118 +133,166 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.brand} />
         }
       >
-        {/* Header Block */}
-        <View style={styles.topHeader}>
-          <View style={{ flex: 1 }}>
-            <Eyebrow>LIENG MOBILE STORE</Eyebrow>
-            <ScreenTitle>Xin chào, {user?.name?.split(' ').pop() || 'Nhân viên'}!</ScreenTitle>
-            <Muted>Tổng quan tình hình kinh doanh cửa hàng hôm nay</Muted>
-          </View>
-          <View style={styles.storeStatusBadge}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.storeStatusText}>Đang mở ca</Text>
+        {/* ── Banner Hero đỏ thương hiệu khớp chuẩn Web DashboardView.vue ── */}
+        <View style={styles.heroBanner}>
+          <View style={styles.heroGlow} pointerEvents="none" />
+          <View style={styles.heroTopRow}>
+            <View style={{ flex: 1, paddingRight: Space.sm }}>
+              <Text style={styles.heroEyebrow}>XIN CHÀO,</Text>
+              <Text style={styles.heroName} numberOfLines={1}>
+                {user?.name || 'Nhân viên'}
+              </Text>
+              <Text style={styles.heroDesc}>
+                {user?.roleName?.includes('sales')
+                  ? 'Sẵn sàng phục vụ khách tại quầy — mở POS để bắt đầu bán hàng.'
+                  : 'Quản lý toàn bộ hoạt động cửa hàng, đơn hàng và bảo hành hôm nay.'}
+              </Text>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>{roleDisplay}</Text>
+              </View>
+            </View>
+
+            {/* Store Status Box */}
+            <View style={styles.storeStatusBox}>
+              <View style={styles.storeLiveRow}>
+                <View style={styles.onlineDot} />
+                <Text style={styles.storeLiveText}>Lieng Mobile</Text>
+              </View>
+              <Text style={styles.storeHoursText}>08:00 - 21:30</Text>
+              <Text style={styles.storeCaText}>Đang mở ca</Text>
+            </View>
           </View>
         </View>
 
-        {/* Thống kê nhanh hôm nay (Stats Overview) */}
+        {/* ── KPI 4 Thẻ chỉ số khớp 100% Web StatCards ── */}
         <View style={styles.statsGrid}>
+          {/* 1. Doanh thu hôm nay */}
           <View style={styles.statCol}>
             <StatCard
               label="Doanh thu hôm nay"
-              value={formatMoney(stats.todayRevenue)}
+              value={formatMoney(stats.revenueToday)}
               icon="income"
-              valueColor={Colors.greenDeep}
-              hint={`${stats.completedOrders} đơn bán lẻ`}
-            />
-          </View>
-          <View style={styles.statCol}>
-            <StatCard
-              label="Đơn hoàn tất"
-              value={`${stats.completedOrders} đơn`}
-              icon="net"
-              iconColor={Colors.brand}
+              iconColor={Colors.red}
               iconBg={Colors.redSoft}
-              valueColor={Colors.ink}
-              hint="100% thanh toán"
+              valueColor={Colors.redDeep}
+              hint="Doanh thu bán lẻ hôm nay"
             />
           </View>
+
+          {/* 2. Đơn hôm nay */}
           <View style={styles.statCol}>
             <StatCard
-              label="Máy chờ thẩm định"
-              value={`${stats.pendingAppraisals} máy`}
-              icon="transfer"
+              label="Đơn hôm nay"
+              value={`${stats.ordersToday} đơn`}
+              icon="orders"
               iconColor={Colors.amber700}
               iconBg={Colors.amber100}
               valueColor={Colors.amber900}
-              hint="Thu cũ đổi mới"
+              hint="Hóa đơn đã xuất"
             />
           </View>
+
+          {/* 3. Tồn kho IMEI */}
           <View style={styles.statCol}>
             <StatCard
-              label="Bảo hành trong ca"
-              value={`${stats.activeWarranties} máy`}
+              label="Tồn kho IMEI"
+              value={`${stats.imeiInStock} máy`}
               icon="cash"
               iconColor={Colors.blueDeep}
               iconBg={Colors.blueSoft}
               valueColor={Colors.blueDeep}
-              hint="Đang xử lý"
+              hint={`${stats.lowStockVariants} sản phẩm sắp hết tồn`}
+            />
+          </View>
+
+          {/* 4. Doanh thu tháng */}
+          <View style={styles.statCol}>
+            <StatCard
+              label="Doanh thu tháng"
+              value={formatMoney(stats.revenueMonth)}
+              icon="net"
+              iconColor="#7C3AED"
+              iconBg="#F5F3FF"
+              valueColor="#5B21B6"
+              hint={`Tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`}
             />
           </View>
         </View>
 
-        {/* Phím tắt thao tác nhanh (Quick Actions) */}
+        {/* ── Thao tác nhanh tại quầy (Web Quick Actions) ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Thao tác nhanh tại quầy</Text>
+          <Text style={styles.sectionTitle}>Việc cần làm & Thao tác nhanh</Text>
         </View>
+
         <View style={styles.quickGrid}>
+          {/* POS */}
           <Pressable
             onPress={() => router.push('/(app)/(tabs)/pos')}
             style={({ pressed }) => [styles.quickActionCard, pressed && { opacity: 0.85 }]}
           >
             <View style={[styles.actionIconWrap, { backgroundColor: Colors.redSoft }]}>
-              <Ionicons name="cart-outline" size={22} color={Colors.brand} />
+              <Ionicons name="cart" size={22} color={Colors.brand} />
             </View>
-            <Text style={styles.actionTitle}>Tạo đơn POS mới</Text>
-            <Text style={styles.actionDesc}>Bán máy, phụ kiện, quét IMEI</Text>
+            <Text style={styles.actionTitle}>Mở quầy bán (POS)</Text>
+            <Text style={styles.actionDesc}>Bán máy, phụ kiện, quét mã barcode</Text>
           </Pressable>
 
-          <Pressable
-            onPress={() => router.push('/(app)/appraisal')}
-            style={({ pressed }) => [styles.quickActionCard, pressed && { opacity: 0.85 }]}
-          >
-            <View style={[styles.actionIconWrap, { backgroundColor: Colors.amber100 }]}>
-              <Ionicons name="phone-portrait-outline" size={22} color={Colors.amber900} />
-            </View>
-            <Text style={styles.actionTitle}>Thẩm định máy cũ</Text>
-            <Text style={styles.actionDesc}>AutoGrade định giá thu đổi</Text>
-          </Pressable>
-
+          {/* Tra cứu bảo hành */}
           <Pressable
             onPress={() => router.push('/(app)/(tabs)/services')}
             style={({ pressed }) => [styles.quickActionCard, pressed && { opacity: 0.85 }]}
           >
             <View style={[styles.actionIconWrap, { backgroundColor: Colors.blueSoft }]}>
-              <Ionicons name="shield-checkmark-outline" size={22} color={Colors.blueDeep} />
+              <Ionicons name="shield-checkmark" size={22} color={Colors.blueDeep} />
             </View>
-            <Text style={styles.actionTitle}>Tra cứu bảo hành</Text>
-            <Text style={styles.actionDesc}>Check IMEI / SĐT khách</Text>
+            <Text style={styles.actionTitle}>Tra cứu IMEI & BH</Text>
+            <Text style={styles.actionDesc}>Quét barcode camera, tạo phiếu sửa</Text>
           </Pressable>
 
+          {/* Thẩm định máy cũ */}
+          <Pressable
+            onPress={() => router.push('/(app)/appraisal')}
+            style={({ pressed }) => [styles.quickActionCard, pressed && { opacity: 0.85 }]}
+          >
+            <View style={[styles.actionIconWrap, { backgroundColor: Colors.amber100 }]}>
+              <Ionicons name="phone-portrait" size={22} color={Colors.amber900} />
+            </View>
+            <Text style={styles.actionTitle}>Thẩm định máy cũ</Text>
+            <Text style={styles.actionDesc}>AutoGrade định giá thu cũ đổi mới</Text>
+          </Pressable>
+
+          {/* Quán nhỏ phụ trợ */}
           <Pressable
             onPress={() => router.push('/(app)/(tabs)/quay')}
             style={({ pressed }) => [styles.quickActionCard, pressed && { opacity: 0.85 }]}
           >
             <View style={[styles.actionIconWrap, { backgroundColor: Colors.greenSoft }]}>
-              <Ionicons name="storefront-outline" size={22} color={Colors.greenDeep} />
+              <Ionicons name="storefront" size={22} color={Colors.greenDeep} />
             </View>
             <Text style={styles.actionTitle}>Quầy nhỏ (Quán)</Text>
-            <Text style={styles.actionDesc}>Module Quán & Ghi chi phụ</Text>
+            <Text style={styles.actionDesc}>Bán nước, tạp hóa & Ghi chi phụ</Text>
           </Pressable>
         </View>
 
-        {/* Đơn hàng gần đây */}
+        {/* ── Hộp nhắc nhở / Cần chú ý (Web Attention Box) ── */}
+        <View style={styles.attentionCard}>
+          <View style={styles.attentionHeader}>
+            <Ionicons name="alert-circle" size={18} color={Colors.amber900} />
+            <Text style={styles.attentionTitle}>Cần chú ý trong ca</Text>
+          </View>
+          <View style={styles.attentionRow}>
+            <Text style={styles.attentionItem}>• Phiếu nhập kho đang chờ kiểm đếm:</Text>
+            <Text style={styles.attentionVal}>{stats.pendingImports} phiếu</Text>
+          </View>
+          <View style={styles.attentionRow}>
+            <Text style={styles.attentionItem}>• Sản phẩm sắp hết hàng cần bổ sung:</Text>
+            <Text style={styles.attentionVal}>{stats.lowStockVariants} sản phẩm</Text>
+          </View>
+        </View>
+
+        {/* ── Đơn hàng gần đây trong ca (Web Recent Orders) ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Đơn hàng gần đây trong ca</Text>
+          <Text style={styles.sectionTitle}>Đơn hàng gần đây trong ngày</Text>
           <Pressable onPress={() => router.push('/(app)/(tabs)/orders')}>
             <Text style={styles.seeAllText}>Xem tất cả →</Text>
           </Pressable>
@@ -256,17 +311,22 @@ export default function HomeScreen() {
               >
                 <Card style={styles.orderItem}>
                   <View style={styles.orderTop}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.orderCode}>{ord.code}</Text>
-                      <Text style={styles.orderCust}>Khách: {ord.customerName} · {ord.createdAt}</Text>
+                      <Text style={styles.orderCust}>
+                        Khách: {ord.customerName} · {ord.createdAt}
+                      </Text>
                     </View>
                     <Text style={styles.orderAmount}>{formatMoney(ord.total)}</Text>
                   </View>
                   <View style={styles.orderDivider} />
                   <View style={styles.orderBottom}>
-                    <Text style={styles.orderProduct} numberOfLines={1}>{ord.summary}</Text>
+                    <Text style={styles.orderProduct} numberOfLines={1}>
+                      {ord.summary}
+                    </Text>
                     <View style={styles.statusPaidBadge}>
-                      <Text style={styles.statusPaidText}>Đã thanh toán</Text>
+                      <View style={styles.dotPaid} />
+                      <Text style={styles.statusPaidText}>Đã hoàn tất</Text>
                     </View>
                   </View>
                 </Card>
@@ -288,35 +348,111 @@ const styles = StyleSheet.create({
     padding: Space.lg,
     gap: Space.md,
   },
-  topHeader: {
+
+  // ── Hero Banner ──
+  heroBanner: {
+    backgroundColor: Colors.brand,
+    borderRadius: Radius.xxl,
+    padding: Space.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.brand,
+        shadowOpacity: 0.35,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+      },
+      android: { elevation: 8 },
+      default: {},
+    }),
+  },
+  heroGlow: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: Space.sm,
   },
-  storeStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.greenSoft,
-    borderColor: Colors.greenBorder,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radius.full,
-    marginTop: 4,
-  },
-  onlineDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: Colors.green,
-  },
-  storeStatusText: {
+  heroEyebrow: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.greenDeep,
+    color: 'rgba(255,240,240,0.85)',
+    letterSpacing: 1.5,
   },
+  heroName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.white,
+    marginTop: 2,
+  },
+  heroDesc: {
+    fontSize: 12,
+    color: 'rgba(255,240,240,0.9)',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: Radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.white,
+  },
+  storeStatusBox: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: Radius.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'flex-end',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  storeLiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#34D399',
+  },
+  storeLiveText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.white,
+  },
+  storeHoursText: {
+    fontSize: 10,
+    color: 'rgba(255,240,240,0.8)',
+    marginTop: 2,
+  },
+  storeCaText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#A7F3D0',
+    marginTop: 2,
+  },
+
+  // ── Stats Grid ──
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -325,11 +461,13 @@ const styles = StyleSheet.create({
   statCol: {
     width: '48.5%',
   },
+
+  // ── Section Header ──
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: Space.sm,
+    marginTop: Space.xs,
   },
   sectionTitle: {
     fontSize: 15,
@@ -338,9 +476,11 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.brand,
   },
+
+  // ── Quick Actions Grid ──
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -353,11 +493,16 @@ const styles = StyleSheet.create({
     padding: Space.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    shadowColor: Colors.brand,
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.brand,
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
   },
   actionIconWrap: {
     width: 44,
@@ -376,7 +521,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.slate,
     marginTop: 2,
+    lineHeight: 15,
   },
+
+  // ── Attention Card (Khớp web) ──
+  attentionCard: {
+    backgroundColor: Colors.amber100,
+    borderRadius: Radius.xl,
+    padding: Space.md,
+    borderWidth: 1,
+    borderColor: Colors.amber200,
+    gap: 6,
+  },
+  attentionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  attentionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.amber900,
+  },
+  attentionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  attentionItem: {
+    fontSize: 12,
+    color: Colors.amber900,
+  },
+  attentionVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.amber900,
+  },
+
+  // ── Recent Orders ──
   centerBox: {
     paddingVertical: Space.lg,
     alignItems: 'center',
@@ -387,18 +570,18 @@ const styles = StyleSheet.create({
   orderItem: {
     backgroundColor: Colors.white,
     padding: Space.md,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   orderTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   orderCode: {
     fontSize: 13,
-    fontFamily: 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '800',
     color: Colors.brand,
   },
@@ -429,10 +612,21 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   statusPaidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: Colors.greenSoft,
+    borderColor: Colors.greenBorder,
+    borderWidth: 1,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: Radius.full,
+  },
+  dotPaid: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: Colors.green,
   },
   statusPaidText: {
     fontSize: 10,
