@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { getErrorMessage } from '@/api/client'
 import * as warrantyApi from '@/api/warranty'
+import { ScannerModal } from '@/components/ScannerModal'
 import { Card, Eyebrow, Field, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 
@@ -24,6 +25,7 @@ export default function ServicesScreen() {
   const router = useRouter()
   const [imeiInput, setImeiInput] = useState('')
   const [lookingUp, setLookingUp] = useState(false)
+  const [scannerOpen, setScannerOpen] = useState(false)
   const [resultModal, setResultModal] = useState(false)
   const [lookupResult, setLookupResult] = useState<any>(null)
 
@@ -138,6 +140,12 @@ export default function ServicesScreen() {
               onChangeText={setImeiInput}
               editable={!lookingUp}
             />
+            <Pressable
+              onPress={() => setScannerOpen(true)}
+              style={({ pressed }) => [styles.scanImeiBtn, pressed && { opacity: 0.75 }]}
+            >
+              <Ionicons name="scan-outline" size={18} color={Colors.brand} />
+            </Pressable>
             <Pressable
               onPress={handleLookupImei}
               disabled={lookingUp}
@@ -325,6 +333,17 @@ export default function ServicesScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Quét mã vạch Barcode IMEI */}
+      <ScannerModal
+        visible={scannerOpen}
+        title="Quét mã vạch số IMEI"
+        hint="Đưa camera quét mã vạch IMEI trên thân máy hoặc vỏ hộp của khách"
+        onScan={(code) => {
+          setImeiInput(code)
+        }}
+        onClose={() => setScannerOpen(false)}
+      />
     </View>
   )
 }
@@ -381,6 +400,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 13,
     color: Colors.ink,
+  },
+  scanImeiBtn: {
+    paddingHorizontal: 10,
+    backgroundColor: Colors.redSoft,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.redBorder,
   },
   lookupBtn: {
     flexDirection: 'row',
