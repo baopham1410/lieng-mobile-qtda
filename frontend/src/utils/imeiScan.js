@@ -15,6 +15,42 @@ export function isCommonPhoneTac(imei) {
   return COMMON_TAC_PREFIXES.some((prefix) => imei.startsWith(prefix))
 }
 
+/**
+ * Trích xuất IMEI trực tiếp từ chuỗi mã vạch (Barcode 1D).
+ * Mã vạch có thể chứa:
+ * - Dãy 15 số thuần: 356789123456789
+ * - Dãy 16 số IMEISV: 3567891234567890
+ * - Định dạng GS1: (01)0356789123456789 hoặc 91356789123456789
+ * - Tiền tố: IMEI:356789123456789 hoặc S356789123456789
+ */
+export function extractImeiFromBarcode(raw) {
+  if (!raw) return ''
+  const str = String(raw).trim()
+
+  // 1. Lấy toàn bộ chữ số
+  const digits = str.replace(/\D/g, '')
+
+  // 2. Đúng 15 số
+  if (digits.length === 15) return digits
+
+  // 3. 16 số (IMEISV)
+  if (digits.length === 16) return digits.slice(0, 15)
+
+  // 4. Nếu có tiền tố định danh (GS1 '91' hoặc '01' + 15 số)
+  if (digits.length > 15) {
+    for (let i = 0; i <= digits.length - 15; i += 1) {
+      const slice = digits.slice(i, i + 15)
+      if (isValidImeiLuhn(slice) || isCommonPhoneTac(slice)) {
+        return slice
+      }
+    }
+    return digits.slice(0, 15)
+  }
+
+  // 5. Fallback dùng hàm trích xuất đa năng
+  return extractImeiFromScan(str)
+}
+
 /** IMEI chuẩn: chữ số kiểm Luhn (từ phải sang). */
 export function isValidImeiLuhn(imei) {
   if (!isValidImeiFormat(imei)) return false
