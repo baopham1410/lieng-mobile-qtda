@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Card, Chip, Eyebrow, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
@@ -13,15 +13,27 @@ export default function AccountScreen() {
   const { user, logout } = useAuth()
   const { locale, setLocale, t } = useLocale()
 
-  const handleLogout = () => {
-    Alert.alert(t('common.logout'), t('account.logoutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.logout'),
-        style: 'destructive',
-        onPress: () => logout(),
-      },
-    ])
+  const handleLogout = async () => {
+    const doLogout = async () => {
+      try {
+        await logout()
+      } finally {
+        router.replace('/login')
+      }
+    }
+
+    if (Platform.OS === 'web') {
+      await doLogout()
+    } else {
+      Alert.alert(t('common.logout'), t('account.logoutConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.logout'),
+          style: 'destructive',
+          onPress: doLogout,
+        },
+      ])
+    }
   }
 
   const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U'

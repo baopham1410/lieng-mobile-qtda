@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Redirect, router } from 'expo-router'
+import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
@@ -84,8 +84,6 @@ export default function LoginScreen() {
   function getTargetRoute(u: AppUser | null): string {
     return '/home'
   }
-
-  if (!loading && user) return <Redirect href={getTargetRoute(user) as any} />
 
   async function onSubmit() {
     setSubmitting(true)
