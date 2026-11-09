@@ -304,7 +304,8 @@ async function ensureOcrWorker() {
   scanningLabel.value = 'Đang nạp bộ đọc chữ OCR...'
   ocrWorker = await createWorker('eng', 1, { logger: () => {} })
   await ocrWorker.setParameters({
-    tessedit_char_whitelist: '0123456789IMEIimeiMEIDmeidSNsn/: -/.',
+    tessedit_char_whitelist:
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/: -/.',
     tessedit_pageseg_mode: '6',
   })
   return ocrWorker
