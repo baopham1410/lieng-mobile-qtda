@@ -108,18 +108,45 @@ export default function AccountScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.appraisalName}>Thẩm định máy cũ</Text>
+                  <Text style={styles.appraisalName}>Thẩm định máy cũ (AutoGrade)</Text>
                   <View style={styles.devTag}>
                     <Text style={styles.devTagText}>Đang phát triển</Text>
                   </View>
                 </View>
                 <Text style={styles.appraisalDesc}>
-                  Định giá máy cũ khách mang đến quầy (mục TD-01)
+                  Định giá máy cũ thu đổi khách mang đến quầy (#125)
                 </Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.slate400} />
           </Pressable>
+        </Card>
+
+        {/* Lối tắt vào Module Quán nhỏ cũ (Dành riêng cho Quán) */}
+        <Card style={styles.sectionCard}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="storefront-outline" size={18} color={Colors.greenDeep} />
+            <Text style={styles.sectionTitle}>Module phụ: Quán nhỏ</Text>
+          </View>
+          <Text style={styles.legacyDesc}>
+            Dành riêng cho nhân viên quầy giải khát / tạp hóa phụ trợ của cửa hàng.
+          </Text>
+          <View style={styles.legacyBtnRow}>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/quay')}
+              style={styles.legacySubBtn}
+            >
+              <Ionicons name="receipt-outline" size={15} color={Colors.brand} />
+              <Text style={styles.legacySubBtnText}>Mở Quầy nhỏ</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/statement')}
+              style={styles.legacySubBtn}
+            >
+              <Ionicons name="stats-chart-outline" size={15} color={Colors.brand} />
+              <Text style={styles.legacySubBtnText}>Sao kê quán</Text>
+            </Pressable>
+          </View>
         </Card>
 
         {/* Network & API Endpoint Info */}
@@ -362,6 +389,33 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: Colors.amber900,
+  },
+  legacyDesc: {
+    fontSize: 11,
+    color: Colors.slate,
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  legacyBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  legacySubBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.panelWarm,
+    borderWidth: 1,
+    borderColor: Colors.amber200,
+    borderRadius: Radius.md,
+    paddingVertical: 9,
+  },
+  legacySubBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.brand,
   },
   serverInfoBox: {
     backgroundColor: Colors.canvas,
