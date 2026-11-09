@@ -1,8 +1,8 @@
 export const storeInfo = {
   name: 'Lieng Mobile',
   tagline: 'Điện thoại chính hãng — Giá tốt mỗi ngày',
-  hotline: '1900 6868',
-  hotlineDisplay: '1900 6868',
+  hotline: '0383435600',
+  hotlineDisplay: '0383 435 600',
   zalo: '0901 234 567',
   email: 'lienhe@liengmobile.vn',
   hours: '8:00 – 21:30 (T2 – CN)',
@@ -12,12 +12,12 @@ export const storeInfo = {
 }
 
 export const navLinks = [
-  { label: 'Trang chủ', href: '#top' },
-  { label: 'Sản phẩm', href: '#san-pham' },
-  { label: 'Khuyến mãi', href: '#khuyen-mai' },
-  { label: 'Dịch vụ', href: '#dich-vu' },
-  { label: 'Cửa hàng', href: '#cua-hang' },
-  { label: 'Liên hệ', href: '#lien-he' },
+  { label: 'Trang chủ', href: '/#top' },
+  { label: 'Sản phẩm', href: '/#san-pham' },
+  { label: 'Khuyến mãi', href: '/#khuyen-mai' },
+  { label: 'Dịch vụ', href: '/#dich-vu' },
+  { label: 'Cửa hàng', href: '/#cua-hang' },
+  { label: 'Liên hệ', href: '/#lien-he' },
 ]
 
 export const heroSlides = [
