@@ -17,7 +17,7 @@ import type { AppUser } from '@/types'
 type AuthContextValue = {
   user: AppUser | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<AppUser>
   logout: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = await authApi.login(email, password)
       setUser(u)
       await saveUser(u)
+      return u
     } catch (e) {
       throw new Error(getErrorMessage(e))
     }

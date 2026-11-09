@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Redirect, router } from 'expo-router'
-import { useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { router } from 'expo-router'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,30 +20,41 @@ import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import type { AppLocale } from '@/i18n/messages'
+import type { AppUser } from '@/types'
 
 // ─── Demo accounts ────────────────────────────────────────────────────────────
+const REMEMBER_EMAIL_KEY = 'lieng_remember_email'
+
 const DEMO_ACCOUNTS = [
   {
-    id: 'quan',
-    label: 'Quản lý',
-    email: 'quan@liengmobile.com',
-    color: Colors.red,
-    colorBg: Colors.redSoft,
-    colorBorder: Colors.redBorder,
-  },
-  {
     id: 'banhang',
-    label: 'Bán hàng',
+    label: 'Bán hàng (POS)',
     email: 'banhang@liengmobile.com',
-    color: Colors.green,
+    color: Colors.greenDeep,
     colorBg: Colors.greenSoft,
     colorBorder: Colors.greenBorder,
   },
   {
+    id: 'kho',
+    label: 'Thủ kho (IMEI)',
+    email: 'kho@liengmobile.com',
+    color: Colors.amber900,
+    colorBg: Colors.amber100,
+    colorBorder: Colors.amber200,
+  },
+  {
     id: 'admin',
-    label: 'Admin',
+    label: 'Quản trị viên',
     email: 'admin@liengmobile.com',
-    color: Colors.blue,
+    color: Colors.redDeep,
+    colorBg: Colors.redSoft,
+    colorBorder: Colors.redBorder,
+  },
+  {
+    id: 'quan',
+    label: 'Quán nhỏ',
+    email: 'quan@liengmobile.com',
+    color: Colors.blueDeep,
     colorBg: Colors.blueSoft,
     colorBorder: Colors.blueBorder,
   },
@@ -53,20 +65,37 @@ export default function LoginScreen() {
   const { user, loading, login } = useAuth()
   const { t, locale, setLocale } = useLocale()
 
-  const [email, setEmail] = useState('quan@liengmobile.com')
+  const [email, setEmail] = useState('banhang@liengmobile.com')
   const [password, setPassword] = useState('password')
+  const [remember, setRemember] = useState(true)
   const [showPass, setShowPass] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  if (!loading && user) return <Redirect href="/quay" />
+  useEffect(() => {
+    AsyncStorage.getItem(REMEMBER_EMAIL_KEY).then((saved) => {
+      if (saved) {
+        setEmail(saved)
+        setRemember(true)
+      }
+    })
+  }, [])
+
+  function getTargetRoute(u: AppUser | null): string {
+    return '/home'
+  }
 
   async function onSubmit() {
     setSubmitting(true)
     setError('')
     try {
-      await login(email, password)
-      router.replace('/quay')
+      if (remember) {
+        await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, email)
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY)
+      }
+      const loggedUser = await login(email, password)
+      router.replace(getTargetRoute(loggedUser) as any)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('login.failed'))
     } finally {
@@ -83,8 +112,8 @@ export default function LoginScreen() {
     setTimeout(async () => {
       setSubmitting(true)
       try {
-        await login(acc.email, 'password')
-        router.replace('/quay')
+        const loggedUser = await login(acc.email, 'password')
+        router.replace(getTargetRoute(loggedUser) as any)
       } catch (e) {
         setError(e instanceof Error ? e.message : t('login.failed'))
       } finally {
@@ -138,7 +167,7 @@ export default function LoginScreen() {
             </View>
 
             <Text style={styles.tagline}>
-              Hệ thống quản lý cửa hàng điện thoại
+              Hệ thống quản lý chuỗi cửa hàng điện thoại & POS
             </Text>
 
             {/* Chọn ngôn ngữ */}
@@ -207,6 +236,21 @@ export default function LoginScreen() {
                   color={Colors.slate400}
                 />
               </Pressable>
+            </View>
+
+            {/* Checkbox Ghi nhớ email */}
+            <View style={styles.rememberRow}>
+              <Pressable
+                onPress={() => setRemember(!remember)}
+                style={styles.rememberPressable}
+              >
+                <View style={[styles.checkbox, remember && styles.checkboxActive]}>
+                  {remember && <Ionicons name="checkmark" size={12} color={Colors.white} />}
+                </View>
+                <Text style={styles.rememberText}>Ghi nhớ tài khoản trên máy</Text>
+              </Pressable>
+
+              <Text style={styles.forgotText}>Quên mật khẩu?</Text>
             </View>
 
             {/* Error */}
@@ -488,6 +532,44 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
 
+  // ── Remember & Forgot ──
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Space.sm,
+    paddingHorizontal: 4,
+  },
+  rememberPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.slate400,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxActive: {
+    backgroundColor: Colors.brand,
+    borderColor: Colors.brand,
+  },
+  rememberText: {
+    fontSize: 12,
+    color: Colors.slate600,
+    fontWeight: '500',
+  },
+  forgotText: {
+    fontSize: 12,
+    color: Colors.slate400,
+    fontWeight: '500',
+  },
+
   // ── Login button ──
   loginBtn: {
     flexDirection: 'row',
@@ -537,10 +619,11 @@ const styles = StyleSheet.create({
   // ── Quick login ──
   quickRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   quickChip: {
-    flex: 1,
+    width: '48.5%',
     borderWidth: 1,
     borderRadius: Radius.lg,
     paddingVertical: 10,
