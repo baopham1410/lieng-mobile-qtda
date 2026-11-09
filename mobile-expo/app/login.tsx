@@ -23,26 +23,34 @@ import type { AppLocale } from '@/i18n/messages'
 // ─── Demo accounts ────────────────────────────────────────────────────────────
 const DEMO_ACCOUNTS = [
   {
-    id: 'quan',
-    label: 'Quản lý',
-    email: 'quan@liengmobile.com',
-    color: Colors.red,
-    colorBg: Colors.redSoft,
-    colorBorder: Colors.redBorder,
-  },
-  {
     id: 'banhang',
-    label: 'Bán hàng',
+    label: 'Bán hàng (POS)',
     email: 'banhang@liengmobile.com',
-    color: Colors.green,
+    color: Colors.greenDeep,
     colorBg: Colors.greenSoft,
     colorBorder: Colors.greenBorder,
   },
   {
+    id: 'kho',
+    label: 'Thủ kho (IMEI)',
+    email: 'kho@liengmobile.com',
+    color: Colors.amber900,
+    colorBg: Colors.amber100,
+    colorBorder: Colors.amber200,
+  },
+  {
     id: 'admin',
-    label: 'Admin',
+    label: 'Quản trị viên',
     email: 'admin@liengmobile.com',
-    color: Colors.blue,
+    color: Colors.redDeep,
+    colorBg: Colors.redSoft,
+    colorBorder: Colors.redBorder,
+  },
+  {
+    id: 'quan',
+    label: 'Quán nhỏ',
+    email: 'quan@liengmobile.com',
+    color: Colors.blueDeep,
     colorBg: Colors.blueSoft,
     colorBorder: Colors.blueBorder,
   },
@@ -53,7 +61,7 @@ export default function LoginScreen() {
   const { user, loading, login } = useAuth()
   const { t, locale, setLocale } = useLocale()
 
-  const [email, setEmail] = useState('quan@liengmobile.com')
+  const [email, setEmail] = useState('banhang@liengmobile.com')
   const [password, setPassword] = useState('password')
   const [showPass, setShowPass] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -138,7 +146,7 @@ export default function LoginScreen() {
             </View>
 
             <Text style={styles.tagline}>
-              Hệ thống quản lý cửa hàng điện thoại
+              Hệ thống quản lý chuỗi cửa hàng điện thoại & POS
             </Text>
 
             {/* Chọn ngôn ngữ */}
@@ -537,10 +545,11 @@ const styles = StyleSheet.create({
   // ── Quick login ──
   quickRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   quickChip: {
-    flex: 1,
+    width: '48.5%',
     borderWidth: 1,
     borderRadius: Radius.lg,
     paddingVertical: 10,

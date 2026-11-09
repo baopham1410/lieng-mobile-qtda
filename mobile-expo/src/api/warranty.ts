@@ -31,3 +31,4 @@ export async function createWarrantyRepair(payload: {
   const { data } = await api.post('/warranties/repairs', payload)
   return data
 }
+

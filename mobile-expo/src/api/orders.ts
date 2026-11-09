@@ -32,3 +32,4 @@ export async function fetchOrderDetail(id: number | string) {
   const { data } = await api.get(`/orders/${id}`)
   return data
 }
+

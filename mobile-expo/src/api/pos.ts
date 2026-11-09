@@ -53,3 +53,4 @@ export async function submitPosCheckout(payload: {
   const { data } = await api.post('/pos/checkout', payload)
   return data
 }
+
