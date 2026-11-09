@@ -28,7 +28,7 @@ function replyPublic(text) {
     return 'Cửa hàng mở **8:00 – 21:30** (T2–CN). Bạn có thể ghé trực tiếp hoặc để lại SĐT để NV gọi lại.'
   }
   if (/hotline|gọi|sđt|phone|zalo/.test(q)) {
-    return 'Hotline: **1900 6868** · Zalo: **0901 234 567**. Nhân viên sẽ hỗ trợ chọn máy và check IMEI tại quầy.'
+    return 'Hotline: **0383 435 600** · Zalo: **0901 234 567**. Nhân viên sẽ hỗ trợ chọn máy và check IMEI tại quầy.'
   }
   if (/bảo hành|bh|warranty/.test(q)) {
     return 'Máy mới bảo hành chính hãng theo từng dòng (thường 12 tháng). Mang máy + hóa đơn tới quầy; NV tra IMEI trên hệ thống Bảo hành.'
@@ -42,7 +42,7 @@ function replyPublic(text) {
   if (/địa chỉ|ở đâu|chi nhánh|cửa hàng/.test(q)) {
     return 'Chi nhánh chính: **123 Nguyễn Văn Cừ, P.4, Q.5, TP.HCM**. Xem thêm mục Cửa hàng trên trang để biết các điểm khác.'
   }
-  return 'Cảm ơn bạn đã hỏi! Hiện trợ lý khách đang ở giai đoạn **giao diện demo**. Để được tư vấn chính xác, gọi **1900 6868** hoặc để lại nội dung — NV sẽ liên hệ.'
+  return 'Cảm ơn bạn đã hỏi! Hiện trợ lý khách đang ở giai đoạn **giao diện demo**. Để được tư vấn chính xác, gọi **0383 435 600** hoặc để lại nội dung — NV sẽ liên hệ.'
 }
 
 function replyInternal(text) {
