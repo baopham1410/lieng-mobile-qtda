@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import ChatBubbleWidget from '@/components/chat/ChatBubbleWidget.vue'
 import { usePageTransitionStore } from '@/stores/pageTransition'
 
 const pageTransition = usePageTransitionStore()
@@ -40,6 +41,9 @@ const layoutEnterClass = computed(() => {
         </div>
       </div>
     </main>
+
+    <!-- Bot chat nội bộ — NV đã login -->
+    <ChatBubbleWidget variant="internal" />
   </div>
 </template>
 

@@ -43,6 +43,7 @@ class ProductListResource extends JsonResource
             'retailPrice' => (float) $retail,
             'importPrice' => (float) $import,
             'wholesalePrice' => (float) $wholesale,
+            'warrantyMonths' => $firstVariant?->resolvedWarrantyMonths() ?? 12,
             'condition' => $condition,
             'conditionLabel' => $this->conditionLabel($condition),
             'description' => $this->description,

@@ -9,8 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProductVariant extends Model
 {
     protected $fillable = [
-        'product_id', 'sku', 'color', 'storage', 'ram', 'condition',
+        'product_id', 'sku', 'color', 'storage', 'ram', 'condition', 'warranty_months',
     ];
+
+    protected $casts = [
+        'warranty_months' => 'integer',
+    ];
+
+    /** Số tháng BH dùng khi lập phiếu (0 = không BH). */
+    public function resolvedWarrantyMonths(): int
+    {
+        $months = (int) ($this->warranty_months ?? 12);
+
+        return max(0, min(120, $months));
+    }
 
     public function product(): BelongsTo
     {
