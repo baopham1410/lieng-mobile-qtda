@@ -131,6 +131,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/suppliers', [SupplierController::class, 'index']);
         Route::post('/suppliers', [SupplierController::class, 'store'])->middleware('permission:stock_imports.create');
         Route::get('/stock-imports/stats', [StockImportController::class, 'stats']);
+        Route::get('/stock-imports/next-code', [StockImportController::class, 'nextCode']);
         Route::get('/stock-imports', [StockImportController::class, 'index']);
         Route::post('/stock-imports', [StockImportController::class, 'store'])->middleware('permission:stock_imports.create');
         Route::get('/stock-imports/{code}', [StockImportController::class, 'show']);

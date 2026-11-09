@@ -5,10 +5,12 @@ import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import AppDetailSkeleton from '@/components/common/AppDetailSkeleton.vue'
 import AppModal from '@/components/common/AppModal.vue'
 import AppMoneyInput from '@/components/common/AppMoneyInput.vue'
+import ImeiAutoScan from '@/components/inventory/ImeiAutoScan.vue'
 import {
   addSupplier,
   confirmStockImport,
   createStockImport,
+  fetchNextImportCode,
   formatCurrency,
   generateImportCode,
   getStockImport,
@@ -123,17 +125,27 @@ const filteredVariants = computed(() => {
   )
 })
 
-const canConfirmAdd = computed(() => {
-  if (addProductMode.value === 'catalog') return !!selectedVariant.value
-  if (isAddingCategory.value && !newCategoryForm.value.label.trim()) return false
-  return (
-    !validateImportProductForm(
-      newProductForm.value.category,
-      newProductForm.value,
-      newCategoryForm.value.requiresImei,
-    ) && addQuantity.value >= 1
+const addProductBlockedReason = computed(() => {
+  if (addProductMode.value === 'catalog') {
+    return selectedVariant.value ? '' : 'Chọn một sản phẩm trong danh mục.'
+  }
+  if (isAddingCategory.value && !newCategoryForm.value.label.trim()) {
+    return 'Nhập tên danh mục mới.'
+  }
+  const categoryKey = isAddingCategory.value
+    ? 'new'
+    : resolveCategorySlug(newProductForm.value.category)
+  const formError = validateImportProductForm(
+    categoryKey,
+    newProductForm.value,
+    newCategoryForm.value.requiresImei,
   )
+  if (formError) return formError
+  if (!(addQuantity.value >= 1)) return 'Số lượng phải ≥ 1.'
+  return ''
 })
+
+const canConfirmAdd = computed(() => !addProductBlockedReason.value)
 
 function categoryLabel(categoryId) {
   const cat = categories.value.find(
@@ -195,7 +207,7 @@ async function loadImport() {
   await Promise.all([loadSuppliers(), loadCategoryOptions()])
 
   if (isCreate.value) {
-    importCode.value = generateImportCode()
+    importCode.value = await fetchNextImportCode().catch(() => generateImportCode())
     selectedSupplier.value = suppliers.value[0]?.id ?? null
     notes.value = ''
     status.value = 'draft'
@@ -346,8 +358,11 @@ async function confirmAddNewProduct() {
       productVariantId: null,
       isNew: true,
       category: categorySlug,
+      categoryId: Number.isFinite(Number(categoryKey)) ? Number(categoryKey) : undefined,
       name: f.name.trim(),
       brand,
+      color: f.color?.trim() || '',
+      storage: f.storage?.trim() || f.variantDesc?.trim() || '',
       variant: variantLabel,
       quantity: qty,
       unitPrice: price,
@@ -392,8 +407,10 @@ async function persistDraft() {
 
   const payload = { ...buildPayload(), status: 'draft' }
   if (isCreate.value) {
-    await createStockImport(payload)
-    await router.replace({ name: 'stock-import-detail', params: { code: importCode.value } })
+    const saved = await createStockImport(payload)
+    const savedCode = saved?.code || importCode.value
+    importCode.value = savedCode
+    await router.replace({ name: 'stock-import-detail', params: { code: savedCode } })
   } else {
     await updateStockImport(importCode.value, payload)
   }
@@ -685,7 +702,16 @@ onMounted(loadImport)
 
             <template v-else>
               <div class="mt-4 rounded-[18px] border border-red-200 bg-red-50/60 p-4">
-                <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Dán hoặc quét IMEI</label>
+                <ImeiAutoScan
+                  v-model="imeiText"
+                  :disabled="isReadonly"
+                  :required-count="imeiValidation.totalRequired"
+                  :imported-count="imeiValidation.totalImported"
+                />
+              </div>
+
+              <div class="mt-4 rounded-[18px] border border-red-200 bg-red-50/60 p-4">
+                <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Danh sách đã nạp (có thể sửa tay)</label>
                 <textarea
                   v-model="imeiText"
                   :disabled="isReadonly"
@@ -995,22 +1021,27 @@ onMounted(loadImport)
             </div>
           </div>
 
-          <div class="shrink-0 flex flex-col-reverse gap-2 border-t border-red-100 px-4 py-4 sm:flex-row sm:gap-3 sm:px-6">
-            <button
-              type="button"
-              class="w-full rounded-[14px] bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-red-100 transition hover:bg-red-50 sm:flex-1"
-              @click="showAddProduct = false"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              :disabled="!canConfirmAdd"
-              class="w-full rounded-[14px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
-              @click="confirmAddProduct"
-            >
-              Thêm vào phiếu
-            </button>
+          <div class="shrink-0 space-y-2 border-t border-red-100 px-4 py-4 sm:px-6">
+            <p v-if="addProductBlockedReason" class="text-xs font-medium text-amber-700">
+              {{ addProductBlockedReason }}
+            </p>
+            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+              <button
+                type="button"
+                class="w-full rounded-[14px] bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-red-100 transition hover:bg-red-50 sm:flex-1"
+                @click="showAddProduct = false"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                :disabled="!canConfirmAdd"
+                class="w-full rounded-[14px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
+                @click="confirmAddProduct"
+              >
+                Thêm vào phiếu
+              </button>
+            </div>
           </div>
         </div>
       </AppModal>
