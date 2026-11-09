@@ -69,9 +69,9 @@ export function buildProductPayload(form, categories = []) {
     is_active: form.isActive !== false,
     variant: buildProductVariantFields(categorySlug, form),
     prices: {
-      import: form.importPrice ? Number(form.importPrice) : null,
-      retail: form.retailPrice ? Number(form.retailPrice) : null,
-      wholesale: form.wholesalePrice ? Number(form.wholesalePrice) : null,
+      import: form.importPrice !== '' && form.importPrice != null ? Number(form.importPrice) : null,
+      retail: form.retailPrice !== '' && form.retailPrice != null ? Number(form.retailPrice) : null,
+      wholesale: form.wholesalePrice !== '' && form.wholesalePrice != null ? Number(form.wholesalePrice) : null,
     },
   }
 }
