@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -53,6 +55,7 @@ export default function StatementScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [savingVault, setSavingVault] = useState(false)
   const [error, setError] = useState('')
+  const [flash, setFlash] = useState('')
   const [entries, setEntries] = useState<QuanEntry[]>([])
   const [stats, setStats] = useState<QuanStats>(emptyStats)
 
@@ -89,6 +92,8 @@ export default function StatementScreen() {
     setSavingVault(true)
     try {
       const saved = await quanApi.saveQuanStatement()
+      setFlash(`Đã chốt sổ sao kê ngày ${saved.statementDate}`)
+      setTimeout(() => setFlash(''), 4000)
       Alert.alert(t('quay.saved'), t('quay.savedStatement', { date: saved.statementDate }), [
         { text: t('common.ok') },
         {
@@ -106,16 +111,35 @@ export default function StatementScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Space.xl }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.brand} />
+        }
       >
-        <View style={styles.header}>
-          <Eyebrow>{t('statement.eyebrow')}</Eyebrow>
-          <ScreenTitle>{t('statement.title', { period: periodLabel })}</ScreenTitle>
-          <Muted>{t('statement.count', { n: entries.length })}</Muted>
+        {/* Header Bar */}
+        <View style={styles.topHeader}>
+          <View style={{ flex: 1 }}>
+            <Eyebrow>{t('statement.eyebrow')}</Eyebrow>
+            <ScreenTitle>{t('statement.title', { period: periodLabel })}</ScreenTitle>
+            <Muted>{t('statement.count', { n: entries.length })}</Muted>
+          </View>
+          <Pressable
+            onPress={onRefresh}
+            style={({ pressed }) => [styles.syncBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Ionicons name="sync-outline" size={18} color={Colors.brand} />
+          </Pressable>
         </View>
 
-        {/* Period Chips */}
+        {/* Flash Message */}
+        {!!flash && (
+          <View style={styles.flashBanner}>
+            <Ionicons name="checkmark-circle" size={18} color={Colors.greenDeep} />
+            <Text style={styles.flashText}>{flash}</Text>
+          </View>
+        )}
+
+        {/* Period Chips Filter */}
         <View style={styles.periodRow}>
           <Chip
             label={t('common.today')}
@@ -135,46 +159,65 @@ export default function StatementScreen() {
         </View>
 
         {!!error && (
-          <View style={{ marginBottom: Space.sm }}>
+          <View style={{ marginBottom: Space.xs }}>
             <AlertBox message={error} tone="error" />
           </View>
         )}
 
-        {/* Stats Grid */}
+        {/* 4 Stat Cards in 2x2 Grid */}
         <View style={styles.statsGrid}>
-          <StatCard
-            label={t('common.income')}
-            value={formatMoney(stats.incomeToday)}
-            color={Colors.green}
-            hint={`${stats.salesCountToday} ${t('quay.sell').toLowerCase()}`}
-          />
-          <StatCard
-            label={t('common.expense')}
-            value={formatMoney(stats.expenseToday)}
-            color={Colors.red}
-            hint={`${stats.expenseCountToday} ${t('common.expense').toLowerCase()}`}
-          />
-          <StatCard
-            label={t('statement.cash')}
-            value={formatMoney(stats.cashToday)}
-            color={Colors.ink}
-          />
-          <StatCard
-            label={t('statement.transfer')}
-            value={formatMoney(stats.transferToday)}
-            color={Colors.ink}
-          />
+          <View style={styles.statCol}>
+            <StatCard
+              label={t('common.income')}
+              value={formatMoney(stats.incomeToday)}
+              icon="income"
+              valueColor={Colors.greenDeep}
+              hint={`${stats.salesCountToday} ${t('quay.sell').toLowerCase()}`}
+            />
+          </View>
+          <View style={styles.statCol}>
+            <StatCard
+              label={t('common.expense')}
+              value={formatMoney(stats.expenseToday)}
+              icon="expense"
+              valueColor={Colors.redDeep}
+              hint={`${stats.expenseCountToday} ${t('common.expense').toLowerCase()}`}
+            />
+          </View>
+          <View style={styles.statCol}>
+            <StatCard
+              label={t('statement.cash')}
+              value={formatMoney(stats.cashToday)}
+              icon="cash"
+              iconColor={Colors.amber700}
+              iconBg={Colors.amber100}
+              valueColor={Colors.ink}
+            />
+          </View>
+          <View style={styles.statCol}>
+            <StatCard
+              label={t('statement.transfer')}
+              value={formatMoney(stats.transferToday)}
+              icon="transfer"
+              iconColor={Colors.blueDeep}
+              iconBg={Colors.blueSoft}
+              valueColor={Colors.ink}
+            />
+          </View>
         </View>
 
-        {/* Balance Card */}
+        {/* Balance Net Card with Vault Action */}
         <Card style={styles.balanceCard}>
           <View style={styles.balanceRow}>
-            <View>
-              <Text style={styles.balanceLabel}>{t('common.remaining')}</Text>
+            <View style={{ flex: 1 }}>
+              <View style={styles.balanceLabelRow}>
+                <Ionicons name="wallet-outline" size={15} color={Colors.slate} />
+                <Text style={styles.balanceLabel}>{t('common.remaining')}</Text>
+              </View>
               <Text
                 style={[
                   styles.balanceValue,
-                  { color: stats.netToday >= 0 ? Colors.green : Colors.red },
+                  { color: stats.netToday >= 0 ? Colors.greenDeep : Colors.redDeep },
                 ]}
               >
                 {formatMoney(stats.netToday)}
@@ -185,6 +228,8 @@ export default function StatementScreen() {
                 <PrimaryButton
                   label={savingVault ? t('common.loading') : t('statement.saveVault')}
                   tone="amber"
+                  icon="archive-outline"
+                  size="sm"
                   disabled={savingVault}
                   onPress={handleSaveVault}
                 />
@@ -193,9 +238,12 @@ export default function StatementScreen() {
           </View>
         </Card>
 
-        {/* Entries list */}
+        {/* Detail entries list */}
         <View style={styles.entriesSection}>
-          <Text style={styles.sectionHeading}>{t('statement.detail')}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeading}>{t('statement.detail')}</Text>
+            <Text style={styles.sectionCountBadge}>{entries.length} giao dịch</Text>
+          </View>
 
           {loading ? (
             <View style={styles.centerBox}>
@@ -204,33 +252,37 @@ export default function StatementScreen() {
             </View>
           ) : entries.length === 0 ? (
             <Card style={styles.emptyCard}>
+              <Ionicons name="receipt-outline" size={36} color={Colors.slate400} />
               <Text style={styles.emptyText}>{t('quay.emptyTx')}</Text>
             </Card>
           ) : (
-            entries.map((entry) => {
-              const isIncome = entry.type === 'income'
-              const subtitleParts = [
-                entry.staffName,
-                entry.occurredAt ? formatDateTimeVi(entry.occurredAt) : undefined,
-                entry.paymentMethod
-                  ? entry.paymentMethod === 'cash'
-                    ? t('common.cash')
-                    : entry.paymentMethod === 'transfer'
-                      ? t('common.transfer')
-                      : t('common.mixed')
-                  : undefined,
-              ].filter(Boolean)
+            <View style={{ gap: 8 }}>
+              {entries.map((entry) => {
+                const isIncome = entry.type === 'income'
+                const subtitleParts = [
+                  entry.staffName,
+                  entry.occurredAt ? formatDateTimeVi(entry.occurredAt) : undefined,
+                  entry.paymentMethod
+                    ? entry.paymentMethod === 'cash'
+                      ? t('common.cash')
+                      : entry.paymentMethod === 'transfer'
+                        ? t('common.transfer')
+                        : t('common.mixed')
+                    : undefined,
+                ].filter(Boolean)
 
-              return (
-                <EntryRow
-                  key={entry.id}
-                  title={entry.title}
-                  subtitle={subtitleParts.join(' · ')}
-                  amount={formatMoney(entry.amount)}
-                  income={isIncome}
-                />
-              )
-            })
+                return (
+                  <EntryRow
+                    key={entry.id}
+                    title={entry.title}
+                    subtitle={subtitleParts.join(' · ')}
+                    amount={formatMoney(entry.amount)}
+                    income={isIncome}
+                    paymentMethod={entry.paymentMethod}
+                  />
+                )
+              })}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -247,8 +299,39 @@ const styles = StyleSheet.create({
     padding: Space.lg,
     gap: Space.md,
   },
-  header: {
-    marginBottom: Space.xs,
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Space.md,
+  },
+  syncBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  flashBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.greenSoft,
+    borderColor: Colors.greenBorder,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  flashText: {
+    color: Colors.greenDeep,
+    fontSize: 13,
+    fontWeight: '700',
+    flex: 1,
   },
   periodRow: {
     flexDirection: 'row',
@@ -259,37 +342,63 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Space.sm,
   },
+  statCol: {
+    width: '48.5%',
+  },
   balanceCard: {
-    padding: Space.md,
+    padding: Space.lg,
     backgroundColor: Colors.white,
+    borderColor: Colors.amber200,
+    borderWidth: 1,
   },
   balanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Space.md,
+  },
+  balanceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   balanceLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     color: Colors.slate,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   balanceValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '900',
     marginTop: 4,
   },
   saveBtnWrap: {
-    minWidth: 110,
+    minWidth: 120,
   },
   entriesSection: {
     marginTop: Space.xs,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Space.sm,
+  },
   sectionHeading: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '900',
     color: Colors.ink,
-    marginBottom: Space.sm,
+  },
+  sectionCountBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.slate,
+    backgroundColor: Colors.slate100,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
   },
   centerBox: {
     paddingVertical: Space.xl * 2,
@@ -302,9 +411,10 @@ const styles = StyleSheet.create({
     color: Colors.slate,
   },
   emptyCard: {
-    padding: Space.lg,
+    padding: Space.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   emptyText: {
     fontSize: 13,

@@ -140,6 +140,12 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'admin' },
     },
     {
+      path: '/consult',
+      name: 'consult',
+      component: () => import('@/views/consult/ConsultDeskView.vue'),
+      meta: { requiresAuth: true, layout: 'admin' },
+    },
+    {
       path: '/users',
       name: 'users',
       component: () => import('@/views/users/UserListView.vue'),
