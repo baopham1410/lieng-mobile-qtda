@@ -21,7 +21,7 @@ class IngestBody(BaseModel):
 class QueryBody(BaseModel):
     collection: str = Field(..., examples=["kb_admin", "kb_public"])
     question: str
-    top_k: int = 4
+    top_k: int = 3
 
 
 @app.get("/health")

@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from .config import CHUNK_OVERLAP, CHUNK_SIZE, COLLECTIONS, STORE_DIR, TOP_K
+from .intents import build_blocks, detect_intent
 from .ollama_client import chat, embed
 
 
@@ -19,16 +20,13 @@ class Chunk:
     text: str
 
 
-SYSTEM_ADMIN = """Bạn là trợ lý nội bộ Lieng Mobile Admin (cửa hàng điện thoại).
-Chỉ trả lời dựa trên ngữ cảnh KB được cung cấp. Nếu thiếu thông tin, nói chưa có trong tài liệu.
-Trả lời tiếng Việt, ngắn gọn, nêu đúng menu/path nếu có.
-Không bịa số liệu doanh thu/tồn. Module Quán không nằm trong phạm vi trợ lý này."""
+SYSTEM_ADMIN = """Trợ lý nội bộ Lieng Mobile Admin.
+Chỉ dựa ngữ cảnh KB. Tiếng Việt, tối đa 3–5 câu.
+Nêu path menu nếu có. Không bịa số tồn/doanh thu. Không trả lời module Quán."""
 
-SYSTEM_PUBLIC = """Bạn là trợ lý tư vấn khách Lieng Mobile trên website.
-Chỉ trả lời dựa trên ngữ cảnh KB. Tiếng Việt, thân thiện, ngắn.
-Không tiết lộ thông tin nội bộ (doanh thu, tồn kho chi tiết, phân quyền NV).
-Việc chốt giá/máy cụ thể: khuyên gọi hotline hoặc đến cửa hàng."""
-
+SYSTEM_PUBLIC = """Trợ lý khách Lieng Mobile.
+Chỉ dựa ngữ cảnh KB. Tiếng Việt, thân thiện, tối đa 3–5 câu.
+Không tiết lộ nội bộ. Giá/máy cụ thể: khuyên gọi hotline."""
 
 def _chunk_text(text: str, source: str, collection: str) -> list[Chunk]:
     text = re.sub(r"\r\n?", "\n", text).strip()
@@ -112,11 +110,15 @@ def _cosine_topk(query_vec: list[float], matrix: np.ndarray, k: int) -> list[int
 def query(collection: str, question: str, top_k: int = TOP_K) -> dict:
     if collection not in COLLECTIONS:
         raise ValueError(f"Unknown collection: {collection}")
+    intent = detect_intent(collection, question)
+    blocks = build_blocks(collection, intent)
+
     store = _load_store(collection)
     chunks = store["chunks"]
     matrix = np.asarray(store["embeddings"], dtype=np.float32)
     qvec = embed([question])[0]
-    idxs = _cosine_topk(qvec, matrix, top_k)
+    k = min(top_k, 3)
+    idxs = _cosine_topk(qvec, matrix, k)
     sources = []
     context_parts = []
     for i in idxs:
@@ -126,10 +128,12 @@ def query(collection: str, question: str, top_k: int = TOP_K) -> dict:
 
     context = "\n\n---\n\n".join(context_parts)
     system = SYSTEM_ADMIN if collection == "kb_admin" else SYSTEM_PUBLIC
-    user = f"Ngữ cảnh KB:\n{context}\n\nCâu hỏi: {question}"
+    user = f"Ngữ cảnh KB:\n{context}\n\nCâu hỏi: {question}\n\nTrả lời ngắn; UI sẽ hiện nút/bảng riêng."
     answer = chat(system, user)
     return {
         "answer": answer.strip(),
+        "intent": intent,
+        "blocks": blocks,
         "sources": sources,
         "collection": collection,
         "model": "qwen2.5:7b-instruct-q4_K_M",
