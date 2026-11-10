@@ -1,6 +1,7 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
-import { getBotMeta, mockBotReply, splitBotMarkdown } from '@/mocks/chatbotMock'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { askAssistant, fetchAssistantHealth } from '@/api/assistant'
+import { getBotMeta, splitBotMarkdown } from '@/mocks/chatbotMock'
 
 const props = defineProps({
   /** public = khách ngoài | internal = NV admin */
@@ -16,6 +17,7 @@ const open = ref(false)
 const draft = ref('')
 const sending = ref(false)
 const listEl = ref(null)
+const ragOnline = ref(false)
 
 const messages = ref([])
 
@@ -32,6 +34,17 @@ function seedGreeting() {
 
 seedGreeting()
 
+async function refreshHealth() {
+  try {
+    const data = await fetchAssistantHealth()
+    ragOnline.value = Boolean(data?.ok && data?.assistant_service?.ollama)
+  } catch {
+    ragOnline.value = false
+  }
+}
+
+onMounted(refreshHealth)
+
 watch(
   () => props.variant,
   () => {
@@ -41,6 +54,9 @@ watch(
 )
 
 const isPublic = computed(() => props.variant === 'public')
+const statusLabel = computed(() =>
+  ragOnline.value ? 'RAG + Ollama · sẵn sàng' : 'Demo / chờ AI (Ollama :8090)',
+)
 
 const panelTone = computed(() =>
   isPublic.value
@@ -91,8 +107,19 @@ async function sendText(raw) {
   await scrollBottom()
 
   try {
-    const reply = await mockBotReply(props.variant, text)
+    const reply = await askAssistant(props.variant, text)
+    if (reply.fromRag) ragOnline.value = true
     messages.value.push(reply)
+  } catch (err) {
+    messages.value.push({
+      id: `e-${Date.now()}`,
+      role: 'assistant',
+      content:
+        err.response?.data?.message ||
+        err.message ||
+        'Không gửi được tin nhắn. Thử đăng nhập lại hoặc bật trợ lý AI.',
+      at: new Date().toISOString(),
+    })
   } finally {
     sending.value = false
     await scrollBottom()
@@ -152,8 +179,11 @@ function formatTime(iso) {
             <p class="truncate text-sm font-black">{{ meta.title }}</p>
             <p class="truncate text-xs text-white/85">{{ meta.subtitle }}</p>
             <p class="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/80">
-              <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-300" />
-              Demo UI · chưa gắn AI
+              <span
+                class="inline-block h-1.5 w-1.5 rounded-full"
+                :class="ragOnline ? 'bg-emerald-300' : 'bg-amber-300'"
+              />
+              {{ statusLabel }}
             </p>
           </div>
           <button

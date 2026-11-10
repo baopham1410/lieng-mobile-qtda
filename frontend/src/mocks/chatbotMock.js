@@ -3,7 +3,7 @@
 export const publicBotMeta = {
   id: 'public',
   title: 'Lieng Mobile',
-  subtitle: 'Tư vấn khách · AI demo',
+  subtitle: 'Tư vấn khách · RAG',
   greeting:
     'Xin chào! Mình là trợ lý Lieng Mobile. Bạn cần tư vấn máy, bảo hành, thu cũ hay địa chỉ cửa hàng?',
   placeholder: 'Hỏi về sản phẩm, bảo hành, thu cũ…',
@@ -14,9 +14,9 @@ export const publicBotMeta = {
 export const internalBotMeta = {
   id: 'internal',
   title: 'Trợ lý Admin',
-  subtitle: 'Nội bộ · POS / kho / BH',
+  subtitle: 'Nội bộ · POS / kho / BH · RAG',
   greeting:
-    'Chào bạn! Mình hỗ trợ nhân viên: cách dùng POS, nhập kho IMEI, bảo hành, báo cáo. (AI chưa gắn — đang demo UI)',
+    'Chào bạn! Mình hỗ trợ nhân viên: cách dùng POS, nhập kho IMEI, bảo hành, báo cáo theo tài liệu nội bộ.',
   placeholder: 'Hỏi quy trình / menu hệ thống…',
   fabLabel: 'Trợ lý',
   suggestions: ['Nhập kho IMEI?', 'POS thanh toán?', 'Menu Thẩm định?', 'Ai xem thu chi?'],
