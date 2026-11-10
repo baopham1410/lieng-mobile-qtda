@@ -59,3 +59,11 @@ yarn-error.log*
 # Office lock files
 ~$*.xlsx
 ~$*.docx
+
+# Assistant RAG service
+assistant-service/.venv/
+assistant-service/data/vectorstore/
+
+__pycache__/
+*.py[cod]
+
