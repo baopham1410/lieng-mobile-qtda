@@ -55,7 +55,7 @@ const year = new Date().getFullYear()
           <h4 class="text-xs font-semibold text-[#1D1D1F]">Nội Bộ & Quản Trị</h4>
           <ul class="mt-3 space-y-2">
             <li>
-              <RouterLink to="/login" class="text-[#0071E3] hover:underline">
+              <RouterLink to="/login" class="text-red-600 hover:text-red-700 font-semibold hover:underline">
                 Đăng nhập hệ thống quản lý
               </RouterLink>
             </li>

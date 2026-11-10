@@ -115,16 +115,16 @@ watch(
           <div class="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              class="flex-1 rounded-xl bg-gray-900 py-3.5 text-sm font-bold text-white transition hover:bg-red-600"
+              class="flex-1 rounded-xl bg-red-600 hover:bg-red-700 py-3.5 text-sm font-bold text-white shadow-md shadow-red-600/25 transition cursor-pointer"
               @click="emit('add-to-cart', product)"
             >
               {{ product.inStock ? 'Thêm vào giỏ' : 'Đặt trước' }}
             </button>
             <a
               :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-              class="flex-1 rounded-xl border border-gray-300 py-3.5 text-center text-sm font-bold text-gray-700 transition hover:border-red-400 hover:text-red-600"
+              class="flex-1 rounded-xl border border-red-200 bg-red-50/50 py-3.5 text-center text-sm font-bold text-red-700 transition hover:bg-red-100 hover:border-red-300"
             >
-              Gọi tư vấn
+              Gọi tư vấn: {{ storeInfo.hotlineDisplay }}
             </a>
           </div>
         </div>
