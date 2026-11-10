@@ -30,32 +30,32 @@ const monthlyEstimate = computed(() => {
 
 <template>
   <article
-    class="group relative flex flex-col justify-between overflow-hidden rounded-[26px] bg-white p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] border border-black/[0.04]"
+    class="group relative flex flex-col justify-between overflow-hidden rounded-[26px] bg-white p-6 transition-all duration-500 hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_20px_40px_rgba(220,38,38,0.08)] border border-black/[0.05]"
   >
     <!-- Top Meta: Badge & Brand -->
     <div>
       <div class="flex items-center justify-between min-h-[24px]">
         <span
           v-if="product.badge"
-          class="text-[11px] font-semibold tracking-wide text-[#B64400] uppercase"
+          class="text-[11px] font-bold tracking-wide text-red-600 uppercase"
         >
           {{ product.badge }}
         </span>
-        <span v-else class="text-[11px] font-medium tracking-wide text-[#86868B] uppercase">
+        <span v-else class="text-[11px] font-semibold tracking-wide text-[#86868B] uppercase">
           {{ product.brand }}
         </span>
 
         <span
           v-if="product.inStock !== false"
-          class="text-[11px] font-medium text-[#1D1D1F]/60"
+          class="text-[11px] font-medium text-emerald-600"
         >
-          Chính hãng VN/A
+          ✓ Chính hãng VN/A
         </span>
       </div>
 
       <!-- Device Name -->
       <h3
-        class="mt-2 text-xl font-semibold tracking-tight text-[#1D1D1F] line-clamp-1 group-hover:text-[#0071E3] transition-colors cursor-pointer"
+        class="mt-2 text-xl font-bold tracking-tight text-[#1D1D1F] line-clamp-1 group-hover:text-red-600 transition-colors cursor-pointer"
         @click="emit('view', product)"
       >
         {{ product.name }}
@@ -104,20 +104,20 @@ const monthlyEstimate = computed(() => {
     <div class="pt-4 border-t border-black/[0.05]">
       <!-- Price Display -->
       <div>
-        <p class="text-xs text-[#86868B]">Giá từ</p>
+        <p class="text-xs text-[#86868B]">Giá chính hãng</p>
         <div class="flex items-baseline gap-2 mt-0.5">
-          <span class="text-lg font-semibold tracking-tight text-[#1D1D1F]">
+          <span class="text-lg font-black tracking-tight text-red-600">
             {{ formatPrice(product.price) }}
           </span>
           <span
             v-if="product.oldPrice && product.oldPrice > product.price"
-            class="text-xs text-[#86868B] line-through"
+            class="text-xs text-[#86868B] line-through font-medium"
           >
             {{ formatPrice(product.oldPrice) }}
           </span>
         </div>
         <p v-if="monthlyEstimate" class="mt-0.5 text-[11px] text-[#86868B]">
-          Hoặc {{ monthlyEstimate }}/tháng trả góp 0%
+          Hoặc <strong class="text-[#1D1D1F]">{{ monthlyEstimate }}</strong>/tháng trả góp 0%
         </p>
       </div>
 
@@ -125,7 +125,7 @@ const monthlyEstimate = computed(() => {
       <div class="mt-5 flex items-center justify-between gap-3">
         <button
           type="button"
-          class="text-xs font-medium text-[#0071E3] hover:underline inline-flex items-center gap-0.5"
+          class="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-0.5"
           @click="emit('view', product)"
         >
           <span>Tìm hiểu thêm</span>
@@ -134,7 +134,7 @@ const monthlyEstimate = computed(() => {
 
         <button
           type="button"
-          class="rounded-full bg-[#0071E3] px-4 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[#0077ED] active:scale-95 disabled:opacity-40 cursor-pointer"
+          class="rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-red-500/25 transition hover:bg-red-700 active:scale-95 disabled:opacity-40 cursor-pointer"
           :disabled="product.inStock === false"
           @click="emit('add-to-cart', product)"
         >

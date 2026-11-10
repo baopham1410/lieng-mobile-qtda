@@ -35,30 +35,30 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
 
 <template>
   <div id="top" class="sticky top-0 z-50">
-    <!-- Apple-style Top Notice Ribbon -->
-    <div class="bg-[#F5F5F7] text-[#1D1D1F] border-b border-black/[0.06] text-[12px] py-2 px-4 transition-all">
+    <!-- Apple-style Top Notice Ribbon with Red Accent -->
+    <div class="bg-[#FBFBFC] text-[#1D1D1F] border-b border-black/[0.06] text-[12px] py-2 px-4 transition-all">
       <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
         <p class="text-center w-full sm:w-auto font-normal text-[#1D1D1F]/80">
           Thu cũ đổi mới trợ giá đến 2.000.000đ. Trả góp 0% duyệt 5 phút.
-          <a href="#san-pham" class="text-[#0071E3] hover:underline ml-1 font-medium inline-flex items-center">
+          <a href="#san-pham" class="text-red-600 hover:text-red-700 hover:underline ml-1 font-semibold inline-flex items-center">
             Tìm hiểu thêm <span class="text-[10px] ml-0.5">›</span>
           </a>
         </p>
 
         <div class="hidden sm:flex items-center gap-4 text-xs font-normal text-[#1D1D1F]/70">
-          <span>Hotline: <strong class="text-[#1D1D1F]">{{ storeInfo.hotlineDisplay }}</strong></span>
+          <span>Hotline: <strong class="text-red-600 font-bold">{{ storeInfo.hotlineDisplay }}</strong></span>
           <span class="text-black/20">|</span>
           <RouterLink
             v-if="auth.isAuthenticated"
             :to="staffHome()"
-            class="text-[#0071E3] hover:underline font-medium"
+            class="text-red-600 hover:text-red-700 hover:underline font-semibold"
           >
             Quản trị viên
           </RouterLink>
           <RouterLink
             v-else
             to="/login"
-            class="hover:text-black transition"
+            class="hover:text-red-600 transition"
           >
             Khu vực nhân viên
           </RouterLink>
@@ -67,14 +67,14 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
     </div>
 
     <!-- Apple-style Glassmorphism Header Bar -->
-    <header class="bg-white/80 backdrop-blur-2xl border-b border-black/[0.08] transition-all">
+    <header class="bg-white/85 backdrop-blur-2xl border-b border-black/[0.08] transition-all">
       <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 h-[48px] sm:h-[52px]">
         <!-- Brand Logo -->
         <RouterLink to="/" class="flex items-center gap-2.5 group" @click="closeMenu">
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#1D1D1F] text-white text-xs font-black shadow-sm group-hover:scale-105 transition-transform">
+          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#7A0C10] text-white text-xs font-black shadow-sm group-hover:scale-105 group-hover:bg-red-600 transition-all">
             L
           </div>
-          <span class="text-sm font-semibold tracking-tight text-[#1D1D1F]">
+          <span class="text-sm font-bold tracking-tight text-[#1D1D1F] group-hover:text-red-600 transition-colors">
             {{ storeInfo.name }}
           </span>
         </RouterLink>
@@ -85,7 +85,7 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
             v-for="link in appleNavLinks"
             :key="link.label"
             :href="link.href"
-            class="transition-colors hover:text-[#0071E3]"
+            class="transition-colors hover:text-red-600"
           >
             {{ link.label }}
           </a>
@@ -99,7 +99,7 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
               :value="searchQuery"
               type="search"
               placeholder="Tìm kiếm thiết bị..."
-              class="w-36 md:w-48 rounded-full bg-[#E8E8ED]/70 py-1 pl-3 pr-8 text-xs text-[#1D1D1F] placeholder-[#86868B] transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0071E3]/30"
+              class="w-36 md:w-48 rounded-full bg-[#E8E8ED]/70 py-1 pl-3 pr-8 text-xs text-[#1D1D1F] placeholder-[#86868B] transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
               @input="emit('update:searchQuery', $event.target.value)"
             />
             <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#86868B]">
@@ -107,10 +107,10 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
             </span>
           </div>
 
-          <!-- Apple-style Bag Icon -->
+          <!-- Bag Icon with Red Counter -->
           <button
             type="button"
-            class="relative flex items-center justify-center p-1 text-[#1D1D1F]/80 hover:text-black transition"
+            class="relative flex items-center justify-center p-1 text-[#1D1D1F]/80 hover:text-red-600 transition"
             aria-label="Túi hàng"
             @click="emit('open-cart')"
           >
@@ -119,7 +119,7 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
             </svg>
             <span
               v-if="cartCount > 0"
-              class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0071E3] px-1 text-[9px] font-bold text-white shadow"
+              class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-md shadow-red-500/30"
             >
               {{ cartCount }}
             </span>
@@ -146,7 +146,7 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
           :value="searchQuery"
           type="search"
           placeholder="Tìm kiếm thiết bị, phụ kiện..."
-          class="mb-4 w-full rounded-xl bg-white border border-black/[0.1] px-4 py-2.5 text-xs text-[#1D1D1F] outline-none"
+          class="mb-4 w-full rounded-xl bg-white border border-black/[0.1] px-4 py-2.5 text-xs text-[#1D1D1F] outline-none focus:border-red-500"
           @input="emit('update:searchQuery', $event.target.value)"
         />
         <nav class="flex flex-col space-y-3 text-sm font-medium text-[#1D1D1F]">
@@ -154,14 +154,14 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
             v-for="link in appleNavLinks"
             :key="link.label"
             :href="link.href"
-            class="py-1 border-b border-black/[0.04]"
+            class="py-1 border-b border-black/[0.04] hover:text-red-600 transition"
             @click="closeMenu"
           >
             {{ link.label }}
           </a>
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-            class="mt-3 text-center rounded-xl bg-[#0071E3] py-2.5 text-xs font-semibold text-white"
+            class="mt-3 text-center rounded-xl bg-red-600 py-2.5 text-xs font-semibold text-white shadow"
             @click="closeMenu"
           >
             Gọi hỗ trợ: {{ storeInfo.hotlineDisplay }}
