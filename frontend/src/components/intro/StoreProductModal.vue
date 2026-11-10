@@ -115,16 +115,20 @@ watch(
           <div class="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              class="flex-1 rounded-xl bg-gray-900 py-3.5 text-sm font-bold text-white transition hover:bg-red-600"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 py-3.5 text-sm font-black text-white shadow-lg shadow-red-600/25 transition hover:from-red-700 hover:to-rose-700 active:scale-98 cursor-pointer"
               @click="emit('add-to-cart', product)"
             >
-              {{ product.inStock ? 'Thêm vào giỏ' : 'Đặt trước' }}
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <span>{{ product.inStock ? 'Thêm vào giỏ hàng' : 'Đặt trước ngay' }}</span>
             </button>
             <a
               :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-              class="flex-1 rounded-xl border border-gray-300 py-3.5 text-center text-sm font-bold text-gray-700 transition hover:border-red-400 hover:text-red-600"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-slate-50 py-3.5 text-center text-sm font-bold text-slate-800 transition hover:border-red-400 hover:bg-white hover:text-red-600 active:scale-98"
             >
-              Gọi tư vấn
+              <span>📞 Gọi tư vấn:</span>
+              <span class="font-black text-red-600">{{ storeInfo.hotlineDisplay }}</span>
             </a>
           </div>
         </div>
