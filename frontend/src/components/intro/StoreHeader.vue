@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getDefaultRouteForUser } from '@/utils/roleRedirect'
 import { storeInfo } from '@/data/storeIntro'
+import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 
 defineProps({
   searchQuery: { type: String, default: '' },
@@ -37,15 +38,19 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
     <!-- Top Bar: Màu đỏ cờ truyền thống như lúc ban đầu -->
     <div class="bg-red-600 text-white text-xs py-2 px-4 transition-all">
       <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <p class="text-center w-full sm:w-auto font-medium">
-          🔥 Thu cũ đổi mới trợ giá đến 2.000.000đ — Trả góp 0% thủ tục 5 phút.
-          <a href="#san-pham" class="text-amber-200 hover:text-white underline ml-1 font-semibold">
-            Xem ngay ›
+        <p class="text-center w-full sm:w-auto font-medium flex items-center justify-center sm:justify-start gap-1.5">
+          <StoreDeviceIcon name="fire" size-class="h-4 w-4 text-amber-300 shrink-0" />
+          <span>Thu cũ đổi mới trợ giá đến 2.000.000đ — Trả góp 0% thủ tục 5 phút.</span>
+          <a href="#san-pham" class="text-amber-200 hover:text-white underline ml-1 font-semibold inline-flex items-center">
+            Xem ngay <span class="text-[10px] ml-0.5">›</span>
           </a>
         </p>
 
         <div class="hidden sm:flex items-center gap-4 text-xs font-medium text-white/90">
-          <span>Hotline: <strong class="text-white font-bold">{{ storeInfo.hotlineDisplay }}</strong></span>
+          <span class="inline-flex items-center gap-1.5">
+            <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-amber-200" />
+            <span>Hotline: <strong class="text-white font-bold">{{ storeInfo.hotlineDisplay }}</strong></span>
+          </span>
           <span class="text-white/40">|</span>
           <RouterLink
             v-if="auth.isAuthenticated"
@@ -67,10 +72,10 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
 
     <!-- Main Navigation Bar: Trắng sáng, logo đỏ đô #7A0C10, hover đỏ -->
     <header class="bg-white/95 backdrop-blur-xl border-b border-red-100 transition-all">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 h-[54px]">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 h-[56px]">
         <!-- Brand Logo -->
         <RouterLink to="/" class="flex items-center gap-2.5 group" @click="closeMenu">
-          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-[#7A0C10] text-white text-sm font-black shadow-md shadow-red-900/20 group-hover:bg-red-600 group-hover:scale-105 transition-all">
+          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7A0C10] text-white text-sm font-black shadow-md shadow-red-900/20 group-hover:bg-red-600 group-hover:scale-105 transition-all">
             L
           </div>
           <div class="flex flex-col">
@@ -103,11 +108,11 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
               :value="searchQuery"
               type="search"
               placeholder="Tìm iPhone, Samsung..."
-              class="w-36 md:w-52 rounded-full bg-slate-100 py-1.5 pl-3.5 pr-8 text-xs text-slate-800 placeholder-slate-400 transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-400 border border-transparent"
+              class="w-36 md:w-52 rounded-full bg-slate-100 py-1.5 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-400 border border-transparent"
               @input="emit('update:searchQuery', $event.target.value)"
             />
-            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-              ⌕
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <StoreDeviceIcon name="search" size-class="h-3.5 w-3.5" />
             </span>
           </div>
 
@@ -118,9 +123,7 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
             aria-label="Túi hàng"
             @click="emit('open-cart')"
           >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
+            <StoreDeviceIcon name="bag" size-class="h-5 w-5" />
             <span
               v-if="cartCount > 0"
               class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-md shadow-red-500/30"
@@ -129,11 +132,12 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
             </span>
           </button>
 
-          <!-- Call CTA Button -->
+          <!-- Call CTA Button with Phone Icon -->
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
             class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm shadow-red-600/30 transition hover:bg-red-700 active:scale-95"
           >
+            <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-white" />
             <span>Gọi ngay</span>
           </a>
 
@@ -154,13 +158,18 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
 
       <!-- Mobile Dropdown -->
       <div v-if="menuOpen" class="border-t border-red-100 bg-white px-5 py-4 md:hidden">
-        <input
-          :value="searchQuery"
-          type="search"
-          placeholder="Tìm sản phẩm, phụ kiện..."
-          class="mb-3 w-full rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-xs text-slate-800 outline-none focus:border-red-500 focus:bg-white"
-          @input="emit('update:searchQuery', $event.target.value)"
-        />
+        <div class="relative mb-3">
+          <input
+            :value="searchQuery"
+            type="search"
+            placeholder="Tìm sản phẩm, phụ kiện..."
+            class="w-full rounded-xl bg-slate-100 border border-slate-200 pl-9 pr-4 py-2 text-xs text-slate-800 outline-none focus:border-red-500 focus:bg-white"
+            @input="emit('update:searchQuery', $event.target.value)"
+          />
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <StoreDeviceIcon name="search" size-class="h-3.5 w-3.5" />
+          </span>
+        </div>
         <nav class="flex flex-col space-y-2 text-sm font-semibold text-slate-700">
           <a
             v-for="link in navLinks"
@@ -173,9 +182,10 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
           </a>
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-            class="mt-2 rounded-xl bg-red-600 py-2.5 text-center text-xs font-bold text-white shadow-sm"
+            class="mt-2 flex items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 text-center text-xs font-bold text-white shadow-sm"
           >
-            Gọi hotline: {{ storeInfo.hotlineDisplay }}
+            <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-white" />
+            <span>Gọi hotline: {{ storeInfo.hotlineDisplay }}</span>
           </a>
         </nav>
       </div>
