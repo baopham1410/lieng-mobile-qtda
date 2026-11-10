@@ -19,7 +19,7 @@ export const internalBotMeta = {
     'Chào bạn! Mình hỗ trợ nhân viên: cách dùng POS, nhập kho IMEI, bảo hành, báo cáo theo tài liệu nội bộ.',
   placeholder: 'Hỏi quy trình / menu hệ thống…',
   fabLabel: 'Trợ lý',
-  suggestions: ['Nhập kho IMEI?', 'POS thanh toán?', 'Menu Thẩm định?', 'Ai xem thu chi?'],
+  suggestions: ['SP nào hết hàng?', 'Nhập kho IMEI?', 'POS thanh toán?', 'Menu Thẩm định?'],
 }
 
 function replyPublic(text) {
