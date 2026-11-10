@@ -111,19 +111,22 @@ function payLabel(row) {
       <div class="qs-cards">
         <div class="qs-card">
           <p class="qs-card-label">Kỳ báo cáo</p>
-          <p class="qs-card-value">{{ periodLabel }}</p>
+          <p class="qs-card-value" :title="periodLabel">{{ periodLabel }}</p>
         </div>
         <div class="qs-card">
           <p class="qs-card-label">Từ ngày</p>
-          <p class="qs-card-value">{{ periodFrom || '—' }}</p>
+          <p class="qs-card-value" :title="periodFrom || '—'">{{ periodFrom || '—' }}</p>
         </div>
         <div class="qs-card">
           <p class="qs-card-label">Đến ngày</p>
-          <p class="qs-card-value">{{ periodTo || '—' }}</p>
+          <p class="qs-card-value" :title="periodTo || '—'">{{ periodTo || '—' }}</p>
         </div>
-        <div class="qs-card">
+        <div class="qs-card qs-card-rows">
           <p class="qs-card-label">Số dòng</p>
-          <p class="qs-card-value">{{ summary.totalRows }} giao dịch</p>
+          <p class="qs-card-value" :title="`${summary.totalRows} giao dịch`">
+            <span class="qs-rows-num">{{ summary.totalRows }}</span>
+            <span class="qs-rows-unit"> giao dịch</span>
+          </p>
         </div>
       </div>
     </header>
@@ -351,12 +354,16 @@ function payLabel(row) {
 
 .qs-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .qs-card {
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   background: #f8fafc;
@@ -370,12 +377,24 @@ function payLabel(row) {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .qs-card-value {
   margin: 2px 0 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qs-rows-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .qs-section {
@@ -599,15 +618,24 @@ function payLabel(row) {
   color: #94a3b8;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .qs-cards {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+@media (max-width: 640px) {
   .qs-sign-hide-sm {
     display: none;
   }
   .qs-signatures {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 440px) {
+  .qs-cards {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
