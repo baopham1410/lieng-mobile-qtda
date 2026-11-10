@@ -15,15 +15,14 @@ const emit = defineEmits(['update:searchQuery', 'open-cart'])
 const auth = useAuthStore()
 const menuOpen = ref(false)
 
-const appleNavLinks = [
+const navLinks = [
   { label: 'Cửa Hàng', href: '#san-pham' },
-  { label: 'iPhone', href: '#san-pham', cat: 'phone' },
-  { label: 'iPad & Tablet', href: '#san-pham', cat: 'tablet' },
-  { label: 'Mac & Laptop', href: '#san-pham', cat: 'laptop' },
-  { label: 'Đồng Hồ', href: '#san-pham', cat: 'watch' },
-  { label: 'Phụ Kiện', href: '#san-pham', cat: 'accessory' },
+  { label: 'iPhone', href: '#san-pham' },
+  { label: 'Samsung', href: '#san-pham' },
+  { label: 'iPad & Mac', href: '#san-pham' },
+  { label: 'Phụ Kiện', href: '#san-pham' },
   { label: 'Dịch Vụ', href: '#dich-vu' },
-  { label: 'Cửa Hàng', href: '#cua-hang' },
+  { label: 'Hệ Thống', href: '#cua-hang' },
 ]
 
 function closeMenu() {
@@ -34,31 +33,31 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
 </script>
 
 <template>
-  <div id="top" class="sticky top-0 z-50">
-    <!-- Apple-style Top Notice Ribbon with Red Accent -->
-    <div class="bg-[#FBFBFC] text-[#1D1D1F] border-b border-black/[0.06] text-[12px] py-2 px-4 transition-all">
+  <div id="top" class="sticky top-0 z-50 shadow-sm">
+    <!-- Top Bar: Màu đỏ cờ truyền thống như lúc ban đầu -->
+    <div class="bg-red-600 text-white text-xs py-2 px-4 transition-all">
       <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <p class="text-center w-full sm:w-auto font-normal text-[#1D1D1F]/80">
-          Thu cũ đổi mới trợ giá đến 2.000.000đ. Trả góp 0% duyệt 5 phút.
-          <a href="#san-pham" class="text-red-600 hover:text-red-700 hover:underline ml-1 font-semibold inline-flex items-center">
-            Tìm hiểu thêm <span class="text-[10px] ml-0.5">›</span>
+        <p class="text-center w-full sm:w-auto font-medium">
+          🔥 Thu cũ đổi mới trợ giá đến 2.000.000đ — Trả góp 0% thủ tục 5 phút.
+          <a href="#san-pham" class="text-amber-200 hover:text-white underline ml-1 font-semibold">
+            Xem ngay ›
           </a>
         </p>
 
-        <div class="hidden sm:flex items-center gap-4 text-xs font-normal text-[#1D1D1F]/70">
-          <span>Hotline: <strong class="text-red-600 font-bold">{{ storeInfo.hotlineDisplay }}</strong></span>
-          <span class="text-black/20">|</span>
+        <div class="hidden sm:flex items-center gap-4 text-xs font-medium text-white/90">
+          <span>Hotline: <strong class="text-white font-bold">{{ storeInfo.hotlineDisplay }}</strong></span>
+          <span class="text-white/40">|</span>
           <RouterLink
             v-if="auth.isAuthenticated"
             :to="staffHome()"
-            class="text-red-600 hover:text-red-700 hover:underline font-semibold"
+            class="text-amber-200 hover:text-white underline font-semibold"
           >
             Quản trị viên
           </RouterLink>
           <RouterLink
             v-else
             to="/login"
-            class="hover:text-red-600 transition"
+            class="hover:text-amber-200 transition"
           >
             Khu vực nhân viên
           </RouterLink>
@@ -66,23 +65,28 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
       </div>
     </div>
 
-    <!-- Apple-style Glassmorphism Header Bar -->
-    <header class="bg-white/85 backdrop-blur-2xl border-b border-black/[0.08] transition-all">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 h-[48px] sm:h-[52px]">
+    <!-- Main Navigation Bar: Trắng sáng, logo đỏ đô #7A0C10, hover đỏ -->
+    <header class="bg-white/95 backdrop-blur-xl border-b border-red-100 transition-all">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 h-[54px]">
         <!-- Brand Logo -->
         <RouterLink to="/" class="flex items-center gap-2.5 group" @click="closeMenu">
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-[#7A0C10] text-white text-xs font-black shadow-sm group-hover:scale-105 group-hover:bg-red-600 transition-all">
+          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-[#7A0C10] text-white text-sm font-black shadow-md shadow-red-900/20 group-hover:bg-red-600 group-hover:scale-105 transition-all">
             L
           </div>
-          <span class="text-sm font-bold tracking-tight text-[#1D1D1F] group-hover:text-red-600 transition-colors">
-            {{ storeInfo.name }}
-          </span>
+          <div class="flex flex-col">
+            <span class="text-sm font-black tracking-tight text-slate-900 group-hover:text-red-600 transition-colors">
+              {{ storeInfo.name }}
+            </span>
+            <span class="text-[10px] text-slate-400 font-medium hidden sm:block leading-none -mt-0.5">
+              Chính hãng • Giá tốt
+            </span>
+          </div>
         </RouterLink>
 
         <!-- Desktop Menu Links -->
-        <nav class="hidden md:flex items-center gap-7 text-[12px] font-normal tracking-normal text-[#1D1D1F]/85">
+        <nav class="hidden md:flex items-center gap-6 text-[13px] font-semibold tracking-tight text-slate-700">
           <a
-            v-for="link in appleNavLinks"
+            v-for="link in navLinks"
             :key="link.label"
             :href="link.href"
             class="transition-colors hover:text-red-600"
@@ -91,18 +95,18 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
           </a>
         </nav>
 
-        <!-- Right Action Icons (Search, Bag, Mobile Menu) -->
-        <div class="flex items-center gap-4 text-[#1D1D1F]">
+        <!-- Right Action Icons (Search, Bag, Hotline Button) -->
+        <div class="flex items-center gap-3">
           <!-- Minimalist Search Input -->
           <div class="relative hidden sm:block">
             <input
               :value="searchQuery"
               type="search"
-              placeholder="Tìm kiếm thiết bị..."
-              class="w-36 md:w-48 rounded-full bg-[#E8E8ED]/70 py-1 pl-3 pr-8 text-xs text-[#1D1D1F] placeholder-[#86868B] transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+              placeholder="Tìm iPhone, Samsung..."
+              class="w-36 md:w-52 rounded-full bg-slate-100 py-1.5 pl-3.5 pr-8 text-xs text-slate-800 placeholder-slate-400 transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-400 border border-transparent"
               @input="emit('update:searchQuery', $event.target.value)"
             />
-            <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#86868B]">
+            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
               ⌕
             </span>
           </div>
@@ -110,61 +114,68 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
           <!-- Bag Icon with Red Counter -->
           <button
             type="button"
-            class="relative flex items-center justify-center p-1 text-[#1D1D1F]/80 hover:text-red-600 transition"
+            class="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-700 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
             aria-label="Túi hàng"
             @click="emit('open-cart')"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
             <span
               v-if="cartCount > 0"
-              class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-md shadow-red-500/30"
+              class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-md shadow-red-500/30"
             >
               {{ cartCount }}
             </span>
           </button>
 
+          <!-- Call CTA Button -->
+          <a
+            :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
+            class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm shadow-red-600/30 transition hover:bg-red-700 active:scale-95"
+          >
+            <span>Gọi ngay</span>
+          </a>
+
           <!-- Mobile Hamburger Menu Button -->
           <button
             type="button"
-            class="p-1 text-[#1D1D1F] md:hidden"
+            class="p-1.5 text-slate-700 md:hidden hover:text-red-600"
             aria-label="Menu"
             @click="menuOpen = !menuOpen"
           >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path v-if="!menuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16" />
-              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12" />
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path v-if="!menuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
       </div>
 
       <!-- Mobile Dropdown -->
-      <div v-if="menuOpen" class="border-t border-black/[0.08] bg-[#F5F5F7] px-6 py-6 md:hidden animate-in fade-in">
+      <div v-if="menuOpen" class="border-t border-red-100 bg-white px-5 py-4 md:hidden">
         <input
           :value="searchQuery"
           type="search"
-          placeholder="Tìm kiếm thiết bị, phụ kiện..."
-          class="mb-4 w-full rounded-xl bg-white border border-black/[0.1] px-4 py-2.5 text-xs text-[#1D1D1F] outline-none focus:border-red-500"
+          placeholder="Tìm sản phẩm, phụ kiện..."
+          class="mb-3 w-full rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-xs text-slate-800 outline-none focus:border-red-500 focus:bg-white"
           @input="emit('update:searchQuery', $event.target.value)"
         />
-        <nav class="flex flex-col space-y-3 text-sm font-medium text-[#1D1D1F]">
+        <nav class="flex flex-col space-y-2 text-sm font-semibold text-slate-700">
           <a
-            v-for="link in appleNavLinks"
+            v-for="link in navLinks"
             :key="link.label"
             :href="link.href"
-            class="py-1 border-b border-black/[0.04] hover:text-red-600 transition"
+            class="py-2 border-b border-slate-100 hover:text-red-600 transition"
             @click="closeMenu"
           >
             {{ link.label }}
           </a>
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-            class="mt-3 text-center rounded-xl bg-red-600 py-2.5 text-xs font-semibold text-white shadow"
-            @click="closeMenu"
+            class="mt-2 rounded-xl bg-red-600 py-2.5 text-center text-xs font-bold text-white shadow-sm"
           >
-            Gọi hỗ trợ: {{ storeInfo.hotlineDisplay }}
+            Gọi hotline: {{ storeInfo.hotlineDisplay }}
           </a>
         </nav>
       </div>
