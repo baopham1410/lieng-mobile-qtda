@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { formatPrice } from '@/data/storeIntro'
 import { resolveProductImageUrl } from '@/utils/productImage'
+import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 
 const props = defineProps({
   product: {
@@ -125,20 +126,23 @@ const monthlyEstimate = computed(() => {
       <div class="mt-5 flex items-center justify-between gap-3">
         <button
           type="button"
-          class="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-0.5"
+          class="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
           @click="emit('view', product)"
         >
           <span>Tìm hiểu thêm</span>
-          <span class="text-sm">›</span>
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
 
         <button
           type="button"
-          class="rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-red-500/25 transition hover:bg-red-700 active:scale-95 disabled:opacity-40 cursor-pointer"
+          class="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-red-500/25 transition hover:bg-red-700 active:scale-95 disabled:opacity-40 cursor-pointer"
           :disabled="product.inStock === false"
           @click="emit('add-to-cart', product)"
         >
-          {{ product.inStock === false ? 'Đặt trước' : 'Chọn mua' }}
+          <StoreDeviceIcon name="bag" size-class="h-3.5 w-3.5 text-white" />
+          <span>{{ product.inStock === false ? 'Đặt trước' : 'Chọn mua' }}</span>
         </button>
       </div>
     </div>

@@ -5,6 +5,7 @@ import StoreFooter from '@/components/intro/StoreFooter.vue'
 import StoreProductCard from '@/components/intro/StoreProductCard.vue'
 import StoreCartDrawer from '@/components/intro/StoreCartDrawer.vue'
 import StoreProductModal from '@/components/intro/StoreProductModal.vue'
+import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
 import { withApiFallback } from '@/utils/apiFallback'
 import {
@@ -41,14 +42,14 @@ const catalogBrands = ref([...mockBrands])
 const catalogCategories = ref([...mockCategories])
 const useMockCatalog = ref(true)
 
-// Apple-style device categories ribbon
+// Apple-style device categories ribbon with high-quality SVGs
 const ribbonCategories = [
-  { id: 'all', label: 'Tất cả', icon: '✨' },
-  { id: 'phone', label: 'iPhone & Phone', icon: '📱' },
-  { id: 'tablet', label: 'iPad & Tablet', icon: '📲' },
-  { id: 'laptop', label: 'Mac & Laptop', icon: '💻' },
-  { id: 'watch', label: 'Apple Watch', icon: '⌚' },
-  { id: 'accessory', label: 'AirPods & Phụ Kiện', icon: '🎧' },
+  { id: 'all', label: 'Tất cả thiết bị', icon: 'all' },
+  { id: 'phone', label: 'iPhone & Điện thoại', icon: 'phone' },
+  { id: 'tablet', label: 'iPad & Tablet', icon: 'tablet' },
+  { id: 'laptop', label: 'MacBook & Laptop', icon: 'laptop' },
+  { id: 'watch', label: 'Apple Watch', icon: 'watch' },
+  { id: 'accessory', label: 'Tai nghe & Phụ kiện', icon: 'accessory' },
 ]
 
 const featuredProducts = computed(() => catalogProducts.value.slice(0, 4))
@@ -176,20 +177,26 @@ function selectCategory(id) {
     </Transition>
 
     <main class="space-y-12 sm:space-y-20 pb-20">
-      <!-- Device Ribbon Bar -->
+      <!-- Device Ribbon Bar với Crisp SVG Icons -->
       <section class="bg-white border-b border-red-100/70 py-4 shadow-xs">
-        <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 overflow-x-auto px-4 sm:px-6 custom-scrollbar-content">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 overflow-x-auto px-4 sm:px-6 custom-scrollbar-content">
           <button
             v-for="cat in ribbonCategories"
             :key="cat.id"
             type="button"
-            class="flex flex-col items-center justify-center gap-1.5 shrink-0 px-3 py-1 group transition-all cursor-pointer"
+            class="flex flex-col items-center justify-center gap-2 shrink-0 px-3 py-2 group transition-all cursor-pointer rounded-2xl"
+            :class="selectedCategory === cat.id ? 'bg-red-50 text-red-600' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'"
             @click="selectCategory(cat.id)"
           >
-            <span class="text-2xl transition-transform group-hover:scale-110">{{ cat.icon }}</span>
+            <div
+              class="flex h-11 w-11 items-center justify-center rounded-xl transition-all"
+              :class="selectedCategory === cat.id ? 'bg-red-600 text-white shadow-md shadow-red-500/30 scale-105' : 'bg-slate-100 text-slate-700 group-hover:bg-red-100 group-hover:text-red-600 group-hover:scale-105'"
+            >
+              <StoreDeviceIcon :name="cat.icon" size-class="h-5 w-5" />
+            </div>
             <span
               class="text-xs transition-colors"
-              :class="selectedCategory === cat.id ? 'text-red-600 font-bold' : 'text-slate-600 group-hover:text-red-600 font-medium'"
+              :class="selectedCategory === cat.id ? 'text-red-600 font-bold' : 'text-slate-600 group-hover:text-red-600 font-semibold'"
             >
               {{ cat.label }}
             </span>
@@ -221,8 +228,9 @@ function selectCategory(id) {
 
           <!-- Hero Content Block -->
           <div class="relative z-10 max-w-xl my-auto">
-            <span class="inline-block rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-200 border border-white/20">
-              {{ heroSlides[activeSlide].badge }}
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-200 border border-white/20">
+              <StoreDeviceIcon name="fire" size-class="h-3.5 w-3.5 text-amber-300" />
+              <span>{{ heroSlides[activeSlide].badge }}</span>
             </span>
 
             <h1 class="mt-4 text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-white">
@@ -243,10 +251,10 @@ function selectCategory(id) {
               </a>
               <a
                 :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-                class="inline-flex items-center gap-1.5 rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                class="inline-flex items-center gap-2 rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
               >
+                <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-amber-300" />
                 <span>Tư vấn: {{ storeInfo.hotlineDisplay }}</span>
-                <span class="text-base font-bold">›</span>
               </a>
             </div>
           </div>
@@ -293,8 +301,9 @@ function selectCategory(id) {
                 <a href="#san-pham" class="rounded-full bg-red-600 px-5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-md shadow-red-500/25 transition">
                   Mua ngay
                 </a>
-                <button type="button" class="text-xs font-bold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-0.5 cursor-pointer" @click="selectCategory('phone')">
-                  Xem tất cả iPhone ›
+                <button type="button" class="text-xs font-bold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-1 cursor-pointer" @click="selectCategory('phone')">
+                  <span>Xem tất cả iPhone</span>
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
                 </button>
               </div>
             </div>
@@ -321,8 +330,9 @@ function selectCategory(id) {
                 <a href="#san-pham" class="rounded-full bg-white px-5 py-2 text-xs font-black text-[#7A0C10] hover:bg-amber-50 shadow-md transition">
                   Mua ngay
                 </a>
-                <button type="button" class="text-xs font-bold text-amber-200 hover:text-white hover:underline inline-flex items-center gap-0.5 cursor-pointer" @click="selectCategory('phone')">
-                  Tìm hiểu thêm ›
+                <button type="button" class="text-xs font-bold text-amber-200 hover:text-white hover:underline inline-flex items-center gap-1 cursor-pointer" @click="selectCategory('phone')">
+                  <span>Tìm hiểu thêm</span>
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
                 </button>
               </div>
             </div>
@@ -411,6 +421,9 @@ function selectCategory(id) {
 
         <!-- Clean Empty State -->
         <div v-else class="rounded-[28px] bg-white p-12 text-center border border-red-100 shadow-sm">
+          <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 mb-3">
+            <StoreDeviceIcon name="search" size-class="h-7 w-7" />
+          </div>
           <p class="text-lg font-bold text-slate-900">Không tìm thấy thiết bị phù hợp</p>
           <p class="mt-1 text-xs text-slate-500">Vui lòng thử từ khóa khác hoặc xóa bộ lọc để hiển thị toàn bộ máy.</p>
           <button
@@ -423,7 +436,7 @@ function selectCategory(id) {
         </div>
       </section>
 
-      <!-- Value Propositions ("Trải nghiệm tại Lieng Mobile") -->
+      <!-- Value Propositions ("Trải nghiệm tại Lieng Mobile") với Modern SVG Icons -->
       <section id="dich-vu" class="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
         <div class="text-center max-w-2xl mx-auto mb-10">
           <span class="text-xs font-bold uppercase tracking-wider text-red-600">Dịch vụ & Cam kết</span>
@@ -436,9 +449,9 @@ function selectCategory(id) {
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 text-2xl">
-              🚚
+          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition group">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all">
+              <StoreDeviceIcon name="delivery" size-class="h-6 w-6" />
             </div>
             <div class="mt-6">
               <h3 class="text-base font-bold text-slate-900">Giao hàng miễn phí</h3>
@@ -448,9 +461,9 @@ function selectCategory(id) {
             </div>
           </div>
 
-          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 text-2xl">
-              💳
+          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition group">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all">
+              <StoreDeviceIcon name="installment" size-class="h-6 w-6" />
             </div>
             <div class="mt-6">
               <h3 class="text-base font-bold text-slate-900">Trả góp 0% linh hoạt</h3>
@@ -460,9 +473,9 @@ function selectCategory(id) {
             </div>
           </div>
 
-          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 text-2xl">
-              🔄
+          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition group">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all">
+              <StoreDeviceIcon name="trade-in" size-class="h-6 w-6" />
             </div>
             <div class="mt-6">
               <h3 class="text-base font-bold text-slate-900">Thu cũ đổi mới</h3>
@@ -472,9 +485,9 @@ function selectCategory(id) {
             </div>
           </div>
 
-          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 text-2xl">
-              🛡️
+          <div class="rounded-[24px] bg-white p-7 border border-red-100/60 shadow-xs flex flex-col justify-between hover:shadow-md transition group">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all">
+              <StoreDeviceIcon name="warranty" size-class="h-6 w-6" />
             </div>
             <div class="mt-6">
               <h3 class="text-base font-bold text-slate-900">Bảo hành chuẩn GSMA</h3>
@@ -513,9 +526,10 @@ function selectCategory(id) {
                 <p class="text-slate-500">Mở cửa: <span class="text-slate-800 font-semibold">{{ branch.hours }}</span></p>
                 <a
                   :href="`tel:${branch.phone.replace(/\s/g, '')}`"
-                  class="mt-1.5 inline-block text-red-600 font-bold hover:underline"
+                  class="mt-2 inline-flex items-center gap-1.5 text-red-600 font-bold hover:underline"
                 >
-                  Hotline: {{ branch.phone }}
+                  <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-red-600" />
+                  <span>{{ branch.phone }}</span>
                 </a>
               </div>
             </div>
