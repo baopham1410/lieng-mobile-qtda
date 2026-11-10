@@ -16,134 +16,69 @@ const emit = defineEmits(['view', 'add-to-cart'])
 const imageFailed = ref(false)
 
 const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
-
-// Apple-style color swatch dots
-const defaultSwatches = ['#2C2C2E', '#E3E4E6', '#F5E7D8', '#4B5358']
-const swatches = computed(() => props.product.swatches || defaultSwatches)
-
-// Monthly installment estimate (12 months 0%)
-const monthlyEstimate = computed(() => {
-  if (!props.product.price) return ''
-  const monthCost = Math.round(props.product.price / 12)
-  return formatPrice(monthCost)
-})
 </script>
 
 <template>
   <article
-    class="group relative flex flex-col justify-between overflow-hidden rounded-[26px] bg-white p-6 transition-all duration-500 hover:-translate-y-1 hover:border-red-200 hover:shadow-[0_20px_40px_rgba(220,38,38,0.08)] border border-black/[0.05]"
+    class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg"
   >
-    <!-- Top Meta: Badge & Brand -->
-    <div>
-      <div class="flex items-center justify-between min-h-[24px]">
-        <span
-          v-if="product.badge"
-          class="text-[11px] font-bold tracking-wide text-red-600 uppercase"
-        >
-          {{ product.badge }}
-        </span>
-        <span v-else class="text-[11px] font-semibold tracking-wide text-[#86868B] uppercase">
-          {{ product.brand }}
-        </span>
-
-        <span
-          v-if="product.inStock !== false"
-          class="text-[11px] font-medium text-emerald-600"
-        >
-          ✓ Chính hãng VN/A
-        </span>
-      </div>
-
-      <!-- Device Name -->
-      <h3
-        class="mt-2 text-xl font-bold tracking-tight text-[#1D1D1F] line-clamp-1 group-hover:text-red-600 transition-colors cursor-pointer"
-        @click="emit('view', product)"
+    <div class="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 via-gray-50 to-white p-4">
+      <span
+        v-if="product.badge"
+        class="absolute left-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
       >
-        {{ product.name }}
-      </h3>
-
-      <!-- Tagline / Highlight specs -->
-      <p class="mt-1 text-xs text-[#86868B] line-clamp-1">
-        {{ (product.specs || []).join(' · ') || 'Thiết kế đột phá · Hiệu năng đỉnh cao' }}
-      </p>
-
-      <!-- Color Swatch Dots -->
-      <div class="mt-4 flex items-center gap-1.5">
-        <span
-          v-for="(dot, i) in swatches"
-          :key="i"
-          class="h-3 w-3 rounded-full border border-black/10 shadow-inner"
-          :style="{ backgroundColor: dot }"
-        />
-      </div>
-    </div>
-
-    <!-- Product Image Showcase -->
-    <div
-      class="my-8 flex aspect-square w-full items-center justify-center p-2 cursor-pointer transition-transform duration-500 group-hover:scale-105"
-      @click="emit('view', product)"
-    >
+        {{ product.badge }}
+      </span>
       <img
         v-if="imageUrl && !imageFailed"
         :src="imageUrl"
         :alt="product.name"
-        class="max-h-[210px] w-auto max-w-[95%] object-contain"
+        class="mx-auto h-full w-full max-h-[220px] max-w-[220px] object-contain transition duration-300 group-hover:scale-105"
         loading="lazy"
         @error="imageFailed = true"
       />
       <div
         v-else
-        class="flex h-44 w-28 flex-col items-center justify-center rounded-[24px] border-4 border-[#2C2C2E] bg-[#1D1D1F] shadow-xl p-3"
+        class="mx-auto flex h-full max-w-[180px] flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-gray-200/80 to-gray-300/40 p-4 shadow-inner"
       >
-        <div class="h-2 w-8 rounded-full bg-white/20 mb-auto" />
-        <span class="text-xs font-semibold text-white/40">Lieng</span>
-        <div class="h-1 w-12 rounded-full bg-white/20 mt-auto" />
+        <div class="h-36 w-20 rounded-2xl border-4 border-gray-800 bg-gray-900 shadow-xl" />
+        <div class="mt-2 h-1.5 w-10 rounded-full bg-gray-700" />
       </div>
     </div>
 
-    <!-- Bottom Pricing & Action Section -->
-    <div class="pt-4 border-t border-black/[0.05]">
-      <!-- Price Display -->
-      <div>
-        <p class="text-xs text-[#86868B]">Giá chính hãng</p>
-        <div class="flex items-baseline gap-2 mt-0.5">
-          <span class="text-lg font-black tracking-tight text-red-600">
-            {{ formatPrice(product.price) }}
-          </span>
-          <span
-            v-if="product.oldPrice && product.oldPrice > product.price"
-            class="text-xs text-[#86868B] line-through font-medium"
+    <div class="flex flex-1 flex-col p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-red-600">{{ product.brand }}</p>
+      <h3 class="mt-1 line-clamp-2 text-sm font-semibold text-gray-900">{{ product.name }}</h3>
+      <ul class="mt-2 flex flex-wrap gap-1">
+        <li
+          v-for="spec in product.specs"
+          :key="spec"
+          class="rounded bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600"
+        >
+          {{ spec }}
+        </li>
+      </ul>
+      <div class="mt-auto pt-4">
+        <p class="text-lg font-bold text-red-600">{{ formatPrice(product.price) }}</p>
+        <p v-if="product.oldPrice" class="text-xs text-gray-400 line-through">{{ formatPrice(product.oldPrice) }}</p>
+        <div class="mt-auto flex gap-2 pt-4">
+          <button
+            type="button"
+            class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:text-red-600 cursor-pointer"
+            @click="emit('view', product)"
           >
-            {{ formatPrice(product.oldPrice) }}
-          </span>
+            Chi tiết
+          </button>
+          <button
+            type="button"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-red-600 disabled:opacity-50 cursor-pointer"
+            :disabled="product.inStock === false"
+            @click="emit('add-to-cart', product)"
+          >
+            <StoreDeviceIcon name="bag" size-class="h-4 w-4 text-white" />
+            <span>{{ product.inStock === false ? 'Đặt trước' : 'Thêm giỏ' }}</span>
+          </button>
         </div>
-        <p v-if="monthlyEstimate" class="mt-0.5 text-[11px] text-[#86868B]">
-          Hoặc <strong class="text-[#1D1D1F]">{{ monthlyEstimate }}</strong>/tháng trả góp 0%
-        </p>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="mt-5 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          class="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
-          @click="emit('view', product)"
-        >
-          <span>Tìm hiểu thêm</span>
-          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-          </svg>
-        </button>
-
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-md shadow-red-500/25 transition hover:bg-red-700 active:scale-95 disabled:opacity-40 cursor-pointer"
-          :disabled="product.inStock === false"
-          @click="emit('add-to-cart', product)"
-        >
-          <StoreDeviceIcon name="bag" size-class="h-3.5 w-3.5 text-white" />
-          <span>{{ product.inStock === false ? 'Đặt trước' : 'Chọn mua' }}</span>
-        </button>
       </div>
     </div>
   </article>

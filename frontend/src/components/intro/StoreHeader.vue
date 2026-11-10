@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getDefaultRouteForUser } from '@/utils/roleRedirect'
-import { storeInfo } from '@/data/storeIntro'
+import { storeInfo, navLinks } from '@/data/storeIntro'
 import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 
 defineProps({
@@ -16,16 +16,6 @@ const emit = defineEmits(['update:searchQuery', 'open-cart'])
 const auth = useAuthStore()
 const menuOpen = ref(false)
 
-const navLinks = [
-  { label: 'Cửa Hàng', href: '#san-pham' },
-  { label: 'iPhone', href: '#san-pham' },
-  { label: 'Samsung', href: '#san-pham' },
-  { label: 'iPad & Mac', href: '#san-pham' },
-  { label: 'Phụ Kiện', href: '#san-pham' },
-  { label: 'Dịch Vụ', href: '#dich-vu' },
-  { label: 'Hệ Thống', href: '#cua-hang' },
-]
-
 function closeMenu() {
   menuOpen.value = false
 }
@@ -34,121 +24,127 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
 </script>
 
 <template>
-  <div id="top" class="sticky top-0 z-50 shadow-sm">
-    <!-- Top Bar: Màu đỏ cờ truyền thống như lúc ban đầu -->
-    <div class="bg-red-600 text-white text-xs py-2 px-4 transition-all">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <p class="text-center w-full sm:w-auto font-medium flex items-center justify-center sm:justify-start gap-1.5">
-          <StoreDeviceIcon name="fire" size-class="h-4 w-4 text-amber-300 shrink-0" />
-          <span>Thu cũ đổi mới trợ giá đến 2.000.000đ — Trả góp 0% thủ tục 5 phút.</span>
-          <a href="#san-pham" class="text-amber-200 hover:text-white underline ml-1 font-semibold inline-flex items-center">
-            Xem ngay <span class="text-[10px] ml-0.5">›</span>
+  <div id="top" class="sticky top-0 z-50">
+    <!-- Top Bar: Đỏ cờ như lúc ban đầu -->
+    <div class="bg-red-600 text-white">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs sm:text-sm">
+        <p class="font-medium flex items-center gap-1.5">
+          <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-white" />
+          <span>Hotline:</span>
+          <a :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`" class="underline-offset-2 hover:underline font-bold">
+            {{ storeInfo.hotlineDisplay }}
           </a>
+          <span class="mx-2 hidden sm:inline">|</span>
+          <span class="hidden sm:inline">{{ storeInfo.hours }}</span>
         </p>
-
-        <div class="hidden sm:flex items-center gap-4 text-xs font-medium text-white/90">
-          <span class="inline-flex items-center gap-1.5">
-            <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-amber-200" />
-            <span>Hotline: <strong class="text-white font-bold">{{ storeInfo.hotlineDisplay }}</strong></span>
-          </span>
-          <span class="text-white/40">|</span>
-          <RouterLink
-            v-if="auth.isAuthenticated"
-            :to="staffHome()"
-            class="text-amber-200 hover:text-white underline font-semibold"
-          >
-            Quản trị viên
-          </RouterLink>
-          <RouterLink
-            v-else
-            to="/login"
-            class="hover:text-amber-200 transition"
-          >
-            Khu vực nhân viên
-          </RouterLink>
-        </div>
+        <p class="hidden md:block">
+          Miễn phí giao hàng nội thành — Bảo hành chính hãng — Thu cũ đổi mới
+        </p>
+        <RouterLink
+          v-if="auth.isAuthenticated"
+          :to="staffHome()"
+          class="font-medium underline-offset-2 hover:underline"
+        >
+          Quay lại quản lý
+        </RouterLink>
+        <RouterLink v-else to="/login" class="font-medium underline-offset-2 hover:underline">
+          Khu vực nhân viên
+        </RouterLink>
       </div>
     </div>
 
-    <!-- Main Navigation Bar: Trắng sáng, logo đỏ đô #7A0C10, hover đỏ -->
-    <header class="bg-white/95 backdrop-blur-xl border-b border-red-100 transition-all">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 h-[56px]">
+    <!-- Header ban đầu với Icon vector mới -->
+    <header class="border-b border-gray-200 bg-white shadow-sm">
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <!-- Brand Logo -->
-        <RouterLink to="/" class="flex items-center gap-2.5 group" @click="closeMenu">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7A0C10] text-white text-sm font-black shadow-md shadow-red-900/20 group-hover:bg-red-600 group-hover:scale-105 transition-all">
+        <RouterLink to="/" class="flex items-center gap-3" @click="closeMenu">
+          <div
+            class="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-rose-500 text-lg font-bold text-white shadow-md"
+          >
             L
           </div>
-          <div class="flex flex-col">
-            <span class="text-sm font-black tracking-tight text-slate-900 group-hover:text-red-600 transition-colors">
-              {{ storeInfo.name }}
-            </span>
-            <span class="text-[10px] text-slate-400 font-medium hidden sm:block leading-none -mt-0.5">
-              Chính hãng • Giá tốt
-            </span>
+          <div>
+            <p class="text-lg font-bold leading-tight text-gray-900">{{ storeInfo.name }}</p>
+            <p class="text-xs text-gray-500">{{ storeInfo.tagline }}</p>
           </div>
         </RouterLink>
 
-        <!-- Desktop Menu Links -->
-        <nav class="hidden md:flex items-center gap-6 text-[13px] font-semibold tracking-tight text-slate-700">
+        <!-- Navigation Links -->
+        <nav class="hidden items-center gap-6 lg:flex">
           <a
             v-for="link in navLinks"
-            :key="link.label"
+            :key="link.href"
             :href="link.href"
-            class="transition-colors hover:text-red-600"
+            class="text-sm font-medium text-gray-700 transition hover:text-red-600"
           >
             {{ link.label }}
           </a>
         </nav>
 
-        <!-- Right Action Icons (Search, Bag, Hotline Button) -->
-        <div class="flex items-center gap-3">
-          <!-- Minimalist Search Input -->
-          <div class="relative hidden sm:block">
+        <!-- Search, Cart & Call Button -->
+        <div class="hidden items-center gap-3 md:flex">
+          <div class="relative">
             <input
               :value="searchQuery"
               type="search"
-              placeholder="Tìm iPhone, Samsung..."
-              class="w-36 md:w-52 rounded-full bg-slate-100 py-1.5 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 transition-all focus:w-60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-400 border border-transparent"
+              placeholder="Tìm iPhone, Samsung, phụ kiện..."
+              class="w-56 rounded-full border border-gray-300 py-2 pl-9 pr-4 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 xl:w-72"
               @input="emit('update:searchQuery', $event.target.value)"
             />
-            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <StoreDeviceIcon name="search" size-class="h-3.5 w-3.5" />
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <StoreDeviceIcon name="search" size-class="h-4 w-4" />
             </span>
           </div>
 
-          <!-- Bag Icon with Red Counter -->
+          <!-- Cart Button với Icon túi SVG mới -->
           <button
             type="button"
-            class="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-700 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-            aria-label="Túi hàng"
+            class="relative flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+            aria-label="Giỏ hàng"
             @click="emit('open-cart')"
           >
             <StoreDeviceIcon name="bag" size-class="h-5 w-5" />
             <span
               v-if="cartCount > 0"
-              class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-md shadow-red-500/30"
+              class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white shadow-sm"
             >
-              {{ cartCount }}
+              {{ cartCount > 9 ? '9+' : cartCount }}
             </span>
           </button>
 
-          <!-- Call CTA Button with Phone Icon -->
+          <!-- Call CTA Button với Phone Icon mới -->
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-            class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm shadow-red-600/30 transition hover:bg-red-700 active:scale-95"
+            class="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-95"
           >
             <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-white" />
             <span>Gọi ngay</span>
           </a>
+        </div>
 
-          <!-- Mobile Hamburger Menu Button -->
+        <!-- Mobile Controls -->
+        <div class="flex items-center gap-2 md:hidden">
           <button
             type="button"
-            class="p-1.5 text-slate-700 md:hidden hover:text-red-600"
-            aria-label="Menu"
+            class="relative flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 text-gray-700"
+            aria-label="Giỏ hàng"
+            @click="emit('open-cart')"
+          >
+            <StoreDeviceIcon name="bag" size-class="h-5 w-5" />
+            <span
+              v-if="cartCount > 0"
+              class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white"
+            >
+              {{ cartCount }}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-gray-300 p-2 text-gray-700 lg:hidden"
+            aria-label="Mở menu"
             @click="menuOpen = !menuOpen"
           >
-            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path v-if="!menuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -157,35 +153,35 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
       </div>
 
       <!-- Mobile Dropdown -->
-      <div v-if="menuOpen" class="border-t border-red-100 bg-white px-5 py-4 md:hidden">
+      <div v-if="menuOpen" class="border-t border-gray-100 bg-white px-4 py-4 lg:hidden">
         <div class="relative mb-3">
           <input
             :value="searchQuery"
             type="search"
-            placeholder="Tìm sản phẩm, phụ kiện..."
-            class="w-full rounded-xl bg-slate-100 border border-slate-200 pl-9 pr-4 py-2 text-xs text-slate-800 outline-none focus:border-red-500 focus:bg-white"
+            placeholder="Tìm sản phẩm..."
+            class="w-full rounded-xl border border-gray-300 py-2.5 pl-9 pr-4 text-sm"
             @input="emit('update:searchQuery', $event.target.value)"
           />
-          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            <StoreDeviceIcon name="search" size-class="h-3.5 w-3.5" />
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <StoreDeviceIcon name="search" size-class="h-4 w-4" />
           </span>
         </div>
-        <nav class="flex flex-col space-y-2 text-sm font-semibold text-slate-700">
+        <nav class="flex flex-col gap-3">
           <a
             v-for="link in navLinks"
-            :key="link.label"
+            :key="link.href"
             :href="link.href"
-            class="py-2 border-b border-slate-100 hover:text-red-600 transition"
+            class="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             @click="closeMenu"
           >
             {{ link.label }}
           </a>
           <a
             :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-            class="mt-2 flex items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 text-center text-xs font-bold text-white shadow-sm"
+            class="mt-2 flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white"
           >
             <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-white" />
-            <span>Gọi hotline: {{ storeInfo.hotlineDisplay }}</span>
+            <span>Gọi {{ storeInfo.hotlineDisplay }}</span>
           </a>
         </nav>
       </div>
