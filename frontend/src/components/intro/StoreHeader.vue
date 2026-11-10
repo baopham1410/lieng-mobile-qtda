@@ -220,6 +220,13 @@ const staffHome = () => getDefaultRouteForUser(auth.user)
           >
             {{ link.label }}
           </a>
+          <a
+            :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
+            class="mt-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-4 py-3 text-center text-sm font-black text-white shadow-md shadow-red-600/20"
+            @click="closeMenu"
+          >
+            📞 Gọi {{ storeInfo.hotlineDisplay }}
+          </a>
         </div>
       </div>
     </header>
