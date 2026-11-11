@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Card, Chip, Eyebrow, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
@@ -13,15 +13,27 @@ export default function AccountScreen() {
   const { user, logout } = useAuth()
   const { locale, setLocale, t } = useLocale()
 
-  const handleLogout = () => {
-    Alert.alert(t('common.logout'), t('account.logoutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.logout'),
-        style: 'destructive',
-        onPress: () => logout(),
-      },
-    ])
+  const handleLogout = async () => {
+    const doLogout = async () => {
+      try {
+        await logout()
+      } finally {
+        router.replace('/login')
+      }
+    }
+
+    if (Platform.OS === 'web') {
+      await doLogout()
+    } else {
+      Alert.alert(t('common.logout'), t('account.logoutConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.logout'),
+          style: 'destructive',
+          onPress: doLogout,
+        },
+      ])
+    }
   }
 
   const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U'
@@ -72,6 +84,34 @@ export default function AccountScreen() {
           </View>
         </Card>
 
+        {/* Ca làm việc & Chi nhánh cửa hàng (Web-aligned Shift & Store) */}
+        <Card style={styles.sectionCard}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="time-outline" size={18} color={Colors.brand} />
+            <Text style={styles.sectionTitle}>Ca làm việc & Chi nhánh</Text>
+          </View>
+          <View style={styles.shiftCardBox}>
+            <View style={styles.shiftRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.shiftName}>Ca chính: Bán lẻ & Quầy POS</Text>
+                <Text style={styles.shiftTime}>Giờ làm: 08:00 - 16:30 · Hôm nay</Text>
+              </View>
+              <View style={styles.shiftBadgeActive}>
+                <Ionicons name="radio-button-on" size={12} color={Colors.green} />
+                <Text style={styles.shiftBadgeText}>Đang trong ca</Text>
+              </View>
+            </View>
+            <View style={styles.branchDivider} />
+            <View style={styles.branchRow}>
+              <Ionicons name="business-outline" size={16} color={Colors.slate500} />
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text style={styles.branchName}>Liêng Mobile - Chi nhánh Flagship #01</Text>
+                <Text style={styles.branchAddress}>123 Điện Biên Phủ, Q.3, TP.HCM</Text>
+              </View>
+            </View>
+          </View>
+        </Card>
+
         {/* Language Selection */}
         <Card style={styles.sectionCard}>
           <View style={styles.sectionTitleRow}>
@@ -108,18 +148,45 @@ export default function AccountScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.appraisalName}>Thẩm định máy cũ</Text>
+                  <Text style={styles.appraisalName}>Thẩm định máy cũ (AutoGrade)</Text>
                   <View style={styles.devTag}>
                     <Text style={styles.devTagText}>Đang phát triển</Text>
                   </View>
                 </View>
                 <Text style={styles.appraisalDesc}>
-                  Định giá máy cũ khách mang đến quầy (mục TD-01)
+                  Định giá máy cũ thu đổi khách mang đến quầy (#125)
                 </Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.slate400} />
           </Pressable>
+        </Card>
+
+        {/* Lối tắt vào Module Quán nhỏ cũ (Dành riêng cho Quán) */}
+        <Card style={styles.sectionCard}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="storefront-outline" size={18} color={Colors.greenDeep} />
+            <Text style={styles.sectionTitle}>Module phụ: Quán nhỏ</Text>
+          </View>
+          <Text style={styles.legacyDesc}>
+            Dành riêng cho nhân viên quầy giải khát / tạp hóa phụ trợ của cửa hàng.
+          </Text>
+          <View style={styles.legacyBtnRow}>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/quay')}
+              style={styles.legacySubBtn}
+            >
+              <Ionicons name="receipt-outline" size={15} color={Colors.brand} />
+              <Text style={styles.legacySubBtnText}>Mở Quầy nhỏ</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/statement')}
+              style={styles.legacySubBtn}
+            >
+              <Ionicons name="stats-chart-outline" size={15} color={Colors.brand} />
+              <Text style={styles.legacySubBtnText}>Sao kê quán</Text>
+            </Pressable>
+          </View>
         </Card>
 
         {/* Network & API Endpoint Info */}
@@ -291,6 +358,63 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: Colors.ink,
   },
+  shiftCardBox: {
+    backgroundColor: Colors.slate50,
+    borderRadius: Radius.md,
+    padding: Space.md,
+    borderWidth: 1,
+    borderColor: Colors.slate200,
+  },
+  shiftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  shiftName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.ink,
+  },
+  shiftTime: {
+    fontSize: 11,
+    color: Colors.slate500,
+    marginTop: 2,
+  },
+  shiftBadgeActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  shiftBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.greenDeep,
+  },
+  branchDivider: {
+    height: 1,
+    backgroundColor: Colors.slate200,
+    marginVertical: 10,
+  },
+  branchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  branchName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.ink,
+  },
+  branchAddress: {
+    fontSize: 10,
+    color: Colors.slate500,
+    marginTop: 1,
+  },
   langRow: {
     flexDirection: 'row',
     gap: Space.sm,
@@ -362,6 +486,33 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: Colors.amber900,
+  },
+  legacyDesc: {
+    fontSize: 11,
+    color: Colors.slate,
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  legacyBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  legacySubBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.panelWarm,
+    borderWidth: 1,
+    borderColor: Colors.amber200,
+    borderRadius: Radius.md,
+    paddingVertical: 9,
+  },
+  legacySubBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.brand,
   },
   serverInfoBox: {
     backgroundColor: Colors.canvas,
