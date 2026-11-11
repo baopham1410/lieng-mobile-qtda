@@ -24,6 +24,34 @@ class ProductImageResolver
         $needle = Str::lower($name);
         $brandLower = Str::lower(trim((string) $brand));
 
+        if (str_contains($needle, 'iphone')) {
+            return '/products/iphone-15.jpg';
+        }
+        if (str_contains($needle, 'samsung') || str_contains($needle, 's24')) {
+            return '/products/samsung-s24.jpg';
+        }
+        if (str_contains($needle, 'xiaomi') || str_contains($needle, '14t')) {
+            return '/products/xiaomi-14.jpg';
+        }
+        if (str_contains($needle, 'oppo') || str_contains($needle, 'reno')) {
+            return '/products/oppo-reno11.jpg';
+        }
+        if (str_contains($needle, 'ipad')) {
+            return '/products/ipad-air.jpg';
+        }
+        if (str_contains($needle, 'airpod') || str_contains($needle, 'tai nghe')) {
+            return '/products/airpods-pro.jpg';
+        }
+        if (str_contains($needle, 'watch') || str_contains($needle, 'đồng hồ')) {
+            return '/products/galaxy-watch6.jpg';
+        }
+        if (str_contains($needle, 'sạc') || str_contains($needle, 'cáp')) {
+            return '/products/gan-charger.jpg';
+        }
+        if (str_contains($needle, 'ốp') || str_contains($needle, 'case')) {
+            return '/products/phone-case.jpg';
+        }
+
         foreach ($this->catalog() as $item) {
             if ($this->matches($needle, $brandLower, $item)) {
                 return $this->urlFor($item);

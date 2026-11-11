@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { formatPrice } from '@/data/storeIntro'
 import { resolveProductImageUrl } from '@/utils/productImage'
+import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 
 const props = defineProps({
   product: {
@@ -21,10 +22,10 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
   <article
     class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg"
   >
-    <div class="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 via-gray-50 to-white p-4">
+    <div class="relative aspect-square overflow-hidden bg-white p-4 flex items-center justify-center border-b border-gray-100">
       <span
         v-if="product.badge"
-        class="absolute left-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white"
+        class="absolute left-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
       >
         {{ product.badge }}
       </span>
@@ -63,18 +64,19 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
         <div class="mt-auto flex gap-2 pt-4">
           <button
             type="button"
-            class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:text-red-600"
+            class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:text-red-600 cursor-pointer"
             @click="emit('view', product)"
           >
             Chi tiết
           </button>
           <button
             type="button"
-            class="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-red-600 disabled:opacity-50 cursor-pointer"
             :disabled="product.inStock === false"
             @click="emit('add-to-cart', product)"
           >
-            {{ product.inStock === false ? 'Đặt trước' : 'Thêm giỏ' }}
+            <StoreDeviceIcon name="bag" size-class="h-4 w-4 text-white" />
+            <span>{{ product.inStock === false ? 'Đặt trước' : 'Thêm giỏ' }}</span>
           </button>
         </div>
       </div>

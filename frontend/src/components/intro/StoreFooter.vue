@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink } from 'vue-router'
 import { storeInfo } from '@/data/storeIntro'
+import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 
 const year = new Date().getFullYear()
 </script>
@@ -10,7 +11,7 @@ const year = new Date().getFullYear()
     <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-2 lg:grid-cols-4">
       <div>
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-600 font-bold text-white">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-600 font-bold text-white shadow-md">
             L
           </div>
           <div>
@@ -31,10 +32,10 @@ const year = new Date().getFullYear()
       <div>
         <h4 class="font-semibold text-white">Hỗ trợ khách hàng</h4>
         <ul class="mt-4 space-y-2 text-sm">
-          <li><a href="#dich-vu" class="hover:text-white">Chính sách bảo hành</a></li>
-          <li><a href="#dich-vu" class="hover:text-white">Trả góp 0%</a></li>
-          <li><a href="#dich-vu" class="hover:text-white">Thu cũ đổi mới</a></li>
-          <li><a href="#cua-hang" class="hover:text-white">Hệ thống cửa hàng</a></li>
+          <li><a href="#dich-vu" class="hover:text-white transition">Chính sách bảo hành</a></li>
+          <li><a href="#dich-vu" class="hover:text-white transition">Trả góp 0%</a></li>
+          <li><a href="#dich-vu" class="hover:text-white transition">Thu cũ đổi mới</a></li>
+          <li><a href="#cua-hang" class="hover:text-white transition">Hệ thống cửa hàng</a></li>
         </ul>
       </div>
 
@@ -42,18 +43,19 @@ const year = new Date().getFullYear()
         <h4 class="font-semibold text-white">Liên hệ</h4>
         <ul class="mt-4 space-y-3 text-sm">
           <li>
-            <span class="block text-gray-500">Hotline</span>
-            <a :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`" class="font-medium text-white hover:text-red-400">
-              {{ storeInfo.hotlineDisplay }}
+            <span class="block text-gray-500 text-xs">Hotline</span>
+            <a :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`" class="inline-flex items-center gap-1.5 font-medium text-white hover:text-red-400">
+              <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-red-500" />
+              <span>{{ storeInfo.hotlineDisplay }}</span>
             </a>
           </li>
           <li>
-            <span class="block text-gray-500">Zalo</span>
+            <span class="block text-gray-500 text-xs">Zalo</span>
             <span class="text-white">{{ storeInfo.zalo }}</span>
           </li>
           <li>
-            <span class="block text-gray-500">Email</span>
-            <a :href="`mailto:${storeInfo.email}`" class="hover:text-white">{{ storeInfo.email }}</a>
+            <span class="block text-gray-500 text-xs">Email</span>
+            <a :href="`mailto:${storeInfo.email}`" class="hover:text-white transition">{{ storeInfo.email }}</a>
           </li>
         </ul>
       </div>
@@ -71,9 +73,10 @@ const year = new Date().getFullYear()
         </div>
         <RouterLink
           to="/login"
-          class="mt-6 inline-block text-xs text-gray-500 underline-offset-2 hover:text-gray-300 hover:underline"
+          class="mt-6 inline-flex items-center gap-1.5 text-xs text-gray-400 underline-offset-2 hover:text-red-400 hover:underline"
         >
-          Đăng nhập hệ thống quản lý
+          <span>Đăng nhập hệ thống quản lý</span>
+          <span>→</span>
         </RouterLink>
       </div>
     </div>
