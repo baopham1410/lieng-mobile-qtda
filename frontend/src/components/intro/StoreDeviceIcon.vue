@@ -106,6 +106,33 @@ defineProps({
     <g v-else-if="name === 'bag'">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
     </g>
+
+    <!-- TV / Television -->
+    <g v-else-if="name === 'tv' || name === 'tivi'">
+      <rect x="2.5" y="4.5" width="19" height="12.5" rx="2" stroke-width="1.8" />
+      <path d="M8.5 20l3.5-3 3.5 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+
+    <!-- Refrigerator / Tủ lạnh -->
+    <g v-else-if="name === 'refrigerator' || name === 'tu-lanh'">
+      <rect x="5" y="2.5" width="14" height="19" rx="2.5" stroke-width="1.8" />
+      <line x1="5" y1="9.5" x2="19" y2="9.5" stroke-width="1.8" />
+      <line x1="7.5" y1="5.5" x2="7.5" y2="7.5" stroke-width="2" stroke-linecap="round" />
+      <line x1="7.5" y1="12.5" x2="7.5" y2="15.5" stroke-width="2" stroke-linecap="round" />
+    </g>
+
+    <!-- Fan / Quạt -->
+    <g v-else-if="name === 'fan' || name === 'quat'">
+      <circle cx="12" cy="10" r="7.5" stroke-width="1.8" />
+      <circle cx="12" cy="10" r="1.5" fill="currentColor" />
+      <path d="M12 17.5V22M9 22h6" stroke-width="1.8" stroke-linecap="round" />
+      <path d="M12 10a4 4 0 0 1 3.5-2M12 10a4 4 0 0 1-1.5 3.8M12 10a4 4 0 0 1-2-3.5" stroke-width="1.5" stroke-linecap="round" />
+    </g>
+
+    <!-- Fallback -->
+    <g v-else>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+    </g>
   </svg>
 </template>
 
