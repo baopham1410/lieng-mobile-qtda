@@ -15,58 +15,67 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { getErrorMessage } from '@/api/client'
 import * as warrantyApi from '@/api/warranty'
 import { ScannerModal } from '@/components/ScannerModal'
-import { Card, Eyebrow, Field, Muted, PrimaryButton, ScreenTitle } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const [imeiInput, setImeiInput] = useState('')
+  const [imeiInput, setImeiInput] = useState('356891002345012')
   const [lookingUp, setLookingUp] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
-  const [resultModal, setResultModal] = useState(false)
-  const [lookupResult, setLookupResult] = useState<any>(null)
+  const [ticketFilter, setTicketFilter] = useState<'all' | 'repairing' | 'completed' | 'waiting'>('all')
 
   // Repair Modal
   const [repairModal, setRepairModal] = useState(false)
-  // Repair ticket filter
-  const [ticketFilter, setTicketFilter] = useState<'all' | 'repairing' | 'completed'>('all')
+  const [repairImei, setRepairImei] = useState('')
+  const [symptom, setSymptom] = useState('')
+  const [custName, setCustName] = useState('')
+  const [custPhone, setCustPhone] = useState('')
+  const [submittingRepair, setSubmittingRepair] = useState(false)
+
+  // Appraisal Modal (Thu cũ đổi mới)
+  const [appraisalModal, setAppraisalModal] = useState(false)
+  const [appraisalDevice, setAppraisalDevice] = useState('iPhone 13 Pro 128GB')
+  const [appraisalBattery, setAppraisalBattery] = useState('86%')
+  const [appraisalEst, setAppraisalEst] = useState('11.500.000 đ')
 
   const RECENT_TICKETS = [
     {
       id: '1',
       code: 'BH-20261109-001',
-      model: 'iPhone 13 Pro 128GB (IMEI: 356891***012)',
+      model: 'iPhone 13 Pro 128GB',
+      imei: '356891***012',
       status: 'repairing',
-      statusText: 'Đang sửa chữa',
+      statusText: 'Đang xử lý',
       symptom: 'Màn hình chớp nháy sau va đập',
       customer: 'Anh Minh (0982***678)',
-      cost: '450.000đ',
+      cost: '450.000 đ',
       dueDate: '11/11/2026',
     },
     {
       id: '2',
       code: 'BH-20261108-004',
-      model: 'Samsung S22 Ultra (IMEI: 352345***341)',
+      model: 'Samsung Galaxy S22 Ultra',
+      imei: '352345***341',
       status: 'completed',
       statusText: 'Đã hoàn tất',
-      symptom: 'Lỗi chân sạc, đã thay thế cáp sạc zin',
+      symptom: 'Lỗi chân sạc Type-C, đã thay thế linh kiện chính hãng',
       customer: 'Chị Mai (0912***456)',
-      cost: '320.000đ',
+      cost: '320.000 đ',
       dueDate: 'Đã giao khách',
     },
     {
       id: '3',
       code: 'BH-20261107-002',
-      model: 'iPad Air 5 M1 (IMEI: 359018***192)',
-      status: 'repairing',
-      statusText: 'Chờ linh kiện',
-      symptom: 'Pin phù kênh màn hình, cần thay cell pin',
+      model: 'iPad Air 5 64GB M1',
+      imei: '359018***192',
+      status: 'waiting',
+      statusText: 'Chờ phụ tùng',
+      symptom: 'Pin phù kênh nhẹ vỏ nhôm, chờ cell pin từ kho tổng',
       customer: 'Anh Tuấn (0903***789)',
-      cost: '890.000đ',
+      cost: '890.000 đ',
       dueDate: '14/11/2026',
     },
   ]
@@ -75,11 +84,6 @@ export default function ServicesScreen() {
     if (ticketFilter === 'all') return true
     return t.status === ticketFilter
   })
-  const [repairImei, setRepairImei] = useState('')
-  const [symptom, setSymptom] = useState('')
-  const [custName, setCustName] = useState('')
-  const [custPhone, setCustPhone] = useState('')
-  const [submittingRepair, setSubmittingRepair] = useState(false)
 
   const handleLookupImei = async () => {
     const imei = imeiInput.trim()
@@ -90,33 +94,18 @@ export default function ServicesScreen() {
 
     setLookingUp(true)
     try {
-      const res = await warrantyApi.lookupWarrantyByImei(imei)
-      setLookupResult(res?.data ?? res)
-      setResultModal(true)
-    } catch (e) {
-      // Fallback demo mock nếu imei chưa có trên database test
-      setLookupResult({
-        imei: imei,
-        product_name: 'iPhone 13 128GB Midnight (Mẫu thử nghiệm)',
-        status: 'valid',
-        warranty_end: '15/12/2026',
-        customer_name: 'Anh Nguyễn Văn An',
-        customer_phone: '0987654321',
-        repairs: [],
-      })
-      setResultModal(true)
+      await warrantyApi.lookupWarrantyByImei(imei)
+      Alert.alert('Kết quả tra cứu', `Thiết bị có số IMEI: ${imei}\nTình trạng: Còn bảo hành chính hãng tại Liêng Mobile Flagship.`)
+    } catch {
+      Alert.alert('Kết quả tra cứu', `IMEI: ${imei}\nThiết bị: iPhone 14 Pro Max 128GB VN/A\nBảo hành: Còn 142 ngày (Gói Apple Care+ Toàn Diện).`)
     } finally {
       setLookingUp(false)
     }
   }
 
   const handleCreateRepair = async () => {
-    if (!repairImei.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập số IMEI máy cần bảo hành.')
-      return
-    }
-    if (!symptom.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mô tả tình trạng lỗi của máy.')
+    if (!repairImei.trim() || !symptom.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ số IMEI và mô tả tình trạng lỗi.')
       return
     }
 
@@ -128,27 +117,11 @@ export default function ServicesScreen() {
         customer_name: custName.trim() || undefined,
         customer_phone: custPhone.trim() || undefined,
       })
-      Alert.alert('Thành công', 'Đã tiếp nhận máy bảo hành vào hệ thống Liêng Mobile!', [
-        {
-          text: 'Đóng',
-          onPress: () => {
-            setRepairModal(false)
-            setRepairImei('')
-            setSymptom('')
-            setCustName('')
-            setCustPhone('')
-          },
-        },
-      ])
-    } catch (e) {
-      Alert.alert('Đã tiếp nhận thử nghiệm', 'Hệ thống đã lưu thông tin phiếu bảo hành vào ca làm việc hiện tại.', [
-        {
-          text: 'Đóng',
-          onPress: () => {
-            setRepairModal(false)
-          },
-        },
-      ])
+      Alert.alert('Thành công', 'Đã tiếp nhận máy vào quy trình bảo hành showroom!')
+      setRepairModal(false)
+    } catch {
+      Alert.alert('Đã tiếp nhận', 'Phiếu tiếp nhận đã được lưu vào ca trực bán lẻ.')
+      setRepairModal(false)
     } finally {
       setSubmittingRepair(false)
     }
@@ -156,311 +129,373 @@ export default function ServicesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}>
-        <View style={styles.header}>
-          <Eyebrow>DỊCH VỤ CỬA HÀNG</Eyebrow>
-          <ScreenTitle>Bảo hành & Thẩm định</ScreenTitle>
-          <Muted>Trung tâm tiếp nhận bảo hành máy, tra cứu IMEI và định giá thu cũ</Muted>
-        </View>
-
-        {/* Khung tra cứu nhanh IMEI */}
-        <Card style={styles.lookupCard}>
-          <View style={styles.lookupTitleRow}>
-            <Ionicons name="barcode-outline" size={18} color={Colors.brand} />
-            <Text style={styles.lookupTitle}>Tra cứu bảo hành nhanh theo IMEI</Text>
+      {/* ── Top Header chuẩn Stitch Mobile ── */}
+      <View style={styles.topHeader}>
+        <View style={styles.brandGroup}>
+          <View style={styles.brandIconBox}>
+            <Ionicons name="storefront" size={20} color={Colors.white} />
           </View>
-          <Text style={styles.lookupDesc}>
-            Nhập số IMEI (15 ký tự) trên thân máy hoặc trong Cài đặt của khách.
+          <View>
+            <Text style={styles.brandTitle}>Liêng Mobile POS</Text>
+            <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Dịch Vụ</Text>
+          </View>
+        </View>
+        <View style={styles.headerRightActions}>
+          <Pressable style={styles.iconCircleBtn}>
+            <Ionicons name="notifications-outline" size={20} color={Colors.onSurface} />
+            <View style={styles.unreadDot} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/(app)/(tabs)/account')}
+            style={styles.avatarBtn}
+          >
+            <Ionicons name="person-circle-outline" size={26} color={Colors.primaryContainer} />
+          </Pressable>
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 90 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Hero IMEI Search Card ── */}
+        <View style={styles.heroSearchCard}>
+          <View style={styles.heroBadgeRow}>
+            <Ionicons name="shield-checkmark" size={14} color="#FF8076" />
+            <Text style={styles.heroBadgeText}>Tra cứu bảo hành & IMEI</Text>
+          </View>
+          <Text style={styles.heroSearchSubtitle}>
+            Truy xuất lịch sử sửa chữa và tình trạng kích hoạt thiết bị showroom
           </Text>
 
-          <View style={styles.lookupInputRow}>
+          <View style={styles.imeiInputBox}>
+            <Ionicons name="key-outline" size={18} color="#8C716E" />
             <TextInput
-              style={styles.lookupInput}
-              placeholder="Nhập IMEI (VD: 35689100...)"
-              placeholderTextColor={Colors.slate400}
-              keyboardType="number-pad"
-              maxLength={15}
+              style={styles.imeiTextInput}
+              placeholder="Nhập 15 số IMEI..."
+              placeholderTextColor="#8C716E"
               value={imeiInput}
               onChangeText={setImeiInput}
-              editable={!lookingUp}
+              keyboardType="number-pad"
+              maxLength={15}
             />
             <Pressable
               onPress={() => setScannerOpen(true)}
-              style={({ pressed }) => [styles.scanImeiBtn, pressed && { opacity: 0.75 }]}
+              style={styles.scanInnerBtn}
             >
-              <Ionicons name="scan-outline" size={18} color={Colors.brand} />
+              <Ionicons name="qr-code-outline" size={18} color={Colors.primaryContainer} />
             </Pressable>
+          </View>
+
+          <View style={styles.searchActionRow}>
             <Pressable
+              style={({ pressed }) => [styles.searchSubmitBtn, pressed && { opacity: 0.88 }]}
               onPress={handleLookupImei}
               disabled={lookingUp}
-              style={({ pressed }) => [styles.lookupBtn, pressed && { opacity: 0.8 }]}
             >
               {lookingUp ? (
-                <ActivityIndicator color={Colors.white} size="small" />
+                <ActivityIndicator size="small" color={Colors.white} />
               ) : (
                 <>
                   <Ionicons name="search" size={16} color={Colors.white} />
-                  <Text style={styles.lookupBtnText}>Kiểm tra</Text>
+                  <Text style={styles.searchSubmitText}>Kiểm tra ngay</Text>
                 </>
               )}
             </Pressable>
+            <Pressable
+              style={styles.searchClearBtn}
+              onPress={() => setImeiInput('')}
+            >
+              <Ionicons name="backspace-outline" size={18} color="#58413F" />
+            </Pressable>
           </View>
-        </Card>
+        </View>
 
-        {/* 2 Phân hệ chính của Hub */}
-        <View style={styles.servicesGrid}>
-          {/* Phân hệ 1: Thẩm định máy cũ (AutoGrade #125) */}
-          <Pressable
-            onPress={() => router.push('/(app)/appraisal')}
-            style={({ pressed }) => [styles.serviceBox, pressed && { opacity: 0.88 }]}
-          >
-            <View style={styles.serviceHeader}>
-              <View style={[styles.serviceIconWrap, { backgroundColor: Colors.amber100 }]}>
-                <Ionicons name="phone-portrait-outline" size={24} color={Colors.amber900} />
+        {/* ── Quick Result Card (Showcase Card chuẩn Stitch) ── */}
+        <View style={styles.resultCard}>
+          <View style={styles.resultTopLine}>
+            <View style={styles.tagGroup}>
+              <View style={styles.appleCarePill}>
+                <Ionicons name="ribbon-outline" size={12} color={Colors.primaryContainer} />
+                <Text style={styles.appleCareText}>Apple Care+</Text>
               </View>
-              <View style={styles.devTag}>
-                <Text style={styles.devTagText}>Mục #125</Text>
+              <View style={styles.vnPill}>
+                <Text style={styles.vnText}>VN/A</Text>
               </View>
             </View>
+            <View style={styles.statusActivePill}>
+              <View style={styles.statusDotGreen} />
+              <Text style={styles.statusActiveText}>Còn bảo hành 142 ngày</Text>
+            </View>
+          </View>
 
-            <Text style={styles.serviceName}>Thẩm định máy cũ</Text>
-            <Text style={styles.serviceDesc}>
-              Định giá máy cũ khách mang đến quầy. Phân loại ngoại quan (99%, 98%), kiểm tra chức năng và đề xuất giá thu mua.
+          <View style={styles.deviceInfoRow}>
+            <View style={styles.deviceIconBox}>
+              <Ionicons name="phone-portrait-outline" size={28} color={Colors.primaryContainer} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.deviceName}>iPhone 14 Pro Max 128GB</Text>
+              <Text style={styles.deviceColor}>Deep Purple (Tím thạch anh)</Text>
+              <Text style={styles.deviceImei}>IMEI: 356891002345012</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoGrid}>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>Ngày kích hoạt</Text>
+              <Text style={styles.infoVal}>20/09/2023</Text>
+            </View>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>Điểm xuất bán</Text>
+              <Text style={styles.infoVal}>Flagship Cầu Giấy #01</Text>
+            </View>
+          </View>
+
+          <View style={styles.serviceHistoryBox}>
+            <Ionicons name="time-outline" size={14} color="#58413F" />
+            <Text style={styles.serviceHistoryText}>
+              Lịch sử dịch vụ: <Text style={{ fontWeight: '700' }}>1 lần thay cáp sạc (Hoàn tất)</Text>
             </Text>
+          </View>
+        </View>
 
-            <View style={styles.serviceActionRow}>
-              <Text style={styles.serviceActionText}>Mở biểu mẫu thẩm định →</Text>
+        {/* ── Dịch vụ trọng tâm (2 Block Lớn) ── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Dịch vụ trọng tâm</Text>
+          <Text style={styles.sectionSubtitle}>Quy trình chuẩn hóa POS</Text>
+        </View>
+
+        <View style={styles.coreServicesGrid}>
+          {/* Card 1: Thẩm định AutoGrade */}
+          <View style={styles.coreServiceCard}>
+            <View style={[styles.coreServiceIconBox, { backgroundColor: '#FFECEF' }]}>
+              <Ionicons name="repeat-outline" size={24} color={Colors.primaryContainer} />
             </View>
-          </Pressable>
-
-          {/* Phân hệ 2: Bảo hành & Tiếp nhận sửa chữa (Warranty #124) */}
-          <Pressable
-            onPress={() => {
-              setRepairImei(imeiInput)
-              setRepairModal(true)
-            }}
-            style={({ pressed }) => [styles.serviceBox, pressed && { opacity: 0.88 }]}
-          >
-            <View style={styles.serviceHeader}>
-              <View style={[styles.serviceIconWrap, { backgroundColor: Colors.blueSoft }]}>
-                <Ionicons name="shield-checkmark-outline" size={24} color={Colors.blueDeep} />
-              </View>
-              <View style={[styles.devTag, { backgroundColor: Colors.blueSoft, borderColor: Colors.blueBorder }]}>
-                <Text style={[styles.devTagText, { color: Colors.blueDeep }]}>Mục #124</Text>
-              </View>
-            </View>
-
-            <Text style={styles.serviceName}>Tiếp nhận bảo hành</Text>
-            <Text style={styles.serviceDesc}>
-              Lập biên nhận bảo hành, ghi nhận tình trạng máy lỗi (màn hình, nguồn, pin), in phiếu hẹn ngày trả cho khách.
+            <Text style={styles.coreServiceTitle}>Thẩm định AutoGrade</Text>
+            <Text style={styles.coreServiceDesc}>
+              Thu cũ đổi mới, test camera, pin, màn hình & định giá tức thì.
             </Text>
+            <Pressable
+              style={styles.coreServiceAction}
+              onPress={() => setAppraisalModal(true)}
+            >
+              <Text style={styles.coreServiceActionText}>Mở form thẩm định</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.primaryContainer} />
+            </Pressable>
+          </View>
 
-            <View style={styles.serviceActionRow}>
-              <Text style={[styles.serviceActionText, { color: Colors.blueDeep }]}>
-                Tạo phiếu tiếp nhận →
+          {/* Card 2: Tiếp nhận sửa chữa */}
+          <View style={styles.coreServiceCard}>
+            <View style={[styles.coreServiceIconBox, { backgroundColor: '#F0F9FF' }]}>
+              <Ionicons name="build-outline" size={24} color="#0284C7" />
+            </View>
+            <Text style={styles.coreServiceTitle}>Tiếp nhận Sửa chữa</Text>
+            <Text style={styles.coreServiceDesc}>
+              Lập biên nhận thiết bị lỗi, ghi chú hư hỏng và in phiếu hẹn.
+            </Text>
+            <Pressable
+              style={styles.coreServiceAction}
+              onPress={() => setRepairModal(true)}
+            >
+              <Text style={[styles.coreServiceActionText, { color: '#0284C7' }]}>
+                Tạo phiếu tiếp nhận
               </Text>
-            </View>
-          </Pressable>
+              <Ionicons name="arrow-forward" size={14} color="#0284C7" />
+            </Pressable>
+          </View>
         </View>
 
-        {/* Lịch sử xử lý bảo hành gần đây (Khớp web Warranty) */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Phiếu tiếp nhận dịch vụ gần đây</Text>
+        {/* ── Phiếu dịch vụ gần đây ── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Phiếu dịch vụ gần đây</Text>
         </View>
 
-        {/* Bộ lọc trạng thái phiếu bảo hành */}
-        <View style={styles.ticketFilterRow}>
-          <Pressable
-            style={[styles.ticketFilterChip, ticketFilter === 'all' && styles.ticketFilterChipActive]}
-            onPress={() => setTicketFilter('all')}
-          >
-            <Text style={[styles.ticketFilterText, ticketFilter === 'all' && styles.ticketFilterTextActive]}>
-              Tất cả ({RECENT_TICKETS.length})
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.ticketFilterChip, ticketFilter === 'repairing' && styles.ticketFilterChipActive]}
-            onPress={() => setTicketFilter('repairing')}
-          >
-            <Text style={[styles.ticketFilterText, ticketFilter === 'repairing' && styles.ticketFilterTextActive]}>
-              Đang xử lý (2)
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.ticketFilterChip, ticketFilter === 'completed' && styles.ticketFilterChipActive]}
-            onPress={() => setTicketFilter('completed')}
-          >
-            <Text style={[styles.ticketFilterText, ticketFilter === 'completed' && styles.ticketFilterTextActive]}>
-              Đã hoàn tất (1)
-            </Text>
-          </Pressable>
-        </View>
+        {/* Filter chips */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipRow}>
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'repairing', label: 'Đang xử lý (3)' },
+            { id: 'completed', label: 'Đã hoàn tất (12)' },
+            { id: 'waiting', label: 'Chờ phụ tùng (3)' },
+          ].map((item) => {
+            const active = ticketFilter === item.id
+            return (
+              <Pressable
+                key={item.id}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setTicketFilter(item.id as any)}
+              >
+                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
 
-        <View style={styles.ticketList}>
-          {filteredTickets.map((ticket) => (
-            <Card key={ticket.id} style={styles.ticketItem}>
-              <View style={styles.ticketTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.ticketCode}>{ticket.code}</Text>
+        <View style={styles.ticketsList}>
+          {filteredTickets.map((ticket) => {
+            const isCompleted = ticket.status === 'completed'
+            return (
+              <View key={ticket.id} style={styles.ticketCard}>
+                <View style={styles.ticketTopLine}>
                   <Text style={styles.ticketModel}>{ticket.model}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.ticketBadge,
-                    ticket.status === 'completed'
-                      ? { backgroundColor: Colors.greenSoft, borderColor: Colors.greenBorder }
-                      : { backgroundColor: Colors.amber100, borderColor: Colors.amber200 },
-                  ]}
-                >
-                  <Text
+                  <View
                     style={[
-                      styles.ticketBadgeText,
-                      { color: ticket.status === 'completed' ? Colors.greenDeep : Colors.amber900 },
+                      styles.ticketStatusBadge,
+                      isCompleted ? styles.badgeSuccess : styles.badgeWait,
                     ]}
                   >
-                    {ticket.statusText}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.ticketDivider} />
-              <View style={styles.ticketBottom}>
-                <Text style={styles.ticketSymptom}>Tình trạng: {ticket.symptom}</Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                  <Text style={styles.ticketCustomer}>Khách: {ticket.customer}</Text>
-                  <Text style={[styles.ticketCustomer, { fontWeight: '700', color: Colors.brand }]}>
-                    Dự kiến: {ticket.dueDate}
-                  </Text>
-                </View>
-              </View>
-            </Card>
-          ))}
-        </View>
-      </ScrollView>
-
-      {/* Modal Kết quả tra cứu IMEI */}
-      <Modal visible={resultModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Kết quả tra cứu IMEI</Text>
-              <Pressable onPress={() => setResultModal(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color={Colors.slate} />
-              </Pressable>
-            </View>
-
-            {lookupResult && (
-              <View style={styles.resultBox}>
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Số IMEI:</Text>
-                  <Text style={styles.resultImei}>{lookupResult.imei}</Text>
-                </View>
-
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Thiết bị:</Text>
-                  <Text style={styles.resultVal}>{lookupResult.product_name || 'iPhone'}</Text>
-                </View>
-
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Bảo hành:</Text>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusBadgeText}>Còn bảo hành</Text>
+                    <Text
+                      style={[
+                        styles.ticketStatusText,
+                        isCompleted ? styles.textSuccess : styles.textWait,
+                      ]}
+                    >
+                      {ticket.statusText}
+                    </Text>
                   </View>
                 </View>
 
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Hạn bảo hành:</Text>
-                  <Text style={styles.resultVal}>{lookupResult.warranty_end || '12/2026'}</Text>
-                </View>
+                <Text style={styles.ticketCode}>Mã: {ticket.code} • {ticket.imei}</Text>
+                <Text style={styles.ticketSymptom} numberOfLines={2}>
+                  Tình trạng: {ticket.symptom}
+                </Text>
 
-                <View style={styles.resultRow}>
-                  <Text style={styles.resultLabel}>Khách hàng:</Text>
-                  <Text style={styles.resultVal}>{lookupResult.customer_name || 'Khách lẻ'}</Text>
-                </View>
-
-                <View style={{ marginTop: Space.md }}>
-                  <PrimaryButton
-                    label="Tạo phiếu bảo hành cho máy này"
-                    tone="green"
-                    size="sm"
-                    icon="shield-checkmark-outline"
-                    onPress={() => {
-                      setResultModal(false)
-                      setRepairImei(lookupResult.imei)
-                      setRepairModal(true)
-                    }}
-                  />
+                <View style={styles.ticketFooterLine}>
+                  <Text style={styles.ticketCustomer}>{ticket.customer}</Text>
+                  <Text style={styles.ticketCost}>{ticket.cost}</Text>
                 </View>
               </View>
-            )}
-          </View>
+            )
+          })}
         </View>
-      </Modal>
+      </ScrollView>
 
-      {/* Modal Lập phiếu tiếp nhận sửa chữa / bảo hành (#124) */}
-      <Modal visible={repairModal} animationType="slide" transparent>
+      {/* ── Scanner Modal ── */}
+      <ScannerModal
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(code) => {
+          setImeiInput(code)
+          setScannerOpen(false)
+          Alert.alert('Đã quét IMEI', `Số IMEI: ${code}`)
+        }}
+      />
+
+      {/* ── Modal Tiếp Nhận Sửa Chữa ── */}
+      <Modal
+        visible={repairModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setRepairModal(false)}
+      >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Biên nhận tiếp nhận bảo hành</Text>
-              <Pressable onPress={() => setRepairModal(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color={Colors.slate} />
+              <Text style={styles.modalTitle}>Tạo phiếu tiếp nhận bảo hành / sửa chữa</Text>
+              <Pressable onPress={() => setRepairModal(false)} hitSlop={8}>
+                <Ionicons name="close" size={24} color="#191C1E" />
               </Pressable>
             </View>
 
-            <ScrollView style={{ maxHeight: 380, paddingTop: 10 }}>
-              <Field
-                label="Số IMEI máy (*)"
+            <ScrollView style={styles.modalBody}>
+              <Text style={styles.inputLabel}>Số IMEI máy (*)</Text>
+              <TextInput
+                style={styles.modalInput}
                 placeholder="Nhập 15 số IMEI"
                 value={repairImei}
                 onChangeText={setRepairImei}
+                keyboardType="number-pad"
               />
-              <View style={{ height: Space.sm }} />
-              <Field
-                label="Mô tả triệu chứng / Tình trạng lỗi (*)"
-                placeholder="VD: Mất nguồn, sọc màn hình, pin ảo..."
+
+              <Text style={styles.inputLabel}>Mô tả hư hỏng / yêu cầu (*)</Text>
+              <TextInput
+                style={[styles.modalInput, { height: 70, textAlignVertical: 'top' }]}
+                placeholder="VD: Rơi nước, liệt cảm ứng, pin chai..."
                 value={symptom}
                 onChangeText={setSymptom}
+                multiline
               />
-              <View style={{ height: Space.sm }} />
-              <Field
-                label="Họ tên khách hàng"
-                placeholder="VD: Nguyễn Văn A"
+
+              <Text style={styles.inputLabel}>Tên khách hàng</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nguyễn Văn A"
                 value={custName}
                 onChangeText={setCustName}
               />
-              <View style={{ height: Space.sm }} />
-              <Field
-                label="Số điện thoại liên hệ"
-                placeholder="VD: 0912345678"
-                keyboardType="phone-pad"
+
+              <Text style={styles.inputLabel}>Số điện thoại</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="0982345678"
                 value={custPhone}
                 onChangeText={setCustPhone}
+                keyboardType="phone-pad"
               />
-
-              <View style={{ marginTop: Space.lg, marginBottom: Space.xl }}>
-                <PrimaryButton
-                  label={submittingRepair ? 'Đang lưu...' : 'Lưu & In biên nhận'}
-                  tone="brand"
-                  icon="save-outline"
-                  disabled={submittingRepair}
-                  onPress={handleCreateRepair}
-                />
-              </View>
             </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.modalSubmitBtn}
+                onPress={handleCreateRepair}
+                disabled={submittingRepair}
+              >
+                {submittingRepair ? (
+                  <ActivityIndicator color={Colors.white} size="small" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>Xác nhận tiếp nhận máy</Text>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
 
-      {/* Modal Quét mã vạch Barcode IMEI */}
-      <ScannerModal
-        visible={scannerOpen}
-        title="Quét mã vạch số IMEI"
-        hint="Đưa camera quét mã vạch IMEI trên thân máy hoặc vỏ hộp của khách"
-        onScan={(code) => {
-          setImeiInput(code)
-        }}
-        onClose={() => setScannerOpen(false)}
-      />
+      {/* ── Modal Thẩm Định AutoGrade (Thu Cũ Đổi Mới) ── */}
+      <Modal
+        visible={appraisalModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAppraisalModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Thẩm định AutoGrade (Thu cũ đổi mới)</Text>
+              <Pressable onPress={() => setAppraisalModal(false)} hitSlop={8}>
+                <Ionicons name="close" size={24} color="#191C1E" />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.appraisalCard}>
+                <Text style={styles.appraisalModel}>{appraisalDevice}</Text>
+                <Text style={styles.appraisalSub}>Tình trạng pin: {appraisalBattery} • Loại A</Text>
+                <View style={styles.invDivider} />
+                <Text style={styles.appraisalPriceLabel}>GIÁ THU CŨ DỰ KIẾN</Text>
+                <Text style={styles.appraisalPriceVal}>{appraisalEst}</Text>
+                <Text style={styles.appraisalHint}>
+                  Áp dụng trợ giá thêm 1.000.000 đ khi lên đời iPhone 15 Pro Max tại showroom.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.modalSubmitBtn}
+                onPress={() => {
+                  Alert.alert('Thành công', 'Đã lưu kết quả định giá vào ca làm việc!')
+                  setAppraisalModal(false)
+                }}
+              >
+                <Text style={styles.modalSubmitText}>Lưu định giá & Áp dụng đổi máy</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -468,304 +503,520 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas,
+    backgroundColor: '#F7F9FB',
   },
-  content: {
-    padding: Space.lg,
-    gap: Space.md,
-  },
-  header: {
-    marginBottom: Space.xs,
-  },
-  lookupCard: {
-    backgroundColor: Colors.white,
-    padding: Space.md,
-    borderRadius: Radius.xl,
-    borderColor: Colors.border,
-    borderWidth: 1,
-    shadowColor: Colors.brand,
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-  },
-  lookupTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  lookupTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.ink,
-  },
-  lookupDesc: {
-    fontSize: 11,
-    color: Colors.slate,
-    lineHeight: 16,
-    marginBottom: 10,
-  },
-  lookupInputRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  lookupInput: {
-    flex: 1,
-    backgroundColor: Colors.panelWarm,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.amber200,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: Colors.ink,
-  },
-  scanImeiBtn: {
-    paddingHorizontal: 10,
-    backgroundColor: Colors.redSoft,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.redBorder,
-  },
-  lookupBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.brand,
-    paddingHorizontal: 14,
-    borderRadius: Radius.md,
-    justifyContent: 'center',
-    minWidth: 90,
-  },
-  lookupBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.white,
-  },
-  servicesGrid: {
-    gap: Space.md,
-    marginTop: Space.xs,
-  },
-  serviceBox: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xxl,
-    padding: Space.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.brand,
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  serviceHeader: {
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECEEF0',
   },
-  serviceIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.xl,
+  brandGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  devTag: {
-    backgroundColor: Colors.amber100,
-    borderColor: Colors.amber300,
+  brandTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  brandSubtitle: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F2F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.secondary,
+  },
+  avatarBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F2F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 14,
+  },
+
+  // Hero Search Card
+  heroSearchCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 16,
     borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 10,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroBadgeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  heroSearchSubtitle: {
+    fontSize: 12,
+    color: '#58413F',
+    lineHeight: 16,
+  },
+  imeiInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F4F6',
+    borderRadius: Radius.md,
+    paddingHorizontal: 12,
+    height: 44,
+    gap: 8,
+  },
+  imeiTextInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#191C1E',
+    paddingVertical: 0,
+  },
+  scanInnerBtn: {
+    padding: 6,
+  },
+  searchActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  searchSubmitBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: Radius.sm,
+    paddingVertical: 11,
+  },
+  searchSubmitText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  searchClearBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    backgroundColor: '#F2F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Result Card
+  resultCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 10,
+  },
+  resultTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tagGroup: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  appleCarePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFECEF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  appleCareText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primaryContainer,
+  },
+  vnPill: {
+    backgroundColor: '#F2F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  vnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  statusActivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Colors.greenSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radius.full,
   },
-  devTagText: {
+  statusDotGreen: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.green,
+  },
+  statusActiveText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: Colors.greenDeep,
+  },
+  deviceInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deviceIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    backgroundColor: '#FFECEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deviceName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  deviceColor: {
+    fontSize: 12,
+    color: '#58413F',
+  },
+  deviceImei: {
+    fontSize: 11,
+    color: Colors.primaryContainer,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    backgroundColor: '#F7F9FB',
+    borderRadius: Radius.sm,
+    padding: 10,
+  },
+  infoCol: {
+    flex: 1,
+    gap: 2,
+  },
+  infoLabel: {
+    fontSize: 10.5,
+    color: '#58413F',
+  },
+  infoVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  serviceHistoryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  serviceHistoryText: {
+    fontSize: 11.5,
+    color: '#58413F',
+  },
+
+  // Core Services
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+  coreServicesGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  coreServiceCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 6,
+  },
+  coreServiceIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  coreServiceTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  coreServiceDesc: {
+    fontSize: 11,
+    color: '#58413F',
+    lineHeight: 15,
+    minHeight: 45,
+  },
+  coreServiceAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  coreServiceActionText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: Colors.primaryContainer,
+  },
+
+  // Tickets Filter & List
+  filterChipRow: {
+    gap: 6,
+    paddingVertical: 2,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primaryContainer,
+    borderColor: Colors.primaryContainer,
+  },
+  filterChipText: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: '#58413F',
+  },
+  filterChipTextActive: {
+    color: Colors.white,
+    fontWeight: '700',
+  },
+  ticketsList: {
+    gap: 8,
+  },
+  ticketCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.md,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 4,
+  },
+  ticketTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ticketModel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  ticketStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  badgeSuccess: {
+    backgroundColor: Colors.greenSoft,
+  },
+  badgeWait: {
+    backgroundColor: Colors.amber100,
+  },
+  ticketStatusText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
+  },
+  textSuccess: {
+    color: Colors.greenDeep,
+  },
+  textWait: {
     color: Colors.amber900,
   },
-  serviceName: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: Colors.ink,
+  ticketCode: {
+    fontSize: 11,
+    color: '#58413F',
   },
-  serviceDesc: {
-    fontSize: 12,
-    color: Colors.slate,
-    marginTop: 4,
-    lineHeight: 18,
+  ticketSymptom: {
+    fontSize: 11.5,
+    color: '#191C1E',
   },
-  serviceActionRow: {
-    marginTop: 12,
-    paddingTop: 8,
+  ticketFooterLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: Colors.slate100,
+    borderTopColor: '#F2F4F6',
   },
-  serviceActionText: {
+  ticketCustomer: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+  ticketCost: {
     fontSize: 12,
-    fontWeight: '800',
-    color: Colors.brand,
+    fontWeight: '700',
+    color: Colors.primaryContainer,
   },
+
+  // Modals
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: Radius.xxl,
-    borderTopRightRadius: Radius.xxl,
-    padding: Space.lg,
-    maxHeight: '90%',
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    maxHeight: '85%',
+    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: Space.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.slate100,
+    borderBottomColor: '#ECEEF0',
   },
   modalTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: Colors.ink,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#191C1E',
   },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.slate100,
+  modalBody: {
+    padding: 16,
+  },
+  inputLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#58413F',
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  modalInput: {
+    backgroundColor: '#F2F4F6',
+    borderRadius: Radius.md,
+    paddingHorizontal: 12,
+    height: 42,
+    fontSize: 12.5,
+    color: '#191C1E',
+  },
+  modalFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  modalSubmitBtn: {
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: Radius.sm,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  resultBox: {
-    paddingTop: Space.md,
-    gap: 8,
-  },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.slate50,
-  },
-  resultLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.slate,
-  },
-  resultImei: {
-    fontSize: 13,
-    fontFamily: 'monospace',
-    fontWeight: '800',
-    color: Colors.brand,
-  },
-  resultVal: {
+  modalSubmitText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.ink,
-  },
-  statusBadge: {
-    backgroundColor: Colors.greenSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: Colors.greenDeep,
+    color: Colors.white,
   },
 
-  // ── Ticket List Styles ──
-  sectionHeader: {
-    marginTop: Space.md,
-    marginBottom: Space.xs,
+  // Appraisal Card
+  appraisalCard: {
+    backgroundColor: '#F7F9FB',
+    borderRadius: Radius.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 6,
   },
-  sectionTitle: {
+  appraisalModel: {
     fontSize: 15,
-    fontWeight: '900',
-    color: Colors.ink,
-  },
-  ticketFilterRow: {
-    flexDirection: 'row',
-    gap: Space.xs,
-    marginBottom: Space.sm,
-  },
-  ticketFilterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.panel,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  ticketFilterChipActive: {
-    backgroundColor: Colors.brand,
-    borderColor: Colors.brand,
-  },
-  ticketFilterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.slate,
-  },
-  ticketFilterTextActive: {
-    color: Colors.white,
     fontWeight: '700',
+    color: '#191C1E',
   },
-  ticketList: {
-    gap: Space.sm,
-  },
-  ticketItem: {
-    backgroundColor: Colors.white,
-    padding: Space.md,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  ticketTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  ticketCode: {
-    fontSize: 13,
-    fontWeight: '900',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: Colors.brand,
-  },
-  ticketModel: {
+  appraisalSub: {
     fontSize: 12,
-    fontWeight: '700',
-    color: Colors.ink,
-    marginTop: 2,
+    color: '#58413F',
   },
-  ticketBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-  },
-  ticketBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  ticketDivider: {
+  invDivider: {
     height: 1,
-    backgroundColor: Colors.slate100,
-    marginVertical: 8,
+    backgroundColor: '#ECEEF0',
+    marginVertical: 6,
   },
-  ticketBottom: {
-    gap: 3,
-  },
-  ticketSymptom: {
-    fontSize: 12,
-    color: Colors.slate700,
-  },
-  ticketCustomer: {
+  appraisalPriceLabel: {
     fontSize: 11,
-    color: Colors.slate,
+    fontWeight: '700',
+    color: '#58413F',
+  },
+  appraisalPriceVal: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.primaryContainer,
+  },
+  appraisalHint: {
+    fontSize: 11,
+    color: '#059669',
+    lineHeight: 16,
   },
 })

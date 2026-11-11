@@ -481,28 +481,35 @@ export default function PosScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* ── HEADER BÁN HÀNG ── */}
+      {/* ── HEADER BÁN HÀNG CHUẨN GOOGLE STITCH ── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerEyebrow}>LIENG MOBILE POS</Text>
-          <Text style={styles.headerTitle}>Quầy Bán Lẻ</Text>
+          <View style={styles.brandIconBox}>
+            <Ionicons name="storefront" size={20} color={Colors.white} />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>Liêng Mobile POS</Text>
+            <Text style={styles.headerEyebrow}>Chi nhánh Cầu Giấy • Quầy POS</Text>
+          </View>
         </View>
 
         <View style={styles.headerActions}>
           <Pressable
-            style={styles.iconBtn}
+            style={styles.scannerTopBtn}
             onPress={() => setScannerOpen(true)}
             hitSlop={8}
+            accessibilityLabel="Quét mã vạch camera"
           >
-            <Ionicons name="barcode-outline" size={22} color={Colors.brand} />
+            <Ionicons name="qr-code-outline" size={20} color={Colors.white} />
           </Pressable>
 
           <Pressable
             style={styles.cartIconBtn}
             onPress={() => setCartModalOpen(true)}
             hitSlop={8}
+            accessibilityLabel="Giỏ hàng"
           >
-            <Ionicons name="cart" size={22} color={Colors.white} />
+            <Ionicons name="bag-handle-outline" size={20} color={Colors.onSurface} />
             {cartItemCount > 0 && (
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
@@ -512,69 +519,87 @@ export default function PosScreen() {
         </View>
       </View>
 
-      {/* ── TÌM KIẾM ── */}
+      {/* ── TÌM KIẾM & QUÉT MÃ CHUẨN STITCH ── */}
       <View style={styles.searchSection}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={Colors.slate400} />
+          <Ionicons name="search" size={18} color="#8C716E" />
           <TextInput
             style={styles.searchInput}
             placeholder="Tìm theo tên máy, SKU, IMEI..."
-            placeholderTextColor={Colors.slate400}
+            placeholderTextColor="#8C716E"
             value={search}
             onChangeText={setSearch}
           />
           {search !== '' && (
             <Pressable onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={16} color={Colors.slate400} />
+              <Ionicons name="close-circle" size={16} color="#8C716E" />
             </Pressable>
           )}
         </View>
+        <Pressable
+          style={styles.scannerBigBtn}
+          onPress={() => setScannerOpen(true)}
+          accessibilityLabel="Quét barcode / IMEI"
+        >
+          <Ionicons name="barcode-outline" size={22} color={Colors.white} />
+        </Pressable>
       </View>
 
-      {/* ── BỘ LỌC DANH MỤC ── */}
+      {/* ── BỘ LỌC DANH MỤC CHUẨN STITCH ── */}
       <View style={styles.categoryScrollWrap}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          <Pressable
-            style={[styles.catChip, selectedCat === 'all' && styles.catChipActive]}
-            onPress={() => setSelectedCat('all')}
-          >
-            <Text style={[styles.catChipText, selectedCat === 'all' && styles.catChipTextActive]}>Tất cả</Text>
-          </Pressable>
-          {categories.map(c => (
-            <Pressable
-              key={c.id}
-              style={[styles.catChip, selectedCat === c.name && styles.catChipActive]}
-              onPress={() => setSelectedCat(c.name)}
-            >
-              <Text style={[styles.catChipText, selectedCat === c.name && styles.catChipTextActive]}>
-                {c.name}
-              </Text>
-            </Pressable>
-          ))}
+          {['Tất cả', 'iPhone', 'Samsung', 'iPad', 'Phụ kiện', 'Âm thanh', 'MacBook'].map((catName) => {
+            const isCatActive = selectedCat === catName || (catName === 'Tất cả' && selectedCat === 'all')
+            return (
+              <Pressable
+                key={catName}
+                style={[styles.catChip, isCatActive && styles.catChipActive]}
+                onPress={() => setSelectedCat(catName === 'Tất cả' ? 'all' : catName)}
+              >
+                <Text style={[styles.catChipText, isCatActive && styles.catChipTextActive]}>
+                  {catName}
+                </Text>
+              </Pressable>
+            )
+          })}
         </ScrollView>
       </View>
 
-      {/* ── SUB FILTERS (Còn hàng, Có IMEI) ── */}
+      {/* ── SUB FILTERS (Tất cả kho, Còn hàng, Máy có quản lý IMEI) ── */}
       <View style={styles.subFilterRow}>
         <Pressable
           style={[styles.subFilterBtn, subFilter === 'all' && styles.subFilterBtnActive]}
           onPress={() => setSubFilter('all')}
         >
-          <Text style={[styles.subFilterText, subFilter === 'all' && styles.subFilterTextActive]}>Tất cả ({catalog.length})</Text>
+          <Text style={[styles.subFilterText, subFilter === 'all' && styles.subFilterTextActive]}>
+            Tất cả ({catalog.length})
+          </Text>
         </Pressable>
         <Pressable
           style={[styles.subFilterBtn, subFilter === 'instock' && styles.subFilterBtnActive]}
           onPress={() => setSubFilter('instock')}
         >
-          <Ionicons name="cube-outline" size={14} color={subFilter === 'instock' ? Colors.brand : Colors.slate500} />
-          <Text style={[styles.subFilterText, subFilter === 'instock' && styles.subFilterTextActive]}>Còn hàng</Text>
+          <Ionicons
+            name="cube-outline"
+            size={14}
+            color={subFilter === 'instock' ? Colors.primaryContainer : '#58413F'}
+          />
+          <Text style={[styles.subFilterText, subFilter === 'instock' && styles.subFilterTextActive]}>
+            Còn hàng
+          </Text>
         </Pressable>
         <Pressable
           style={[styles.subFilterBtn, subFilter === 'imei' && styles.subFilterBtnActive]}
           onPress={() => setSubFilter('imei')}
         >
-          <Ionicons name="phone-portrait-outline" size={14} color={subFilter === 'imei' ? Colors.brand : Colors.slate500} />
-          <Text style={[styles.subFilterText, subFilter === 'imei' && styles.subFilterTextActive]}>Có IMEI</Text>
+          <Ionicons
+            name="phone-portrait-outline"
+            size={14}
+            color={subFilter === 'imei' ? Colors.primaryContainer : '#58413F'}
+          />
+          <Text style={[styles.subFilterText, subFilter === 'imei' && styles.subFilterTextActive]}>
+            Máy có quản lý IMEI
+          </Text>
         </Pressable>
       </View>
 
@@ -969,50 +994,67 @@ export default function PosScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.canvas,
+    backgroundColor: '#F7F9FB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Space.lg,
-    paddingVertical: Space.sm,
-    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.slate200,
+    borderBottomColor: '#ECEEF0',
   },
   headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flex: 1,
   },
+  brandIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerEyebrow: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.brand,
-    letterSpacing: 1.5,
+    fontSize: 11,
+    color: '#58413F',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: Colors.ink,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191C1E',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  scannerTopBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
     backgroundColor: Colors.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cartIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.brand,
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    backgroundColor: '#F2F4F6',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -1021,7 +1063,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: Colors.red,
+    backgroundColor: Colors.secondary,
     borderRadius: Radius.full,
     minWidth: 18,
     height: 18,
@@ -1039,59 +1081,72 @@ const styles = StyleSheet.create({
 
   // Search
   searchSection: {
-    paddingHorizontal: Space.lg,
-    paddingTop: Space.sm,
-    backgroundColor: Colors.white,
-  },
-  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.slate100,
-    borderRadius: Radius.full,
-    paddingHorizontal: 14,
-    height: 42,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F4F6',
+    borderRadius: Radius.md,
+    paddingHorizontal: 12,
+    height: 44,
     gap: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 13,
-    color: Colors.ink,
+    color: '#191C1E',
     paddingVertical: 0,
+  },
+  scannerBigBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Category
   categoryScrollWrap: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.slate200,
-    paddingVertical: Space.sm,
+    borderBottomColor: '#ECEEF0',
+    paddingVertical: 8,
   },
   categoryRow: {
-    paddingHorizontal: Space.lg,
+    paddingHorizontal: 16,
     gap: 8,
   },
   catChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: Radius.full,
-    backgroundColor: Colors.slate100,
+    backgroundColor: '#F2F4F6',
   },
   catChipActive: {
-    backgroundColor: Colors.brand,
+    backgroundColor: Colors.primaryContainer,
   },
   catChipText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: Colors.slate600,
+    fontWeight: '500',
+    color: '#58413F',
   },
   catChipTextActive: {
     color: Colors.white,
+    fontWeight: '700',
   },
 
   // Sub Filter
   subFilterRow: {
     flexDirection: 'row',
-    paddingHorizontal: Space.lg,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,
   },
@@ -1099,39 +1154,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.slate200,
+    borderColor: '#ECEEF0',
   },
   subFilterBtnActive: {
-    borderColor: Colors.brand,
-    backgroundColor: Colors.brandSoft,
+    borderColor: Colors.primaryContainer,
+    backgroundColor: '#FFECEF',
   },
   subFilterText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: Colors.slate600,
+    fontWeight: '500',
+    color: '#58413F',
   },
   subFilterTextActive: {
-    color: Colors.brand,
-    fontWeight: '800',
+    color: Colors.primaryContainer,
+    fontWeight: '700',
   },
 
   // Product List
   listContent: {
     padding: Space.lg,
     gap: Space.md,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   productCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     padding: Space.md,
     borderWidth: 1,
-    borderColor: Colors.slate200,
+    borderColor: '#ECEEF0',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -1290,24 +1345,23 @@ const styles = StyleSheet.create({
   // Floating Bottom
   floatingBottom: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Space.md,
-    backgroundColor: 'transparent',
+    bottom: 72,
+    left: 12,
+    right: 12,
+    zIndex: 40,
   },
   floatingBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
-    borderRadius: Radius.full,
-    paddingHorizontal: Space.lg,
-    paddingVertical: Space.md,
+    backgroundColor: '#191C1E',
+    borderRadius: Radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.25,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
       },
@@ -1317,30 +1371,30 @@ const styles = StyleSheet.create({
   },
   floatingLabel: {
     fontSize: 11,
-    color: Colors.slate400,
+    color: '#ADA4A4',
   },
   floatingBold: {
     color: Colors.white,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   floatingTotal: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#FBBF24',
+    fontWeight: '700',
+    color: '#FF8076',
   },
   floatingBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.brand,
-    borderRadius: Radius.full,
-    paddingHorizontal: 16,
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 14,
     paddingVertical: 10,
   },
   floatingBtnText: {
     color: Colors.white,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   // Modal Giỏ Hàng
