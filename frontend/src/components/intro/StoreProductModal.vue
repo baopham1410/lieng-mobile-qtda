@@ -35,7 +35,7 @@ watch(
     >
       <div class="custom-scrollbar-content max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl border border-red-100">
         <div class="relative">
-          <div class="aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-50 to-white p-8 sm:aspect-[16/10] flex items-center justify-center">
+          <div class="aspect-[4/3] overflow-hidden bg-white p-8 sm:aspect-[16/10] flex items-center justify-center border-b border-gray-100">
             <img
               v-if="imageUrl && !imageFailed"
               :src="imageUrl"
