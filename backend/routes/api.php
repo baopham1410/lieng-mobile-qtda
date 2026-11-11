@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WarrantyController;
+use App\Http\Controllers\Api\AssistantController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -36,7 +37,14 @@ Route::prefix('v1')->group(function () {
     Route::post('/store/inquiry', [StoreController::class, 'inquiry']);
     Route::get('/media/catalog/{path}', [CatalogMediaController::class, 'show'])->where('path', '.*');
 
+    // Chatbot RAG (public bot khách)
+    Route::get('/assistant/health', [AssistantController::class, 'health']);
+    Route::post('/assistant/public-chat', [AssistantController::class, 'publicChat']);
+
     Route::middleware('auth:sanctum')->group(function () {
+        // Chatbot RAG (bot nội bộ NV)
+        Route::post('/assistant/chat', [AssistantController::class, 'chat']);
+
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
