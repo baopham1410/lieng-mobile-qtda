@@ -34,7 +34,7 @@ const STITCH_RECENT_ORDERS: RecentOrder[] = [
   {
     id: 1,
     code: 'HD-20261109-023',
-    customerName: 'Nguyễn Văn A',
+    customerName: 'Anh Hoàng Long',
     total: 29490000,
     itemCount: 1,
     summary: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
@@ -45,7 +45,7 @@ const STITCH_RECENT_ORDERS: RecentOrder[] = [
   {
     id: 2,
     code: 'HD-20261109-022',
-    customerName: 'Trần Thị Mai',
+    customerName: 'Chị Minh Thư',
     total: 26890000,
     itemCount: 1,
     summary: 'Samsung Galaxy S24 Ultra 512GB Xám Titan',
@@ -56,10 +56,10 @@ const STITCH_RECENT_ORDERS: RecentOrder[] = [
   {
     id: 3,
     code: 'HD-20261109-021',
-    customerName: 'Lê Hoàng Long',
+    customerName: 'Anh Tuấn Kiệt',
     total: 5390000,
     itemCount: 1,
-    summary: 'Tai nghe AirPods Pro 2 Type-C (VN/A)',
+    summary: 'AirPods Pro 2 USB-C (VN/A)',
     createdAt: '11:45',
     status: 'pending',
     cashier: 'Nguyễn Văn A',
@@ -67,7 +67,7 @@ const STITCH_RECENT_ORDERS: RecentOrder[] = [
   {
     id: 4,
     code: 'HD-20261109-020',
-    customerName: 'Phạm Quỳnh Anh',
+    customerName: 'Chị Lan Anh',
     total: 850000,
     itemCount: 2,
     summary: 'Củ sạc 20W + Kính Kingbull',
@@ -340,62 +340,71 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* ── Đơn hàng gần đây trong ca ── */}
+        {/* ── Đơn hàng gần đây trong ca (Khớp 100% Google Stitch Image 1) ── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Đơn hàng gần đây trong ca</Text>
+          <View style={styles.sectionTitleWithDot}>
+            <Text style={styles.sectionTitle}>Đơn hàng gần đây trong ca</Text>
+            <View style={styles.headerRedDot} />
+          </View>
           <Pressable
             onPress={() => router.push('/(app)/(tabs)/orders')}
             style={styles.seeAllBtn}
           >
             <Text style={styles.seeAllText}>Xem tất cả</Text>
-            <Ionicons name="chevron-forward" size={14} color={Colors.primaryContainer} />
+            <Ionicons name="chevron-forward" size={13} color={Colors.primaryContainer} />
           </Pressable>
         </View>
 
         <View style={styles.ordersList}>
-          {recentOrders.map((order) => {
+          {recentOrders.map((order, idx) => {
             const isCompleted = order.status === 'completed'
+            // Icon phù hợp theo loại sản phẩm như hình Image 1
+            const iconName = idx === 2 ? 'headset-outline' : idx === 3 ? 'flash-outline' : 'phone-portrait-outline'
+            const iconColor = idx === 2 ? '#B45309' : idx === 3 ? '#B91C1C' : Colors.primaryContainer
+
             return (
               <Pressable
                 key={order.id}
                 onPress={() => router.push('/(app)/(tabs)/orders')}
-                style={({ pressed }) => [styles.orderItemCard, pressed && { opacity: 0.88 }]}
+                style={({ pressed }) => [styles.orderItemCardExact, pressed && { opacity: 0.88 }]}
               >
-                <View style={styles.orderTopLine}>
-                  <View style={styles.orderCodeBadge}>
-                    <Text style={styles.orderCodeText}>{order.code}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.orderStatusBadge,
-                      isCompleted ? styles.badgeCompleted : styles.badgePending,
-                    ]}
-                  >
-                    <Ionicons
-                      name={isCompleted ? 'checkmark-circle' : 'time-outline'}
-                      size={12}
-                      color={isCompleted ? Colors.greenDeep : Colors.amber900}
-                    />
-                    <Text
-                      style={[
-                        styles.orderStatusText,
-                        isCompleted ? styles.textCompleted : styles.textPending,
-                      ]}
-                    >
-                      {isCompleted ? 'Hoàn tất' : 'Chờ TT'}
-                    </Text>
-                  </View>
+                {/* Cột trái: Khung icon bo góc xám nhạt */}
+                <View style={styles.orderDeviceIconBox}>
+                  <Ionicons name={iconName} size={22} color={iconColor} />
                 </View>
 
-                <Text style={styles.orderDeviceName} numberOfLines={1}>
-                  {order.summary}
-                </Text>
-
-                <View style={styles.orderMetaLine}>
-                  <Text style={styles.orderMetaText}>
-                    {order.customerName} • {order.createdAt}
+                {/* Cột giữa: Mã HĐ + Tên sản phẩm + Khách hàng */}
+                <View style={styles.orderItemMiddle}>
+                  <Text style={styles.orderItemCodeText}>{order.code}</Text>
+                  <Text style={styles.orderItemDeviceText} numberOfLines={1}>
+                    {order.summary}
                   </Text>
-                  <Text style={styles.orderPrice}>{formatMoney(order.total)}</Text>
+                  <Text style={styles.orderItemCustomerText} numberOfLines={1}>
+                    Khách hàng: {order.customerName}
+                  </Text>
+                </View>
+
+                {/* Cột phải: Giá đỏ bold + Tag Hoàn tất / Chờ thanh toán */}
+                <View style={styles.orderItemRight}>
+                  <Text style={styles.orderItemPriceText}>{formatMoney(order.total)}</Text>
+                  <View
+                    style={[
+                      styles.orderItemStatusPill,
+                      isCompleted ? styles.pillCompleted : styles.pillPending,
+                    ]}
+                  >
+                    {isCompleted ? (
+                      <>
+                        <Ionicons name="checkmark" size={11} color={Colors.green} />
+                        <Text style={styles.pillTextCompleted}>Hoàn tất</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="time-outline" size={11} color={Colors.amber700} />
+                        <Text style={styles.pillTextPending}>Chờ thanh toán</Text>
+                      </>
+                    )}
+                  </View>
                 </View>
               </Pressable>
             )
@@ -713,75 +722,95 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Orders List ──
-  ordersList: {
-    gap: 8,
-  },
-  orderItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.md,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#ECEEF0',
-    gap: 6,
-  },
-  orderTopLine: {
+  // ── Section Title with Red Dot ──
+  sectionTitleWithDot: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
   },
-  orderCodeBadge: {
+  headerRedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#DC2626',
+  },
+
+  // ── Orders List Khớp 100% Image 1 ──
+  ordersList: {
+    gap: 10,
+  },
+  orderItemCardExact: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  orderDeviceIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
     backgroundColor: '#F2F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  orderCodeText: {
-    fontSize: 11.5,
+  orderItemMiddle: {
+    flex: 1,
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  orderItemCodeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#8C716E',
+    letterSpacing: 0.2,
+  },
+  orderItemDeviceText: {
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#191C1E',
   },
-  orderStatusBadge: {
+  orderItemCustomerText: {
+    fontSize: 11.5,
+    color: '#58413F',
+  },
+  orderItemRight: {
+    alignItems: 'flex-end',
+    gap: 5,
+  },
+  orderItemPriceText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: Colors.primaryContainer,
+  },
+  orderItemStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 2.5,
     borderRadius: Radius.full,
   },
-  badgeCompleted: {
-    backgroundColor: Colors.greenSoft,
+  pillCompleted: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
-  badgePending: {
-    backgroundColor: Colors.amber100,
+  pillPending: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
-  orderStatusText: {
-    fontSize: 10.5,
+  pillTextCompleted: {
+    fontSize: 10,
     fontWeight: '700',
+    color: '#059669',
   },
-  textCompleted: {
-    color: Colors.greenDeep,
-  },
-  textPending: {
-    color: Colors.amber900,
-  },
-  orderDeviceName: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#191C1E',
-  },
-  orderMetaLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  orderMetaText: {
-    fontSize: 11.5,
-    color: '#58413F',
-  },
-  orderPrice: {
-    fontSize: 13.5,
+  pillTextPending: {
+    fontSize: 10,
     fontWeight: '700',
-    color: Colors.primaryContainer,
+    color: '#D97706',
   },
 })
