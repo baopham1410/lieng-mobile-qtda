@@ -48,7 +48,7 @@ export function StatCard({
   label: string
   value: string
   hint?: string
-  icon?: 'income' | 'expense' | 'net' | 'cash' | 'transfer'
+  icon?: 'income' | 'expense' | 'net' | 'cash' | 'transfer' | 'orders' | 'stock'
   iconColor?: string
   iconBg?: string
   valueColor?: string
@@ -67,7 +67,11 @@ export function StatCard({
           ? 'cash-outline'
           : icon === 'transfer'
             ? 'card-outline'
-            : 'wallet-outline'
+            : icon === 'orders'
+              ? 'receipt-outline'
+              : icon === 'stock'
+                ? 'cube-outline'
+                : 'wallet-outline'
 
   return (
     <View style={styles.statCard}>
