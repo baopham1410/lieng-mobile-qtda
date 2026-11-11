@@ -22,7 +22,7 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
   <article
     class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg"
   >
-    <div class="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 via-gray-50 to-white p-4">
+    <div class="relative aspect-square overflow-hidden bg-white p-4 flex items-center justify-center border-b border-gray-100">
       <span
         v-if="product.badge"
         class="absolute left-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
