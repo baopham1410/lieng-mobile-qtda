@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
+  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -144,11 +145,19 @@ export default function HomeScreen() {
       <View style={styles.topHeader}>
         <View style={styles.brandGroup}>
           <View style={styles.brandIconBox}>
-            <Ionicons name="storefront" size={20} color={Colors.white} />
+            <Ionicons name="storefront" size={18} color="#FFFFFF" />
           </View>
           <View>
-            <Text style={styles.brandTitle}>Liêng Mobile POS</Text>
-            <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Tổng Quan</Text>
+            <View style={styles.brandTitleRow}>
+              <Text style={styles.brandTitle}>Liêng Mobile</Text>
+              <View style={styles.posBadge}>
+                <Text style={styles.posBadgeText}>POS</Text>
+              </View>
+            </View>
+            <View style={styles.brandSubRow}>
+              <Ionicons name="storefront" size={11} color="#58413F" />
+              <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Tổng Quan</Text>
+            </View>
           </View>
         </View>
         <View style={styles.headerRightActions}>
@@ -443,21 +452,50 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryContainer,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#7A0C10',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  brandIconImg: {
+    width: 34,
+    height: 34,
+  },
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   brandTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#191C1E',
+    color: '#7A0C10',
+    letterSpacing: -0.3,
+  },
+  posBadge: {
+    backgroundColor: '#FFD9DC',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+  },
+  posBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#63001E',
+  },
+  brandSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 1,
   },
   brandSubtitle: {
     fontSize: 11,
     color: '#58413F',
+    fontWeight: '500',
   },
   headerRightActions: {
     flexDirection: 'row',
