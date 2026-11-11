@@ -1,17 +1,22 @@
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Colors, Radius } from '@/constants/config'
+import { Radius } from '@/constants/config'
 
 const TAB_ICONS: Record<
   string,
-  { icon: keyof typeof Ionicons.glyphMap; iconOn: keyof typeof Ionicons.glyphMap; label: string }
+  {
+    iconType?: 'material' | 'ionicons'
+    icon: string
+    iconOn: string
+    label: string
+  }
 > = {
   home: { icon: 'grid-outline', iconOn: 'grid', label: 'Tổng quan' },
   orders: { icon: 'receipt-outline', iconOn: 'receipt', label: 'Đơn hàng' },
-  pos: { icon: 'storefront-outline', iconOn: 'storefront', label: 'Quầy POS' },
+  pos: { iconType: 'material', icon: 'point-of-sale', iconOn: 'point-of-sale', label: 'Quầy POS' },
   services: { icon: 'shield-checkmark-outline', iconOn: 'shield-checkmark', label: 'Dịch vụ' },
   account: { icon: 'person-circle-outline', iconOn: 'person-circle', label: 'Tôi' },
 }
@@ -20,7 +25,7 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
   const insets = useSafeAreaInsets()
   const bottom = Math.max(insets.bottom, 6)
 
-  // Thứ tự 5 tab chuẩn Google Stitch: Tổng quan -> Đơn hàng -> Quầy POS (nổi bật) -> Dịch vụ -> Tôi
+  // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
   const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
   const routesToRender = visibleTabs
     .map((name) => state.routes.find((r) => r.name === name))
@@ -33,8 +38,8 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
           const actualIndex = state.routes.findIndex((r) => r.key === route.key)
           const focused = state.index === actualIndex
           const meta = TAB_ICONS[route.name] ?? {
-            icon: 'ellipse-outline' as const,
-            iconOn: 'ellipse' as const,
+            icon: 'ellipse-outline',
+            iconOn: 'ellipse',
             label: route.name,
           }
           const { options } = descriptors[route.key]
@@ -52,31 +57,39 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
             }
           }
 
-          // Nút Quầy POS nổi bật trung tâm (Google Stitch Floating Hub)
+          // Tab Quầy POS: Khi nhấn vào (focused) sẽ có hình tròn đỏ bao quanh như hình mẫu
           if (isPos) {
             return (
-              <View key={route.key} style={styles.posCenterSlot}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                  accessibilityState={{ selected: focused }}
-                  onPress={onPress}
-                  style={({ pressed }) => [
-                    styles.posElevatedBtn,
-                    pressed && { transform: [{ scale: 0.94 }] },
-                  ]}
-                >
-                  <View style={[styles.posFabCircle, focused && styles.posFabCircleFocused]}>
-                    <Ionicons name="card-outline" size={26} color={Colors.white} />
+              <Pressable
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={{ selected: focused }}
+                accessibilityLabel={label}
+                onPress={onPress}
+                style={({ pressed }) => [
+                  styles.posItem,
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                {focused ? (
+                  // Có hình tròn bao quanh màu đỏ đô chuẩn hình khi chọn
+                  <View style={styles.posActiveCircle}>
+                    <MaterialIcons name="point-of-sale" size={26} color="#FFFFFF" />
                   </View>
-                  <Text style={[styles.posLabel, focused && styles.posLabelFocused]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              </View>
+                ) : (
+                  // Nằm thẳng hàng bình thường với các mục khác khi chưa chọn
+                  <View style={styles.posInactiveIconBox}>
+                    <MaterialIcons name="point-of-sale" size={22} color="#58413F" />
+                  </View>
+                )}
+                <Text style={[styles.label, focused && styles.labelFocused]}>
+                  {label}
+                </Text>
+              </Pressable>
             )
           }
 
+          // Các tab còn lại (Tổng quan, Đơn hàng, Dịch vụ, Tôi)
           return (
             <Pressable
               key={route.key}
@@ -86,15 +99,19 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
               onPress={onPress}
               style={({ pressed }) => [
                 styles.item,
-                focused && styles.itemFocused,
                 pressed && { opacity: 0.75 },
               ]}
             >
-              <View style={styles.iconContainer}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  focused && styles.iconContainerFocused,
+                ]}
+              >
                 <Ionicons
-                  name={focused ? meta.iconOn : meta.icon}
-                  size={22}
-                  color={focused ? Colors.primaryContainer : Colors.onSurfaceVariant}
+                  name={(focused ? meta.iconOn : meta.icon) as any}
+                  size={focused ? 22 : 21}
+                  color={focused ? '#7A0C10' : '#58413F'}
                 />
                 {options.tabBarBadge !== undefined && (
                   <View style={styles.badge}>
@@ -102,8 +119,12 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
                   </View>
                 )}
               </View>
+
               <Text
-                style={[styles.label, focused && styles.labelFocused]}
+                style={[
+                  styles.label,
+                  focused && styles.labelFocused,
+                ]}
                 numberOfLines={1}
               >
                 {label}
@@ -125,12 +146,12 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   bar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-around',
-    paddingHorizontal: 8,
-    paddingTop: 8,
+    paddingHorizontal: 6,
+    paddingTop: 6,
     paddingBottom: 6,
     borderTopWidth: 1,
     borderTopColor: '#ECEEF0',
@@ -138,99 +159,93 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: '#000',
         shadowOpacity: 0.08,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: -4 },
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -3 },
       },
-      android: { elevation: 12 },
+      android: { elevation: 8 },
       default: {
         shadowColor: 'rgba(0,0,0,0.06)',
-        shadowOffset: { width: 0, height: -4 },
-        shadowRadius: 16,
+        shadowOffset: { width: 0, height: -3 },
+        shadowRadius: 12,
       },
     }),
   },
 
-  // ── Tab thông thường ──
+  // ── Tab Item thông thường ──
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 2,
-    minHeight: 48,
+    minHeight: 50,
     gap: 3,
   },
-  itemFocused: {},
   iconContainer: {
-    position: 'relative',
+    width: 38,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 28,
-    height: 24,
+    borderRadius: 15,
+  },
+  iconContainerFocused: {
+    backgroundColor: '#FFECEF',
+    transform: [{ scale: 1.05 }],
   },
   label: {
     fontSize: 11,
     fontWeight: '500',
-    color: Colors.onSurfaceVariant,
+    color: '#58413F',
     textAlign: 'center',
   },
   labelFocused: {
-    color: Colors.primaryContainer,
+    color: '#7A0C10',
     fontWeight: '700',
+    fontSize: 11.5,
   },
 
-  // ── Tab Quầy POS Center FAB ──
-  posCenterSlot: {
+  // ── Tab Quầy POS ──
+  posItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    minHeight: 48,
+    paddingVertical: 2,
+    minHeight: 50,
+    gap: 3,
   },
-  posElevatedBtn: {
-    position: 'absolute',
-    top: -24,
+  posActiveCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#7A0C10', // Chuẩn hình tròn đỏ đậm trong hình
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  posFabCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.primaryContainer, // #7A0C10 chuẩn Stitch
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: -10, // Nhẹ nhàng nổi tròn cân đối như ảnh
     ...Platform.select({
       ios: {
         shadowColor: '#7A0C10',
-        shadowOpacity: 0.38,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
       },
-      android: { elevation: 8 },
-      default: {},
+      android: { elevation: 6 },
+      default: {
+        boxShadow: '0 4px 12px rgba(122, 12, 16, 0.35)',
+      },
     }),
   },
-  posFabCircleFocused: {
-    backgroundColor: Colors.primary,
-  },
-  posLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryContainer,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  posLabelFocused: {
-    color: Colors.primary,
-    fontWeight: '800',
+  posInactiveIconBox: {
+    width: 38,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── Badge ──
   badge: {
     position: 'absolute',
-    top: -3,
-    right: -8,
-    backgroundColor: Colors.secondary,
+    top: -2,
+    right: -4,
+    backgroundColor: '#B32446',
     borderRadius: Radius.full,
     paddingHorizontal: 4,
     paddingVertical: 1,
@@ -239,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
   },

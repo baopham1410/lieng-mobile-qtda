@@ -1,10 +1,19 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  Alert,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { API_BASE_URL, Colors, Radius, Space } from '@/constants/config'
+import { Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 
@@ -13,6 +22,7 @@ export default function AccountScreen() {
   const { user, logout } = useAuth()
   const { locale, setLocale, t } = useLocale()
   const [syncing, setSyncing] = useState(false)
+  const [avatarErr, setAvatarErr] = useState(false)
 
   const handleLogout = async () => {
     const doLogout = async () => {
@@ -41,35 +51,54 @@ export default function AccountScreen() {
     setSyncing(true)
     setTimeout(() => {
       setSyncing(false)
-      Alert.alert('Đồng bộ thành công', 'Toàn bộ danh mục tồn kho IMEI và hóa đơn ca trực đã được đồng bộ với máy chủ.')
-    }, 800)
+      Alert.alert(
+        'Đồng bộ thành công',
+        'Máy in Epson TM-T82 và máy chủ trung tâm POS hoạt động ổn định (ping 18ms).'
+      )
+    }, 600)
   }
 
   const employeeName = user?.name || 'Nguyễn Văn A'
   const employeeEmail = user?.email || 'banhang@liengmobile.com'
-  const employeePhone = user?.phone || '0982 345 678'
+  const employeePhone = user?.phone || '0988.777.666'
   const userInitial = employeeName.trim().charAt(0).toUpperCase()
+
+  const avatarUri =
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuBJ8pu5nndv5S-voRv7hLvPsJJGYBQ_GA01b4Z28dCOhfH9B-Gk5E5V8gNnxeC0wt22GBsmlWR1j-rMWOjpjOSHbBWOk4wXwBpCegT3VqIoYnX7XD5CVJovrO6Y1d3LHiplp42TIFpdbVlnfbnrGzJaGl8qJWB_N2bIUAUB7xF7n-zy02AYYhvkNHFkacdk9YiQ4NCQiAgE4Wac2sESx6Mtf8uPyO3TV_fRPxYMmVU'
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* ── Top Header chuẩn Stitch Mobile ── */}
+      {/* ── Top Header chuẩn Google Stitch Mobile ── */}
       <View style={styles.topHeader}>
         <View style={styles.brandGroup}>
           <View style={styles.brandIconBox}>
-            <Ionicons name="storefront" size={20} color={Colors.white} />
+            <Ionicons name="storefront" size={18} color="#FFFFFF" />
           </View>
           <View>
-            <Text style={styles.brandTitle}>Liêng Mobile POS</Text>
-            <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Tôi</Text>
+            <View style={styles.brandTitleRow}>
+              <Text style={styles.brandTitle}>Liêng Mobile</Text>
+              <View style={styles.posBadge}>
+                <Text style={styles.posBadgeText}>POS</Text>
+              </View>
+            </View>
+            <View style={styles.brandSubRow}>
+              <Ionicons name="storefront" size={11} color="#58413F" />
+              <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Tôi</Text>
+            </View>
           </View>
         </View>
+
         <View style={styles.headerRightActions}>
-          <Pressable style={styles.iconCircleBtn}>
-            <Ionicons name="notifications-outline" size={20} color={Colors.onSurface} />
+          <Pressable
+            style={styles.iconCircleBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Thông báo"
+          >
+            <Ionicons name="notifications-outline" size={20} color="#191C1E" />
             <View style={styles.unreadDot} />
           </Pressable>
           <View style={styles.avatarBtn}>
-            <Ionicons name="person-circle" size={26} color={Colors.primaryContainer} />
+            <Ionicons name="person" size={16} color="#FFFFFF" />
           </View>
         </View>
       </View>
@@ -78,26 +107,34 @@ export default function AccountScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Profile Section Card ── */}
+        {/* ── 1. Thẻ Hồ Sơ Nhân Viên ── */}
         <View style={styles.profileCard}>
           <View style={styles.profileRow}>
             <View style={styles.avatarWrap}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{userInitial}</Text>
-              </View>
+              {!avatarErr ? (
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImg}
+                  onError={() => setAvatarErr(true)}
+                />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Text style={styles.avatarText}>{userInitial}</Text>
+                </View>
+              )}
               <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark" size={11} color={Colors.white} />
+                <Ionicons name="checkmark" size={11} color="#7A0C10" />
               </View>
             </View>
 
-            <View style={{ flex: 1 }}>
+            <View style={styles.profileInfoCol}>
               <View style={styles.nameActionRow}>
                 <Text style={styles.userName}>{employeeName}</Text>
                 <Pressable
                   style={styles.editBtn}
-                  onPress={() => Alert.alert('Thông tin', 'Chức năng cập nhật hồ sơ cá nhân.')}
+                  onPress={() => Alert.alert('Thông tin', 'Chỉnh sửa thông tin tài khoản cá nhân.')}
                 >
-                  <Ionicons name="create-outline" size={14} color={Colors.primaryContainer} />
+                  <Ionicons name="create-outline" size={13} color="#58413F" />
                   <Text style={styles.editText}>Sửa</Text>
                 </Pressable>
               </View>
@@ -105,28 +142,38 @@ export default function AccountScreen() {
               <Text style={styles.userEmail}>{employeeEmail}</Text>
 
               <View style={styles.phoneRow}>
-                <Ionicons name="call-outline" size={13} color="#8C716E" />
+                <Ionicons name="call" size={12} color="#7A0C10" />
                 <Text style={styles.userPhone}>{employeePhone}</Text>
               </View>
             </View>
           </View>
 
-          {/* Pos Rank Badge */}
+          {/* Cấp bậc chuyên môn Flagship Level 2 */}
           <View style={styles.rankBadgeBox}>
-            <Ionicons name="shield-checkmark" size={14} color={Colors.primaryContainer} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rankTitle}>Cấp bậc chuyên môn</Text>
-              <Text style={styles.rankValue}>Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)</Text>
+            <View style={styles.rankIconBox}>
+              <Ionicons name="shield-checkmark" size={15} color="#7A0C10" />
+            </View>
+            <View style={styles.rankTextBox}>
+              <Text style={styles.rankTitle}>CẤP BẬC CHUYÊN MÔN</Text>
+              <Text style={styles.rankValue}>
+                Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* ── Shift & Target Section (Phiên trực quầy) ── */}
+        {/* ── 2. Thẻ Ca Làm Việc & Chi Nhánh (Phiên trực quầy) ── */}
         <View style={styles.shiftCard}>
+          {/* Header phiên trực */}
           <View style={styles.shiftHeaderLine}>
-            <View style={styles.shiftTag}>
-              <Ionicons name="ribbon-outline" size={13} color={Colors.primaryContainer} />
-              <Text style={styles.shiftTagText}>PHIÊN TRỰC QUẦY</Text>
+            <View style={styles.shiftHeaderLeft}>
+              <View style={styles.shiftIconBox}>
+                <Ionicons name="briefcase" size={17} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text style={styles.shiftTagText}>PHIÊN TRỰC QUẦY</Text>
+                <Text style={styles.shiftMainTitle}>Ca chính: Bán lẻ & Quầy POS</Text>
+              </View>
             </View>
             <View style={styles.shiftStatusPill}>
               <View style={styles.pulseLiveDot} />
@@ -134,112 +181,224 @@ export default function AccountScreen() {
             </View>
           </View>
 
-          <Text style={styles.shiftTitle}>Ca chính: Bán lẻ & Quầy POS</Text>
-
-          <View style={styles.shiftTimeRow}>
-            <Ionicons name="time-outline" size={14} color="#58413F" />
-            <Text style={styles.shiftTimeText}>Khung giờ: 08:00 — 16:30 (Hôm nay)</Text>
+          {/* Khung giờ */}
+          <View style={styles.shiftTimeBox}>
+            <View style={styles.shiftTimeLeft}>
+              <Ionicons name="time-outline" size={15} color="#58413F" />
+              <Text style={styles.shiftTimeLabel}>Khung giờ:</Text>
+            </View>
+            <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
           </View>
 
-          {/* Target Progress Bar */}
+          {/* Doanh số đã chốt & Progress Bar */}
           <View style={styles.targetSection}>
             <View style={styles.targetHeaderLine}>
               <Text style={styles.targetLabel}>DOANH SỐ ĐÃ CHỐT</Text>
               <Text style={styles.targetPercent}>85% chỉ tiêu</Text>
             </View>
 
-            <Text style={styles.targetAmountVal}>42.500.000 đ</Text>
+            <View style={styles.targetValueLine}>
+              <Text style={styles.targetAmountVal}>
+                42.500.000 <Text style={styles.targetCurrency}>đ</Text>
+              </Text>
+              <Text style={styles.targetHint}>Mục tiêu: 50.000.000 đ</Text>
+            </View>
 
-            {/* Visual Bar */}
+            {/* Progress Bar Liêng Red */}
             <View style={styles.progressBarTrack}>
               <View style={[styles.progressBarFill, { width: '85%' }]} />
             </View>
+          </View>
 
-            <Text style={styles.targetHint}>Mục tiêu ca trực: 50.000.000 đ</Text>
+          {/* Phân cách */}
+          <View style={styles.cardDivider} />
+
+          {/* Chi tiết Flagship Store */}
+          <View style={styles.storeDetailsBox}>
+            <View style={styles.storeIconBox}>
+              <Ionicons name="storefront" size={18} color="#7A0C10" />
+            </View>
+            <View style={styles.storeInfoCol}>
+              <View style={styles.storeTitleRow}>
+                <Text style={styles.storeCardTitle}>Liêng Mobile - Flagship #01</Text>
+                <View style={styles.q3Badge}>
+                  <Text style={styles.q3BadgeText}>Q.3</Text>
+                </View>
+              </View>
+              <Text style={styles.storeAddress}>
+                123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
+              </Text>
+
+              <View style={styles.managerLine}>
+                <Ionicons name="headset" size={13} color="#7A0C10" />
+                <Text style={styles.managerLabel}>Quản lý ca trực: </Text>
+                <Text style={styles.managerName}>Trần Quốc Bảo</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* ── Flagship Store Details ── */}
-        <View style={styles.storeCard}>
-          <View style={styles.storeHeaderLine}>
-            <View style={styles.storeTitleGroup}>
-              <Ionicons name="storefront-outline" size={18} color={Colors.primaryContainer} />
-              <Text style={styles.storeCardTitle}>Liêng Mobile - Flagship #01</Text>
+        {/* ── 3. Thẻ Cài đặt & Nghiệp vụ POS ── */}
+        <View style={styles.settingsCard}>
+          <View style={styles.settingsHeaderLine}>
+            <Text style={styles.settingsTitle}>Cài đặt & Nghiệp vụ POS</Text>
+            <Text style={styles.systemVersionText}>Hệ thống v2.6</Text>
+          </View>
+
+          {/* Mục 1: Bộ chuyển đổi ngôn ngữ */}
+          <View style={styles.settingItemBox}>
+            <View style={styles.settingItemTop}>
+              <View style={styles.settingItemLeftGroup}>
+                <Ionicons name="language" size={18} color="#7A0C10" />
+                <Text style={styles.settingItemTitle}>Ngôn ngữ hiển thị</Text>
+              </View>
+              <Text style={styles.settingItemSubtext}>Song ngữ Việt - Lào</Text>
             </View>
-            <View style={styles.q3Badge}>
-              <Text style={styles.q3BadgeText}>Q.3</Text>
+
+            <View style={styles.langSegmentBox}>
+              <Pressable
+                style={[styles.langSegmentTab, locale === 'vi' && styles.langSegmentTabActive]}
+                onPress={() => setLocale('vi')}
+              >
+                {locale === 'vi' && <View style={styles.activeDot} />}
+                <Text
+                  style={[
+                    styles.langSegmentText,
+                    locale === 'vi' && styles.langSegmentTextActive,
+                  ]}
+                >
+                  Tiếng Việt (Chuẩn)
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.langSegmentTab, locale === 'lo' && styles.langSegmentTabActive]}
+                onPress={() => setLocale('lo')}
+              >
+                {locale === 'lo' && <View style={styles.activeDot} />}
+                <Text
+                  style={[
+                    styles.langSegmentText,
+                    locale === 'lo' && styles.langSegmentTextActive,
+                  ]}
+                >
+                  ພາສາລາວ (Lao)
+                </Text>
+              </Pressable>
             </View>
           </View>
 
-          <Text style={styles.storeAddress}>
-            123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
-          </Text>
+          {/* Mục 2: Tiện ích "Quán Nhỏ" VIP Care */}
+          <Pressable
+            style={styles.settingItemBox}
+            onPress={() =>
+              Alert.alert(
+                'Tiện ích Quán Nhỏ',
+                'Thực đơn trà và cà phê pha máy phục vụ khách hàng trải nghiệm tại Flagship #01.'
+              )
+            }
+          >
+            <View style={styles.vipRow}>
+              <View style={styles.vipLeft}>
+                <View style={styles.coffeeIconBox}>
+                  <Ionicons name="cafe" size={20} color="#63001E" />
+                </View>
+                <View style={styles.vipTextCol}>
+                  <View style={styles.vipTitleRow}>
+                    <Text style={styles.settingItemTitle}>Tiện ích "Quán Nhỏ"</Text>
+                    <View style={styles.vipBadge}>
+                      <Text style={styles.vipBadgeText}>VIP Care</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.vipSubtext} numberOfLines={1}>
+                    Gọi trà, cà phê phục vụ khách tại bàn trải nghiệm máy
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.vipRight}>
+                <Text style={styles.menuLinkText}>Menu</Text>
+                <Ionicons name="chevron-forward" size={14} color="#58413F" />
+              </View>
+            </View>
+          </Pressable>
 
-          <View style={styles.managerLine}>
-            <Ionicons name="headset-outline" size={14} color="#58413F" />
-            <Text style={styles.managerText}>
-              Quản lý ca trực: <Text style={{ fontWeight: '700', color: '#191C1E' }}>Trần Quốc Bảo</Text>
+          {/* Mục 3: Cấu hình máy in hóa đơn POS */}
+          <View style={styles.settingItemBox}>
+            <View style={styles.printerRow}>
+              <View style={styles.printerLeft}>
+                <View style={styles.grayIconBox}>
+                  <Ionicons name="print" size={18} color="#58413F" />
+                </View>
+                <View style={styles.printerTextCol}>
+                  <Text style={styles.settingItemTitle}>Máy in bill hóa đơn POS</Text>
+                  <Text style={styles.printerSubtext}>Epson TM-T82 (Cổng LAN/Bluetooth)</Text>
+                </View>
+              </View>
+              <View style={styles.printerRight}>
+                <View style={styles.readyPill}>
+                  <View style={styles.readyDot} />
+                  <Text style={styles.readyText}>Sẵn sàng</Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [styles.syncBtn, pressed && { opacity: 0.7 }]}
+                  onPress={handleSync}
+                >
+                  <Ionicons
+                    name="sync"
+                    size={15}
+                    color="#58413F"
+                    style={syncing ? { transform: [{ rotate: '45deg' }] } : undefined}
+                  />
+                </Pressable>
+              </View>
+            </View>
+          </View>
+
+          {/* Mục 4: Máy chủ POS Trung tâm */}
+          <View style={styles.settingItemBox}>
+            <View style={styles.serverRow}>
+              <View style={styles.serverLeft}>
+                <View style={styles.grayIconBox}>
+                  <Ionicons name="server" size={18} color="#58413F" />
+                </View>
+                <View style={styles.serverTextCol}>
+                  <Text style={styles.settingItemTitle}>Máy chủ POS Trung tâm</Text>
+                  <Text style={styles.serverSubtext}>Đồng bộ đám mây thời gian thực</Text>
+                </View>
+              </View>
+              <View style={styles.serverRight}>
+                <View style={styles.serverPingRow}>
+                  <Ionicons name="wifi" size={13} color="#7A0C10" />
+                  <Text style={styles.serverPingVal}>18 ms</Text>
+                </View>
+                <Text style={styles.serverStatusSub}>Bình thường</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* ── 4. Nút Đăng Xuất & Footer ── */}
+        <View style={styles.logoutSection}>
+          <Pressable
+            style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.88 }]}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.logoutBtnText}>ĐĂNG XUẤT TÀI KHOẢN POS</Text>
+          </Pressable>
+
+          <View style={styles.footerInfoBox}>
+            <View style={styles.footerLine1}>
+              <Ionicons name="terminal-outline" size={13} color="#58413F" />
+              <Text style={styles.footerVersionText}>
+                Liêng Mobile Retail POS v2.6.4 • Build 20261109
+              </Text>
+            </View>
+            <Text style={styles.footerCopyrightText}>
+              Bản quyền thiết kế & vận hành thuộc Liêng Mobile Inc.
             </Text>
           </View>
         </View>
-
-        {/* ── Cài đặt & Nghiệp vụ POS ── */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsTitle}>Cài đặt & Nghiệp vụ POS</Text>
-
-          {/* Language */}
-          <View style={styles.settingItem}>
-            <View>
-              <Text style={styles.settingItemLabel}>Ngôn ngữ giao diện</Text>
-              <Text style={styles.settingItemSub}>Chọn ngôn ngữ POS hiển thị</Text>
-            </View>
-            <View style={styles.langBtnRow}>
-              <Pressable
-                style={[styles.langBtn, locale === 'vi' && styles.langBtnActive]}
-                onPress={() => setLocale('vi')}
-              >
-                <Text style={[styles.langBtnText, locale === 'vi' && styles.langBtnTextActive]}>
-                  Tiếng Việt
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.langBtn, locale === 'lo' && styles.langBtnActive]}
-                onPress={() => setLocale('lo')}
-              >
-                <Text style={[styles.langBtnText, locale === 'lo' && styles.langBtnTextActive]}>
-                  ພາສາລາວ
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Sync */}
-          <Pressable style={styles.settingActionRow} onPress={handleSync} disabled={syncing}>
-            <View style={styles.settingActionLeft}>
-              <Ionicons name="sync-outline" size={18} color={Colors.primaryContainer} />
-              <View>
-                <Text style={styles.settingActionLabel}>Đồng bộ dữ liệu POS</Text>
-                <Text style={styles.settingItemSub}>Làm mới kho máy IMEI & bảng giá</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#8C716E" />
-          </Pressable>
-
-          {/* Server endpoint info */}
-          <View style={styles.serverInfoBox}>
-            <Text style={styles.serverInfoLabel}>Máy chủ API backend:</Text>
-            <Text style={styles.serverInfoVal} numberOfLines={1}>{API_BASE_URL}</Text>
-          </View>
-        </View>
-
-        {/* ── Đăng xuất tài khoản POS ── */}
-        <Pressable
-          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.88 }]}
-          onPress={handleLogout}
-        >
-          <Ionicons name="log-out-outline" size={18} color={Colors.white} />
-          <Text style={styles.logoutBtnText}>ĐĂNG XUẤT TÀI KHOẢN POS</Text>
-        </Pressable>
       </ScrollView>
     </View>
   )
@@ -250,6 +409,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F9FB',
   },
+
+  // ── Top Header ──
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,21 +427,50 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryContainer,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#7A0C10',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  brandIconImg: {
+    width: 34,
+    height: 34,
+  },
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   brandTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#191C1E',
+    color: '#7A0C10',
+    letterSpacing: -0.3,
+  },
+  posBadge: {
+    backgroundColor: '#FFD9DC',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+  },
+  posBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#63001E',
+  },
+  brandSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 1,
   },
   brandSubtitle: {
     fontSize: 11,
     color: '#58413F',
+    fontWeight: '500',
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -298,32 +488,31 @@ const styles = StyleSheet.create({
   },
   unreadDot: {
     position: 'absolute',
-    top: 6,
-    right: 8,
+    top: 7,
+    right: 7,
     width: 7,
     height: 7,
-    borderRadius: 4,
-    backgroundColor: Colors.secondary,
+    borderRadius: 3.5,
+    backgroundColor: '#B32446',
   },
   avatarBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F2F4F6',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#550005',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    padding: 16,
     gap: 14,
   },
 
-  // Profile Card
+  // ── 1. Thẻ Hồ sơ Nhân Viên ──
   profileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: '#ECEEF0',
@@ -337,31 +526,41 @@ const styles = StyleSheet.create({
   avatarWrap: {
     position: 'relative',
   },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Colors.primaryContainer,
+  avatarImg: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#ECEEF0',
+  },
+  avatarFallback: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#7A0C10',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.white,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   verifiedBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: Colors.green,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFD9DC',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.white,
+    borderColor: '#FFFFFF',
+  },
+  profileInfoCol: {
+    flex: 1,
+    gap: 2,
   },
   nameActionRow: {
     flexDirection: 'row',
@@ -369,7 +568,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   userName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#191C1E',
   },
@@ -377,118 +576,154 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFECEF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
+    backgroundColor: '#F2F4F6',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   editText: {
     fontSize: 11.5,
-    fontWeight: '700',
-    color: Colors.primaryContainer,
+    fontWeight: '600',
+    color: '#58413F',
   },
   userEmail: {
     fontSize: 12,
     color: '#58413F',
-    marginTop: 2,
   },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 3,
+    marginTop: 2,
   },
   userPhone: {
-    fontSize: 11.5,
-    color: '#58413F',
+    fontSize: 12,
+    color: '#191C1E',
+    fontWeight: '600',
   },
   rankBadgeBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F7F9FB',
-    borderRadius: Radius.sm,
-    padding: 10,
+    backgroundColor: '#FFF0F2',
     borderWidth: 1,
-    borderColor: '#ECEEF0',
+    borderColor: '#FFDAD6',
+    borderRadius: 12,
+    padding: 10,
+  },
+  rankIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFD9DC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankTextBox: {
+    flex: 1,
+    gap: 1,
   },
   rankTitle: {
-    fontSize: 10.5,
-    color: '#58413F',
-    fontWeight: '500',
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#7A0C10',
+    letterSpacing: 0.5,
   },
   rankValue: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11.5,
+    fontWeight: '600',
     color: '#191C1E',
   },
 
-  // Shift Card
+  // ── 2. Thẻ Ca Làm Việc & Chi Nhánh ──
   shiftCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: '#ECEEF0',
-    gap: 8,
+    gap: 12,
   },
   shiftHeaderLine: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  shiftTag: {
+  shiftHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 10,
+    flex: 1,
+  },
+  shiftIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#7A0C10',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   shiftTagText: {
-    fontSize: 10.5,
+    fontSize: 9.5,
     fontWeight: '700',
-    color: Colors.primaryContainer,
+    color: '#58413F',
     letterSpacing: 0.5,
+  },
+  shiftMainTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#191C1E',
   },
   shiftStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: Colors.greenSoft,
+    backgroundColor: '#F2F4F6',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
+    paddingVertical: 3.5,
+    borderRadius: 12,
   },
   pulseLiveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.green,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#B32446',
   },
   shiftStatusText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: Colors.greenDeep,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B32446',
   },
-  shiftTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#191C1E',
-  },
-  shiftTimeRow: {
+  shiftTimeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    backgroundColor: '#F2F4F6',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  shiftTimeText: {
+  shiftTimeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  shiftTimeLabel: {
     fontSize: 12,
     color: '#58413F',
   },
+  shiftTimeValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+
   targetSection: {
-    marginTop: 6,
-    backgroundColor: '#F7F9FB',
-    borderRadius: Radius.sm,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#ECEEF0',
+    padding: 12,
     gap: 4,
   },
   targetHeaderLine: {
@@ -503,66 +738,87 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   targetPercent: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
-    color: Colors.primaryContainer,
+    color: '#7A0C10',
+  },
+  targetValueLine: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
   targetAmountVal: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
-    color: Colors.primaryContainer,
+    color: '#7A0C10',
+  },
+  targetCurrency: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#58413F',
+  },
+  targetHint: {
+    fontSize: 11.5,
+    color: '#58413F',
   },
   progressBarTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ECEEF0',
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#E6E8EA',
     overflow: 'hidden',
-    marginVertical: 4,
+    marginTop: 4,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
-    backgroundColor: Colors.primaryContainer,
-  },
-  targetHint: {
-    fontSize: 11,
-    color: '#58413F',
+    borderRadius: 5,
+    backgroundColor: '#7A0C10',
   },
 
-  // Store Card
-  storeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#ECEEF0',
-    gap: 6,
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#ECEEF0',
+    marginVertical: 2,
   },
-  storeHeaderLine: {
+
+  storeDetailsBox: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  storeTitleGroup: {
+  storeIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FFDAD6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  storeInfoCol: {
+    flex: 1,
+    gap: 2,
+  },
+  storeTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   storeCardTitle: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#191C1E',
   },
   q3Badge: {
-    backgroundColor: '#FFECEF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: '#ECEEF0',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: 4,
   },
   q3BadgeText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: Colors.primaryContainer,
+    fontWeight: '600',
+    color: '#58413F',
   },
   storeAddress: {
     fontSize: 11.5,
@@ -572,112 +828,311 @@ const styles = StyleSheet.create({
   managerLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
+    gap: 4,
+    marginTop: 3,
   },
-  managerText: {
+  managerLabel: {
     fontSize: 11.5,
     color: '#58413F',
   },
+  managerName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
 
-  // Settings
+  // ── 3. Cài đặt & Nghiệp vụ POS ──
   settingsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    padding: 14,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#ECEEF0',
     gap: 12,
   },
-  settingsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#191C1E',
-  },
-  settingItem: {
-    gap: 8,
-  },
-  settingItemLabel: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#191C1E',
-  },
-  settingItemSub: {
-    fontSize: 11,
-    color: '#58413F',
-  },
-  langBtnRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  langBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: Radius.sm,
-    backgroundColor: '#F2F4F6',
-  },
-  langBtnActive: {
-    backgroundColor: Colors.primaryContainer,
-  },
-  langBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#58413F',
-  },
-  langBtnTextActive: {
-    color: Colors.white,
-    fontWeight: '700',
-  },
-  settingActionRow: {
+  settingsHeaderLine: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingBottom: 2,
   },
-  settingActionLeft: {
+  settingsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  systemVersionText: {
+    fontSize: 11.5,
+    color: '#58413F',
+    fontWeight: '500',
+  },
+
+  settingItemBox: {
+    backgroundColor: '#F7F9FB',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 10,
+  },
+  settingItemTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingItemLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingItemTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  settingItemSubtext: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+
+  langSegmentBox: {
+    flexDirection: 'row',
+    backgroundColor: '#E0E3E5',
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  langSegmentTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  langSegmentTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#7A0C10',
+  },
+  langSegmentText: {
+    fontSize: 12,
+    color: '#58413F',
+    fontWeight: '500',
+  },
+  langSegmentTextActive: {
+    color: '#7A0C10',
+    fontWeight: '700',
+  },
+
+  vipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  vipLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
+    marginRight: 8,
   },
-  settingActionLabel: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#191C1E',
+  coffeeIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#FFD9DC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  serverInfoBox: {
-    backgroundColor: '#F7F9FB',
-    borderRadius: Radius.sm,
-    padding: 8,
-    gap: 2,
+  vipTextCol: {
+    flex: 1,
+    gap: 1,
   },
-  serverInfoLabel: {
-    fontSize: 10,
+  vipTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  vipBadge: {
+    backgroundColor: '#7A0C10',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  vipBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  vipSubtext: {
+    fontSize: 11,
     color: '#58413F',
   },
-  serverInfoVal: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: Colors.primaryContainer,
+  vipRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  menuLinkText: {
+    fontSize: 11.5,
     fontWeight: '600',
+    color: '#58413F',
   },
 
-  // Logout
+  printerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  printerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  grayIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#E6E8EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  printerTextCol: {
+    flex: 1,
+    gap: 1,
+  },
+  printerSubtext: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+  printerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  readyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFD9DC',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  readyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FE5E7A',
+  },
+  readyText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#63001E',
+  },
+  syncBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#E6E8EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  serverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serverLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  serverTextCol: {
+    flex: 1,
+    gap: 1,
+  },
+  serverSubtext: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+  serverRight: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  serverPingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  serverPingVal: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  serverStatusSub: {
+    fontSize: 10.5,
+    color: '#58413F',
+  },
+
+  // ── 4. Nút Đăng Xuất & Footer ──
+  logoutSection: {
+    gap: 14,
+    marginTop: 4,
+    alignItems: 'center',
+  },
   logoutBtn: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primaryContainer,
-    borderRadius: Radius.md,
+    backgroundColor: '#7A0C10',
+    borderRadius: 14,
     paddingVertical: 14,
-    marginTop: 4,
+    shadowColor: '#7A0C10',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoutBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.white,
+    color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  footerInfoBox: {
+    alignItems: 'center',
+    gap: 3,
+  },
+  footerLine1: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  footerVersionText: {
+    fontSize: 11,
+    color: '#58413F',
+    fontWeight: '600',
+  },
+  footerCopyrightText: {
+    fontSize: 10,
+    color: '#8C716E',
   },
 })
