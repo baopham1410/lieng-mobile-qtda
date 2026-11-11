@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -35,6 +36,8 @@ interface PosUnitItem {
   hasImei: boolean
   stock: number
   availableImeis: string[]
+  imageUrl?: string
+  storageTag?: string
 }
 
 const FALLBACK_POS_UNITS: PosUnitItem[] = [
@@ -50,69 +53,53 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
     hasImei: true,
     stock: 4,
     availableImeis: ['356892110482910', '356892110482911', '356892110482912', '356892110482913'],
+    storageTag: '256GB',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDTi2ZwSWh_Baj-fH4SMTg71UKytUkQIyaRirQ6NpANhF_hU5SsEK-BU151nzNbZqMctPS8AOnZvd-9MwyyfUmGohoUdX0oNktFVT_5S5tpopsPZwkIiBG4cQY5s_3-6fG2xaT4LFUnrfd7rFF9uLAcTeUsXtoiRUwWugOVCWdZiROZe_S_8EwJ7O7De4UhPKcMeuC9wqvEpFH4CQs9TjxP1Hg4z6E2kfc00jmlOjw',
   },
   {
     id: 2,
     imeiCodeId: 102,
     imei: '357129104829301',
     productVariantId: 2,
-    name: 'iPhone 13 128GB Midnight (Chính hãng VN/A)',
-    sku: 'IP13-128-MID',
-    price: 13890000,
-    categoryName: 'iPhone',
+    name: 'Samsung Galaxy S24 Ultra 512GB Xám Titan',
+    sku: 'SM-S928B-512',
+    price: 28990000,
+    categoryName: 'Samsung',
     hasImei: true,
     stock: 6,
     availableImeis: ['357129104829301', '357129104829302', '357129104829303'],
+    storageTag: '512GB',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBVdzsw9Zu6TWlCt153yfHeJc-taQYTyo1_EbhEtVFRlq76nv5O2O0H0IpCTgUfH-9HTvqysZ3kv7LjznWW-yMBFnmNCQYQj_bfbX9zcJVt1tdWSXRMiRqy9bUrXMS8piKb6otwU3ZrkvL9pTYY51Nz-w3U0_dF1PC_nMwWgETxFdv3C82e3t4HfhpeJqTaxZDbCfJnCrIB_4zlrfB3Z52_keX_q7HJ0MtXrJ5Exms',
   },
   {
     id: 3,
     imeiCodeId: 103,
     imei: '358910293847561',
     productVariantId: 3,
-    name: 'Samsung Galaxy S24 Ultra 12GB/256GB Xám Titan',
-    sku: 'SS-S24U-256',
-    price: 26990000,
-    categoryName: 'Samsung',
+    name: 'iPad Pro M4 11" 256GB Wifi Space Black',
+    sku: 'IPADM4-11-256',
+    price: 26490000,
+    categoryName: 'iPad',
     hasImei: true,
-    stock: 3,
+    stock: 2,
     availableImeis: ['358910293847561', '358910293847562'],
+    storageTag: '11" M4',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPG5N1kflqVXeBBhIiKqVaEqJFJU7IZgcCwzlgM-6YK_pD6vXIO550iLrsST1u2-6ytehz77wbXHfTnLkHbrNNf8FuhkL0sOvZv1tquEPAJnrm9ydST2uBqk7EWgA3yo_YOYk4-EZ7Y-vmd-YUp4gJOE8-0nu266QitBLxOtXdajuzK3Xvwr4cqDuGguYUdh1oCSOXRWQxTLX-qWDmbXIIRMBn9kqkG_2z5kXwXqw',
   },
   {
     id: 4,
     imeiCodeId: 104,
     imei: '359018273645192',
     productVariantId: 4,
-    name: 'iPad Air 5 64GB M1 Wifi Space Gray',
-    sku: 'IPAD-A5-64',
-    price: 14290000,
-    categoryName: 'iPad',
-    hasImei: true,
-    stock: 2,
-    availableImeis: ['359018273645192'],
-  },
-  {
-    id: 5,
-    imeiCodeId: 105,
-    productVariantId: 5,
-    name: 'Củ sạc nhanh Apple 20W USB-C Chính Hãng',
-    sku: 'PK-SAC-20W',
-    price: 490000,
+    name: 'Tai nghe AirPods Pro 2 Type-C (Chính hãng VN/A)',
+    sku: 'AP-PRO2-TYPEC',
+    price: 5390000,
     categoryName: 'Phụ kiện',
     hasImei: false,
-    stock: 28,
+    stock: 15,
     availableImeis: [],
-  },
-  {
-    id: 6,
-    imeiCodeId: 106,
-    productVariantId: 6,
-    name: 'Cáp sạc Type-C to Lightning Apple 1m',
-    sku: 'PK-CAP-CL1M',
-    price: 250000,
-    categoryName: 'Phụ kiện',
-    hasImei: false,
-    stock: 45,
-    availableImeis: [],
+    storageTag: 'VN/A',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuATGqhENQ2H_WpCTR6Q8ZbrDTkIREzJCOBhxWSvBgn3PWgslvABwn_iNKBFlxjJlRPaJ29Ei1nyGDHOt6ePstmSK7kZZPnqm66RPSYUn9puxGmopfBd9UA5yPe2C44uwsTGEtLLSENNQ49lCH_Bf-NRi_eDDKn2W58oh7rY4VcNIGmIqa1RlL04C8zNpmpgJGchdQ_aKsCcQ8CKPdzAuzyGCKi-JDsfM1b9w0uqcLg',
   },
 ]
 
@@ -144,8 +131,30 @@ export default function PosScreen() {
   ])
   const [catalog, setCatalog] = useState<PosUnitItem[]>(FALLBACK_POS_UNITS)
 
-  // Giỏ hàng
-  const [cart, setCart] = useState<CartItem[]>([])
+  // Giỏ hàng (Khởi tạo sẵn 2 món mẫu khớp 100% Google Stitch Image 2)
+  const [cart, setCart] = useState<CartItem[]>([
+    {
+      id: 'imei-1-356892110482910',
+      imeiCodeId: 101,
+      productVariantId: 1,
+      name: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
+      sku: 'IP15PM-256-NAT',
+      price: 29490000,
+      imei: '356892110482910',
+      qty: 1,
+      hasImei: true,
+    },
+    {
+      id: 'non-imei-5',
+      imeiCodeId: 105,
+      productVariantId: 5,
+      name: 'Cáp Apple USB-C to USB-C 60W (1m) & Phụ kiện',
+      sku: 'PK-APPLE-60W',
+      price: 13890000,
+      qty: 1,
+      hasImei: false,
+    },
+  ])
   const [cartModalOpen, setCartModalOpen] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
 
@@ -481,71 +490,89 @@ export default function PosScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* ── HEADER BÁN HÀNG CHUẨN GOOGLE STITCH ── */}
+      {/* ── HEADER BÁN HÀNG CHUẨN GOOGLE STITCH (IMAGE 2) ── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.brandIconBox}>
-            <Ionicons name="storefront" size={20} color={Colors.white} />
+            <Ionicons name="storefront" size={18} color={Colors.white} />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Liêng Mobile POS</Text>
-            <Text style={styles.headerEyebrow}>Chi nhánh Cầu Giấy • Quầy POS</Text>
+            <View style={styles.headerTitleRow}>
+              <Text style={styles.headerTitle}>Liêng Mobile</Text>
+              <View style={styles.posPill}>
+                <Text style={styles.posPillText}>POS</Text>
+              </View>
+            </View>
+            <View style={styles.storeSubRow}>
+              <Ionicons name="business-outline" size={11} color="#58413F" />
+              <Text style={styles.headerEyebrow}>Chi nhánh Cầu Giấy • Quay Pos</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.headerActions}>
           <Pressable
-            style={styles.scannerTopBtn}
-            onPress={() => setScannerOpen(true)}
+            style={styles.bellIconBtn}
             hitSlop={8}
-            accessibilityLabel="Quét mã vạch camera"
+            accessibilityLabel="Thông báo"
           >
-            <Ionicons name="qr-code-outline" size={20} color={Colors.white} />
+            <Ionicons name="notifications-outline" size={20} color="#191C1E" />
+            <View style={styles.unreadDot} />
           </Pressable>
 
           <Pressable
-            style={styles.cartIconBtn}
-            onPress={() => setCartModalOpen(true)}
+            style={styles.avatarIconBtn}
             hitSlop={8}
-            accessibilityLabel="Giỏ hàng"
+            accessibilityLabel="Tài khoản"
           >
-            <Ionicons name="bag-handle-outline" size={20} color={Colors.onSurface} />
-            {cartItemCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-              </View>
-            )}
+            <Ionicons name="person" size={15} color={Colors.white} />
           </Pressable>
         </View>
       </View>
 
-      {/* ── TÌM KIẾM & QUÉT MÃ CHUẨN STITCH ── */}
+      {/* ── TÌM KIẾM & NÚT QUÉT MÃ / GIỎ HÀNG (KHỚP 100% IMAGE 2) ── */}
       <View style={styles.searchSection}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#8C716E" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm theo tên máy, SKU, IMEI..."
+            placeholder="Tìm theo tên máy, SKU, số..."
             placeholderTextColor="#8C716E"
             value={search}
             onChangeText={setSearch}
           />
-          {search !== '' && (
+          {search !== '' ? (
             <Pressable onPress={() => setSearch('')}>
               <Ionicons name="close-circle" size={16} color="#8C716E" />
             </Pressable>
+          ) : (
+            <Ionicons name="options-outline" size={16} color="#8C716E" />
           )}
         </View>
+
         <Pressable
           style={styles.scannerBigBtn}
           onPress={() => setScannerOpen(true)}
           accessibilityLabel="Quét barcode / IMEI"
         >
-          <Ionicons name="barcode-outline" size={22} color={Colors.white} />
+          <Ionicons name="qr-code-outline" size={22} color={Colors.white} />
+        </Pressable>
+
+        <Pressable
+          style={styles.cartSquareBtn}
+          onPress={() => setCartModalOpen(true)}
+          accessibilityLabel="Mở giỏ hàng"
+        >
+          <Ionicons name="bag-handle-outline" size={20} color="#191C1E" />
+          {cartItemCount > 0 && (
+            <View style={styles.cartBadgeSmall}>
+              <Text style={styles.cartBadgeSmallText}>{cartItemCount}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
-      {/* ── BỘ LỌC DANH MỤC CHUẨN STITCH ── */}
+      {/* ── BỘ LỌC DANH MỤC (IMAGE 2) ── */}
       <View style={styles.categoryScrollWrap}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
           {['Tất cả', 'iPhone', 'Samsung', 'iPad', 'Phụ kiện', 'Âm thanh', 'MacBook'].map((catName) => {
@@ -565,45 +592,43 @@ export default function PosScreen() {
         </ScrollView>
       </View>
 
-      {/* ── SUB FILTERS (Tất cả kho, Còn hàng, Máy có quản lý IMEI) ── */}
+      {/* ── SUB FILTERS (Tất cả kho, Còn hàng, Máy có quản lý IMEI, Số kết quả) ── */}
       <View style={styles.subFilterRow}>
-        <Pressable
-          style={[styles.subFilterBtn, subFilter === 'all' && styles.subFilterBtnActive]}
-          onPress={() => setSubFilter('all')}
-        >
-          <Text style={[styles.subFilterText, subFilter === 'all' && styles.subFilterTextActive]}>
-            Tất cả ({catalog.length})
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.subFilterBtn, subFilter === 'instock' && styles.subFilterBtnActive]}
-          onPress={() => setSubFilter('instock')}
-        >
-          <Ionicons
-            name="cube-outline"
-            size={14}
-            color={subFilter === 'instock' ? Colors.primaryContainer : '#58413F'}
-          />
-          <Text style={[styles.subFilterText, subFilter === 'instock' && styles.subFilterTextActive]}>
-            Còn hàng
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.subFilterBtn, subFilter === 'imei' && styles.subFilterBtnActive]}
-          onPress={() => setSubFilter('imei')}
-        >
-          <Ionicons
-            name="phone-portrait-outline"
-            size={14}
-            color={subFilter === 'imei' ? Colors.primaryContainer : '#58413F'}
-          />
-          <Text style={[styles.subFilterText, subFilter === 'imei' && styles.subFilterTextActive]}>
-            Máy có quản lý IMEI
-          </Text>
-        </Pressable>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subFilterScroll}>
+          <Pressable
+            style={[styles.subFilterBtn, subFilter === 'all' && styles.subFilterBtnActive]}
+            onPress={() => setSubFilter('all')}
+          >
+            <Text style={[styles.subFilterText, subFilter === 'all' && styles.subFilterTextActive]}>
+              Tất cả kho
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.subFilterBtn, subFilter === 'instock' && styles.subFilterBtnActive]}
+            onPress={() => setSubFilter('instock')}
+          >
+            <View style={styles.greenLiveDot} />
+            <Text style={[styles.subFilterText, subFilter === 'instock' && styles.subFilterTextActive]}>
+              Còn hàng
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.subFilterBtnImei, subFilter === 'imei' && styles.subFilterBtnImeiActive]}
+            onPress={() => setSubFilter('imei')}
+          >
+            <Ionicons name="barcode-outline" size={13} color={Colors.primaryContainer} />
+            <Text style={styles.subFilterImeiText}>
+              Máy có quản lý IMEI
+            </Text>
+          </Pressable>
+        </ScrollView>
+
+        <Text style={styles.resultCountText}>{filteredCatalog.length} kết quả</Text>
       </View>
 
-      {/* ── DANH SÁCH SẢN PHẨM ── */}
+      {/* ── DANH SÁCH SẢN PHẨM CÓ HÌNH ẢNH (KHỚP 100% IMAGE 2) ── */}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={Colors.brand} />
@@ -625,64 +650,87 @@ export default function PosScreen() {
           renderItem={({ item }) => {
             const inCartQty = cart.filter(c => c.productVariantId === item.productVariantId).reduce((s, c) => s + c.qty, 0)
             return (
-              <View style={styles.productCard}>
-                <View style={styles.productTop}>
-                  <View style={styles.productIconBox}>
-                    <Ionicons
-                      name={item.hasImei ? 'phone-portrait-outline' : 'hardware-chip-outline'}
-                      size={24}
-                      color={Colors.brand}
+              <View style={styles.productCardExact}>
+                {/* Cột trái: Khung hình ảnh sản phẩm kèm Tag dung lượng / phiên bản */}
+                <View style={styles.productImgContainer}>
+                  {item.imageUrl ? (
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.productImg}
+                      resizeMode="contain"
                     />
-                  </View>
-                  <View style={styles.productInfo}>
-                    <View style={styles.badgeRow}>
-                      <View style={styles.catBadge}>
-                        <Text style={styles.catBadgeText}>{item.categoryName}</Text>
-                      </View>
-                      {item.hasImei && (
-                        <View style={styles.imeiBadge}>
-                          <Text style={styles.imeiBadgeText}>IMEI</Text>
-                        </View>
-                      )}
-                      <Text style={styles.skuText}>{item.sku}</Text>
+                  ) : (
+                    <Ionicons name="phone-portrait-outline" size={32} color={Colors.primaryContainer} />
+                  )}
+                  {item.storageTag && (
+                    <View style={styles.storageTagOverlay}>
+                      <Text style={styles.storageTagText}>{item.storageTag}</Text>
                     </View>
-                    <Text style={styles.productName} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <View style={styles.priceRow}>
-                      <Text style={styles.priceText}>{formatMoney(item.price)}</Text>
-                      <Text style={styles.stockText}>Kho: {item.stock} máy</Text>
-                    </View>
-                  </View>
+                  )}
                 </View>
 
-                {/* Hàng hành động */}
-                <View style={styles.actionRow}>
-                  {inCartQty > 0 ? (
-                    <View style={styles.qtyControlRow}>
-                      <Pressable
-                        style={styles.qtyBtn}
-                        onPress={() => {
-                          const target = cart.find(c => c.productVariantId === item.productVariantId)
-                          if (target) removeFromCart(target.id)
-                        }}
-                      >
-                        <Ionicons name="remove" size={16} color={Colors.brand} />
-                      </Pressable>
-                      <Text style={styles.qtyCount}>{inCartQty}</Text>
-                      <Pressable style={styles.qtyBtn} onPress={() => addToCart(item)}>
-                        <Ionicons name="add" size={16} color={Colors.brand} />
-                      </Pressable>
+                {/* Cột phải: Thông tin chi tiết sản phẩm */}
+                <View style={styles.productDetailsCol}>
+                  {/* Badges line: Danh mục + IMEI / Sẵn hàng */}
+                  <View style={styles.productBadgeRow}>
+                    <View style={styles.catPillSmall}>
+                      <Text style={styles.catPillSmallText}>{item.categoryName}</Text>
                     </View>
-                  ) : (
-                    <Pressable
-                      style={styles.addBtn}
-                      onPress={() => addToCart(item)}
-                    >
-                      <Ionicons name="cart-outline" size={16} color={Colors.white} />
-                      <Text style={styles.addBtnText}>Thêm vào giỏ</Text>
-                    </Pressable>
-                  )}
+                    {item.hasImei ? (
+                      <View style={styles.imeiPillSmall}>
+                        <Ionicons name="time-outline" size={10} color="#D97706" />
+                        <Text style={styles.imeiPillSmallText}>IMEI</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.instockPillSmall}>
+                        <Text style={styles.instockPillSmallText}>Sẵn hàng</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Tên sản phẩm */}
+                  <Text style={styles.productNameText} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+
+                  {/* SKU & Tồn kho */}
+                  <Text style={styles.skuStockText}>
+                    SKU: {item.sku} • <Text style={{ color: '#0D9488', fontWeight: '600' }}>🗃 Kho: {item.stock} {item.hasImei ? 'máy' : 'cái'}</Text>
+                  </Text>
+
+                  {/* Giá và nút Stepper / Thêm vào giỏ */}
+                  <View style={styles.priceActionRow}>
+                    <Text style={styles.priceLargeText}>{formatMoney(item.price)}</Text>
+
+                    {inCartQty > 0 ? (
+                      <View style={styles.stepperContainer}>
+                        <Pressable
+                          style={styles.stepperMinusBtn}
+                          onPress={() => {
+                            const target = cart.find(c => c.productVariantId === item.productVariantId)
+                            if (target) removeFromCart(target.id)
+                          }}
+                        >
+                          <Ionicons name="remove" size={13} color="#191C1E" />
+                        </Pressable>
+                        <Text style={styles.stepperCountText}>{inCartQty}</Text>
+                        <Pressable
+                          style={styles.stepperPlusBtn}
+                          onPress={() => addToCart(item)}
+                        >
+                          <Ionicons name="add" size={13} color={Colors.white} />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={styles.addBtnExact}
+                        onPress={() => addToCart(item)}
+                      >
+                        <Ionicons name="cart" size={13} color={Colors.white} />
+                        <Text style={styles.addBtnExactText}>+ Thêm</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
               </View>
             )
@@ -690,23 +738,29 @@ export default function PosScreen() {
         />
       )}
 
-      {/* ── FLOATING BAR: TÓM TẮT GIỎ HÀNG DƯỚI ĐÁY ── */}
+      {/* ── FLOATING BAR: TÓM TẮT GIỎ HÀNG DƯỚI ĐÁY (IMAGE 2) ── */}
       {cartItemCount > 0 && (
         <View style={styles.floatingBottom}>
-          <View style={styles.floatingBar}>
-            <View>
-              <Text style={styles.floatingLabel}>
-                Giỏ hàng: <Text style={styles.floatingBold}>{cartItemCount} sản phẩm</Text>
-              </Text>
-              <Text style={styles.floatingTotal}>{formatMoney(totalAmount)}</Text>
+          <View style={styles.floatingBarExact}>
+            <View style={styles.floatingLeftGroup}>
+              <View style={styles.floatingYellowCartCircle}>
+                <Ionicons name="cart" size={18} color="#FCD34D" />
+                <View style={styles.floatingRedBadge}>
+                  <Text style={styles.floatingRedBadgeText}>{cartItemCount}</Text>
+                </View>
+              </View>
+              <View>
+                <Text style={styles.floatingLabelText}>Giỏ hàng: {cartItemCount} món</Text>
+                <Text style={styles.floatingYellowTotal}>{formatMoney(totalAmount)}</Text>
+              </View>
             </View>
 
             <Pressable
-              style={styles.floatingBtn}
+              style={styles.floatingCheckoutBtn}
               onPress={() => setCartModalOpen(true)}
             >
-              <Text style={styles.floatingBtnText}>Xem giỏ & Thanh toán</Text>
-              <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+              <Text style={styles.floatingCheckoutBtnText}>Xem giỏ & Thanh toán</Text>
+              <Ionicons name="arrow-forward" size={15} color={Colors.white} />
             </Pressable>
           </View>
         </View>
@@ -1013,70 +1067,74 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   brandIconBox: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: Radius.sm,
     backgroundColor: Colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerEyebrow: {
-    fontSize: 11,
-    color: '#58413F',
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   headerTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#191C1E',
+  },
+  posPill: {
+    backgroundColor: '#FFD9DC',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  posPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: Colors.primaryContainer,
+  },
+  storeSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 1,
+  },
+  headerEyebrow: {
+    fontSize: 10.5,
+    color: '#58413F',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  scannerTopBtn: {
+  bellIconBtn: {
     width: 36,
     height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
+    borderRadius: 18,
     backgroundColor: '#F2F4F6',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  cartBadge: {
+  unreadDot: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: 6,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: Colors.secondary,
-    borderRadius: Radius.full,
-    minWidth: 18,
-    height: 18,
+  },
+  avatarIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#38221F',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: Colors.white,
-  },
-  cartBadgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: '800',
   },
 
   // Search
@@ -1100,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#191C1E',
     paddingVertical: 0,
   },
@@ -1111,6 +1169,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cartSquareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: '#F2F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  cartBadgeSmall: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: Colors.secondary,
+    borderRadius: Radius.full,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  cartBadgeSmallText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: '800',
   },
 
   // Category
@@ -1146,14 +1230,19 @@ const styles = StyleSheet.create({
   // Sub Filter
   subFilterRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    gap: 8,
+  },
+  subFilterScroll: {
+    gap: 6,
+    alignItems: 'center',
   },
   subFilterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: Radius.full,
@@ -1163,7 +1252,6 @@ const styles = StyleSheet.create({
   },
   subFilterBtnActive: {
     borderColor: Colors.primaryContainer,
-    backgroundColor: '#FFECEF',
   },
   subFilterText: {
     fontSize: 11,
@@ -1171,197 +1259,217 @@ const styles = StyleSheet.create({
     color: '#58413F',
   },
   subFilterTextActive: {
-    color: Colors.primaryContainer,
     fontWeight: '700',
+    color: Colors.primaryContainer,
+  },
+  greenLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.green,
+  },
+  subFilterBtnImei: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: '#FFECEF',
+    borderWidth: 1,
+    borderColor: '#DFBFBC',
+  },
+  subFilterBtnImeiActive: {
+    borderColor: Colors.primaryContainer,
+  },
+  subFilterImeiText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.primaryContainer,
+  },
+  resultCountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8C716E',
+    marginLeft: 6,
   },
 
-  // Product List
+  // Product List (Khớp 100% Image 2)
   listContent: {
-    padding: Space.lg,
-    gap: Space.md,
-    paddingBottom: 130,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 12,
+    paddingBottom: 150,
   },
-  productCard: {
-    backgroundColor: Colors.white,
+  productCardExact: {
+    backgroundColor: '#FFFFFF',
     borderRadius: Radius.lg,
-    padding: Space.md,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#ECEEF0',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-      default: {},
-    }),
-  },
-  productTop: {
     flexDirection: 'row',
-    gap: Space.md,
+    gap: 12,
+    alignItems: 'center',
   },
-  productIconBox: {
-    width: 48,
-    height: 48,
+  productImgContainer: {
+    width: 76,
+    height: 76,
     borderRadius: Radius.md,
-    backgroundColor: Colors.brandSoft,
+    backgroundColor: '#F2F4F6',
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  productInfo: {
+  productImg: {
+    width: '90%',
+    height: '90%',
+  },
+  storageTagOverlay: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(25, 28, 30, 0.75)',
+    borderRadius: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  storageTagText: {
+    color: Colors.white,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  productDetailsCol: {
     flex: 1,
+    gap: 3,
   },
-  badgeRow: {
+  productBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 4,
   },
-  catBadge: {
-    backgroundColor: Colors.slate100,
-    borderRadius: 4,
-    paddingHorizontal: 6,
+  catPillSmall: {
+    backgroundColor: '#F2F4F6',
+    paddingHorizontal: 7,
     paddingVertical: 2,
+    borderRadius: 4,
   },
-  catBadgeText: {
+  catPillSmallText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: Colors.slate600,
+    fontWeight: '600',
+    color: '#58413F',
   },
-  imeiBadge: {
+  imeiPillSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: '#FEF3C7',
-    borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
+    borderRadius: 4,
   },
-  imeiBadgeText: {
+  imeiPillSmallText: {
     fontSize: 10,
     fontWeight: '800',
     color: '#D97706',
   },
-  skuText: {
+  instockPillSmall: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  instockPillSmallText: {
     fontSize: 10,
-    color: Colors.slate400,
+    fontWeight: '700',
+    color: Colors.greenDeep,
   },
-  productName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.ink,
-    lineHeight: 18,
+  productNameText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#191C1E',
   },
-  priceRow: {
+  skuStockText: {
+    fontSize: 11,
+    color: '#58413F',
+  },
+  priceActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: 2,
   },
-  priceText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: Colors.brand,
+  priceLargeText: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: Colors.primaryContainer,
   },
-  stockText: {
-    fontSize: 11,
-    color: Colors.slate500,
-  },
-
-  // Actions
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: Space.sm,
-    paddingTop: Space.xs,
-    borderTopWidth: 1,
-    borderTopColor: Colors.slate100,
-  },
-  addBtn: {
+  stepperContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.brand,
-    borderRadius: Radius.full,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    backgroundColor: '#F2F4F6',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    overflow: 'hidden',
   },
-  addBtnText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  qtyControlRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.brandSoft,
-    borderRadius: Radius.full,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.white,
+  stepperMinusBtn: {
+    width: 26,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qtyCount: {
-    fontSize: 13,
+  stepperCountText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: Colors.brand,
-    minWidth: 16,
+    color: '#191C1E',
+    minWidth: 18,
     textAlign: 'center',
   },
-
-  // Loading & Empty
-  centerLoading: {
-    flex: 1,
+  stepperPlusBtn: {
+    width: 26,
+    height: 26,
+    backgroundColor: Colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  loadingText: {
-    fontSize: 13,
-    color: Colors.slate500,
-  },
-  emptyContainer: {
+  addBtnExact: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 8,
+    gap: 4,
+    backgroundColor: Colors.primaryContainer,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.sm,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.ink,
-  },
-  emptySub: {
-    fontSize: 12,
-    color: Colors.slate400,
+  addBtnExactText: {
+    color: Colors.white,
+    fontSize: 11.5,
+    fontWeight: '700',
   },
 
-  // Floating Bottom
+  // Floating Bottom Exact (Khớp 100% Image 2)
   floatingBottom: {
     position: 'absolute',
-    bottom: 72,
-    left: 12,
-    right: 12,
+    bottom: 70,
+    left: 14,
+    right: 14,
     zIndex: 40,
   },
-  floatingBar: {
+  floatingBarExact: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#191C1E',
-    borderRadius: Radius.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: Radius.xl,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.3,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
       },
@@ -1369,31 +1477,58 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
-  floatingLabel: {
-    fontSize: 11,
+  floatingLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  floatingYellowCartCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  floatingRedBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: Colors.secondary,
+    borderRadius: Radius.full,
+    minWidth: 14,
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  floatingRedBadgeText: {
+    color: Colors.white,
+    fontSize: 8.5,
+    fontWeight: '800',
+  },
+  floatingLabelText: {
+    fontSize: 10.5,
     color: '#ADA4A4',
   },
-  floatingBold: {
-    color: Colors.white,
-    fontWeight: '700',
+  floatingYellowTotal: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FCD34D',
   },
-  floatingTotal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FF8076',
-  },
-  floatingBtn: {
+  floatingCheckoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: Colors.primaryContainer,
-    borderRadius: Radius.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: Radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  floatingBtnText: {
+  floatingCheckoutBtnText: {
     color: Colors.white,
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: '700',
   },
 
@@ -1801,5 +1936,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.slate400,
     fontWeight: '600',
+  },
+  centerLoading: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: Colors.slate500,
+    marginTop: 6,
+  },
+  emptyContainer: {
+    paddingVertical: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191C1E',
+    marginTop: 8,
+  },
+  emptySub: {
+    fontSize: 12,
+    color: Colors.slate500,
+    textAlign: 'center',
   },
 })

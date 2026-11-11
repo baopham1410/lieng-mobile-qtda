@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -35,6 +36,9 @@ interface DisplayOrder {
   createdAt: string
   cashier: string
   imei?: string
+  imageUrl?: string
+  productSubtitle?: string
+  actionBtnLabel?: string
   items?: Array<{
     name: string
     qty: number
@@ -43,68 +47,61 @@ interface DisplayOrder {
   }>
 }
 
-// Dữ liệu fallback chuẩn Stitch Showcase
+// Dữ liệu fallback chuẩn Stitch Showcase (Khớp 100% Image 3)
 const STITCH_ORDERS: DisplayOrder[] = [
   {
     id: 1,
     code: 'HD-20261109-023',
-    customerName: 'Nguyễn Văn A',
-    customerPhone: '0982345678',
+    customerName: 'Anh Hoàng Long',
+    customerPhone: '0988.xxx.456',
     total: 29490000,
     itemCount: 1,
-    itemsSummary: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
+    itemsSummary: 'iPhone 15 Pro Max 256GB',
+    productSubtitle: 'Titan Tự Nhiên • Mới 100% VN/A',
     paymentMethod: 'transfer',
     status: 'completed',
-    createdAt: '14:32',
-    cashier: 'Nguyễn Văn A',
-    imei: '356891002345012',
-    items: [{ name: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên', qty: 1, price: 29490000, imeis: ['356891002345012'] }],
+    createdAt: '14:30 Hôm nay',
+    cashier: 'Nguyen Van A',
+    imei: '357892110482914',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA_blgggVKlyM7izoMRksl6W0Bq1BZdBEZlleubEqZmMqcR8mLNPtj4mLoHv6ZzQMSXNoN2CDDS7egqq7hIGk8FYFT4w3f0FS4NVgoYieeUkKPWrkISWhNrICFLibmO0ceH8Uy2XLSopSJ7hF5hYQT6XOQeZEv8vuPl4ByWrNAM69hkNRgFb1CdQqrgx5wLEh1OlfruLQuc9comY685qhFOr7OfwGJ6CnxGWuL7Joc',
+    actionBtnLabel: 'Xem hóa đơn',
+    items: [{ name: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên', qty: 1, price: 29490000, imeis: ['357892110482914'] }],
   },
   {
     id: 2,
     code: 'HD-20261109-022',
-    customerName: 'Trần Thị Mai',
-    customerPhone: '0901234888',
+    customerName: 'Chị Minh Thư',
+    customerPhone: '0903.xxx.789',
     total: 26890000,
     itemCount: 1,
-    itemsSummary: 'Samsung Galaxy S24 Ultra 512GB Xám Titan',
+    itemsSummary: 'Galaxy S24 Ultra 512GB',
+    productSubtitle: 'Titan Xám • Kèm gói Care+ 1 năm',
     paymentMethod: 'cash',
     status: 'completed',
-    createdAt: '13:10',
-    cashier: 'Nguyễn Văn A',
-    imei: '352345119902341',
-    items: [{ name: 'Samsung Galaxy S24 Ultra 512GB', qty: 1, price: 26890000, imeis: ['352345119902341'] }],
+    createdAt: '13:15 Hôm nay',
+    cashier: 'Tran Thi B',
+    imei: '359012384756102',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU',
+    actionBtnLabel: 'In lại',
+    items: [{ name: 'Samsung Galaxy S24 Ultra 512GB', qty: 1, price: 26890000, imeis: ['359012384756102'] }],
   },
   {
     id: 3,
     code: 'HD-20261109-021',
-    customerName: 'Lê Hoàng Long',
-    customerPhone: '0978999123',
+    customerName: 'Anh Tuấn Kiệt',
+    customerPhone: '0912.xxx.333',
     total: 5390000,
     itemCount: 1,
-    itemsSummary: 'Tai nghe AirPods Pro 2 Type-C (VN/A)',
+    itemsSummary: 'AirPods Pro 2 (USB-C)',
+    productSubtitle: 'Chính hãng Apple VN • Trắng',
     paymentMethod: 'transfer',
     status: 'pending',
-    createdAt: '11:45',
-    cashier: 'Nguyễn Văn A',
+    createdAt: '11:45 Hôm nay',
+    cashier: 'Nguyen Van A',
+    imei: 'H7K9X2LM',
+    imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAd19P7Uqasjevj25hBF1pCCaE2YZRYORIawXOfNyRImeG5Ju9nmqe5RTCoPkxmJBFQiSYdGaM96F87R8gfgvwGh8SEirm4NJgrEZU-2OhIaSTxpVgQfggUpfczqA2Ir07FPZh_bLRECOwjLdVUCE0N7t_5gcQPC23WYTKHRR9FNCtKC7DQOyM1nAkSWJFIZy6HTG55JdT6XZ3A41nHcYCs96QUe-M9qSSw6T5b4jE',
+    actionBtnLabel: 'Nhắc thanh toán',
     items: [{ name: 'Tai nghe AirPods Pro 2 Type-C', qty: 1, price: 5390000 }],
-  },
-  {
-    id: 4,
-    code: 'HD-20261109-020',
-    customerName: 'Phạm Quỳnh Anh',
-    customerPhone: '0934567890',
-    total: 850000,
-    itemCount: 2,
-    itemsSummary: 'Củ sạc 20W + Kính Kingbull',
-    paymentMethod: 'mixed',
-    status: 'completed',
-    createdAt: '10:20',
-    cashier: 'Nguyễn Văn A',
-    items: [
-      { name: 'Củ sạc nhanh Apple 20W USB-C', qty: 1, price: 490000 },
-      { name: 'Kính cường lực Kingbull', qty: 1, price: 360000 },
-    ],
   },
 ]
 
@@ -363,7 +360,7 @@ export default function OrdersScreen() {
           </ScrollView>
         </View>
 
-        {/* ── Order Cards Stream ── */}
+        {/* ── Order Cards Stream (Khớp 100% Google Stitch Image 3) ── */}
         {loading ? (
           <View style={styles.centerLoading}>
             <ActivityIndicator size="large" color={Colors.primaryContainer} />
@@ -371,101 +368,131 @@ export default function OrdersScreen() {
           </View>
         ) : (
           <View style={styles.ordersList}>
-            {filtered.map((item) => {
+            {filtered.map((item, idx) => {
               const isCompleted = item.status === 'completed'
+              const isVietQr = item.paymentMethod === 'transfer'
+              const badgeLabel = isCompleted
+                ? isVietQr
+                  ? 'VietQR Hoàn tất'
+                  : 'Tiền mặt Hoàn tất'
+                : 'Chờ thanh toán'
+
+              const actionBtn =
+                item.actionBtnLabel ||
+                (idx === 0 ? 'Xem hóa đơn' : idx === 1 ? 'In lại' : 'Nhắc thanh toán')
+
+              const isRemindBtn = actionBtn === 'Nhắc thanh toán'
+
               return (
-                <View key={item.id} style={styles.orderCard}>
-                  {/* Top line: Code, Copy, Status Badge */}
+                <View key={item.id} style={styles.orderCardExact}>
+                  {/* Hàng 1: Mã HĐ + Nút Copy + Huy hiệu Hoàn tất / Chờ TT */}
                   <View style={styles.cardHeaderLine}>
                     <View style={styles.codeGroup}>
                       <Text style={styles.cardOrderCode}>{item.code}</Text>
                       <Pressable onPress={() => copyOrderCode(item.code)} hitSlop={8}>
                         <Ionicons name="copy-outline" size={14} color="#8C716E" />
                       </Pressable>
-                      <Ionicons name="shield-checkmark" size={14} color={Colors.green} />
                     </View>
 
                     <View
                       style={[
-                        styles.statusBadge,
-                        isCompleted ? styles.badgeSuccess : styles.badgeWait,
+                        styles.statusBadgeExact,
+                        isCompleted ? styles.badgeSuccessExact : styles.badgeWaitExact,
                       ]}
                     >
                       <Ionicons
-                        name={isCompleted ? 'checkmark-circle' : 'time-outline'}
-                        size={12}
-                        color={isCompleted ? Colors.greenDeep : Colors.amber900}
+                        name={isCompleted ? 'checkmark' : 'time-outline'}
+                        size={11}
+                        color={isCompleted ? Colors.white : Colors.amber800}
                       />
                       <Text
                         style={[
-                          styles.statusBadgeText,
-                          isCompleted ? styles.textSuccess : styles.textWait,
+                          styles.statusBadgeTextExact,
+                          isCompleted ? styles.textSuccessExact : styles.textWaitExact,
                         ]}
                       >
-                        {isCompleted ? 'Hoàn tất' : 'Chờ xử lý'}
+                        {badgeLabel}
                       </Text>
                     </View>
                   </View>
 
-                  {/* Cashier & Time */}
-                  <Text style={styles.cardTimeText}>
-                    {item.createdAt} • Thu ngân: {item.cashier}
-                  </Text>
-
-                  {/* Customer info */}
-                  <View style={styles.customerLine}>
-                    <Ionicons name="person-outline" size={13} color="#58413F" />
-                    <Text style={styles.customerText}>
-                      Khách: <Text style={{ fontWeight: '700', color: '#191C1E' }}>{item.customerName}</Text>
-                      {item.customerPhone ? ` (${item.customerPhone})` : ''}
-                    </Text>
+                  {/* Hàng 2: Thời gian + Thu ngân */}
+                  <View style={styles.timeCashierLine}>
+                    <Ionicons name="time-outline" size={12} color="#8C716E" />
+                    <Text style={styles.timeCashierText}>{item.createdAt}</Text>
+                    <Text style={styles.timeDotSeparator}>•</Text>
+                    <Ionicons name="archive-outline" size={12} color="#8C716E" />
+                    <Text style={styles.timeCashierText}>Thu ngân: {item.cashier}</Text>
                   </View>
 
-                  {/* Product Summary */}
-                  <Text style={styles.cardProductTitle} numberOfLines={2}>
-                    {item.itemsSummary}
-                  </Text>
-
-                  {/* IMEI pill if exists */}
-                  {item.imei && (
-                    <View style={styles.imeiPill}>
-                      <Ionicons name="barcode-outline" size={12} color={Colors.primaryContainer} />
-                      <Text style={styles.imeiPillText}>IMEI: {item.imei}</Text>
+                  {/* Hàng 3: HỘP SẢN PHẨM CÓ HÌNH ẢNH (KHỚP 100% IMAGE 3) */}
+                  <View style={styles.orderProductInnerBox}>
+                    {/* Khung ảnh thumbnail sản phẩm nền trắng bo góc */}
+                    <View style={styles.orderProductThumbWrap}>
+                      {item.imageUrl ? (
+                        <Image
+                          source={{ uri: item.imageUrl }}
+                          style={styles.orderProductThumbImg}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <Ionicons name="phone-portrait-outline" size={24} color={Colors.primaryContainer} />
+                      )}
                     </View>
-                  )}
 
-                  {/* Price & Payment line */}
-                  <View style={styles.cardFooterLine}>
-                    <View>
-                      <Text style={styles.amountLabel}>Tổng thanh toán</Text>
-                      <Text style={styles.amountValue}>{formatMoney(item.total)}</Text>
-                    </View>
-                    <View style={styles.payMethodPill}>
-                      <Text style={styles.payMethodPillText}>
-                        {item.paymentMethod === 'cash'
-                          ? 'Tiền mặt'
-                          : item.paymentMethod === 'transfer'
-                            ? 'VietQR Pro'
-                            : 'Kết hợp'}
+                    {/* Tiêu đề máy + Subtitle + Tag IMEI */}
+                    <View style={styles.orderProductInfoCol}>
+                      <Text style={styles.orderProductNameBold} numberOfLines={1}>
+                        {item.itemsSummary}
                       </Text>
+                      <Text style={styles.orderProductSubtitleText} numberOfLines={1}>
+                        {item.productSubtitle || 'Mới 100% VN/A chính hãng'}
+                      </Text>
+
+                      {item.imei && (
+                        <View style={styles.orderImeiPillBox}>
+                          <Ionicons name="barcode-outline" size={11} color={Colors.primaryContainer} />
+                          <Text style={styles.orderImeiPillText}>
+                            {item.imei.startsWith('H') ? `Serial: ${item.imei}` : `IMEI: ${item.imei}`}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </View>
 
-                  {/* Quick Action buttons */}
-                  <View style={styles.cardActionsLine}>
+                  {/* Hàng 4: Khách hàng + Giá tiền + Nút hành động */}
+                  <View style={styles.orderCardFooterRow}>
+                    <View style={styles.footerCustomerCol}>
+                      <View style={styles.customerLineMini}>
+                        <Ionicons name="person-outline" size={11} color="#58413F" />
+                        <Text style={styles.customerMiniText}>
+                          Khách: <Text style={{ fontWeight: '700', color: '#191C1E' }}>{item.customerName}</Text>
+                          {item.customerPhone ? ` (${item.customerPhone})` : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.orderAmountRedText}>{formatMoney(item.total)}</Text>
+                    </View>
+
                     <Pressable
-                      style={styles.actionBtn}
+                      style={[
+                        styles.orderActionBtnRight,
+                        isRemindBtn ? styles.actionBtnRemind : styles.actionBtnGray,
+                      ]}
                       onPress={() => setSelectedOrder(item)}
                     >
-                      <Ionicons name="receipt-outline" size={14} color={Colors.primaryContainer} />
-                      <Text style={styles.actionBtnText}>Xem chi tiết</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.actionBtnSecondary}
-                      onPress={() => handleShare(item)}
-                    >
-                      <Ionicons name="share-social-outline" size={14} color="#58413F" />
-                      <Text style={styles.actionBtnSecText}>Chia sẻ</Text>
+                      <Ionicons
+                        name={isRemindBtn ? 'paper-plane-outline' : actionBtn === 'In lại' ? 'print-outline' : 'receipt-outline'}
+                        size={13}
+                        color={isRemindBtn ? Colors.primaryContainer : '#191C1E'}
+                      />
+                      <Text
+                        style={[
+                          styles.orderActionBtnText,
+                          isRemindBtn ? styles.actionTextRemind : styles.actionTextGray,
+                        ]}
+                      >
+                        {actionBtn}
+                      </Text>
                     </Pressable>
                   </View>
                 </View>
@@ -755,11 +782,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Orders List
+  // Orders List (Khớp 100% Image 3)
   ordersList: {
-    gap: 10,
+    gap: 12,
   },
-  orderCard: {
+  orderCardExact: {
     backgroundColor: '#FFFFFF',
     borderRadius: Radius.lg,
     padding: 14,
@@ -779,10 +806,10 @@ const styles = StyleSheet.create({
   },
   cardOrderCode: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#191C1E',
   },
-  statusBadge: {
+  statusBadgeExact: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -790,118 +817,148 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: Radius.full,
   },
-  badgeSuccess: {
-    backgroundColor: Colors.greenSoft,
+  badgeSuccessExact: {
+    backgroundColor: '#059669',
   },
-  badgeWait: {
-    backgroundColor: Colors.amber100,
+  badgeWaitExact: {
+    backgroundColor: '#FEF9C3',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
-  statusBadgeText: {
-    fontSize: 10.5,
+  statusBadgeTextExact: {
+    fontSize: 10,
     fontWeight: '700',
   },
-  textSuccess: {
-    color: Colors.greenDeep,
+  textSuccessExact: {
+    color: Colors.white,
   },
-  textWait: {
-    color: Colors.amber900,
+  textWaitExact: {
+    color: '#D97706',
   },
-  cardTimeText: {
-    fontSize: 11,
-    color: '#58413F',
-  },
-  customerLine: {
+
+  // Time & Cashier
+  timeCashierLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  customerText: {
-    fontSize: 12,
+  timeCashierText: {
+    fontSize: 11,
+    color: '#8C716E',
+  },
+  timeDotSeparator: {
+    fontSize: 11,
+    color: '#8C716E',
+    marginHorizontal: 3,
+  },
+
+  // Inner Product Box (Hộp xám bo góc có ảnh sản phẩm)
+  orderProductInnerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F4F6',
+    borderRadius: Radius.md,
+    padding: 10,
+    gap: 12,
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+  },
+  orderProductThumbWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: Radius.sm,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  orderProductThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  orderProductInfoCol: {
+    flex: 1,
+    gap: 2,
+  },
+  orderProductNameBold: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  orderProductSubtitleText: {
+    fontSize: 11,
     color: '#58413F',
   },
-  cardProductTitle: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#191C1E',
-    lineHeight: 18,
-  },
-  imeiPill: {
+  orderImeiPillBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     alignSelf: 'flex-start',
-    backgroundColor: '#FFECEF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
     borderRadius: 4,
+    marginTop: 2,
   },
-  imeiPillText: {
-    fontSize: 10.5,
-    fontWeight: '600',
+  orderImeiPillText: {
+    fontSize: 10,
+    fontWeight: '700',
     color: Colors.primaryContainer,
   },
-  cardFooterLine: {
+
+  // Card Footer Row
+  orderCardFooterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: '#F2F4F6',
   },
-  amountLabel: {
-    fontSize: 10.5,
+  footerCustomerCol: {
+    gap: 2,
+  },
+  customerLineMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  customerMiniText: {
+    fontSize: 11,
     color: '#58413F',
   },
-  amountValue: {
-    fontSize: 15,
-    fontWeight: '700',
+  orderAmountRedText: {
+    fontSize: 14.5,
+    fontWeight: '800',
     color: Colors.primaryContainer,
   },
-  payMethodPill: {
-    backgroundColor: '#F2F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  payMethodPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#191C1E',
-  },
-  cardActionsLine: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 2,
-  },
-  actionBtn: {
-    flex: 1,
+  orderActionBtnRight: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#FFECEF',
-    borderRadius: Radius.sm,
-    paddingVertical: 8,
-  },
-  actionBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.primaryContainer,
-  },
-  actionBtnSecondary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#F2F4F6',
+    gap: 5,
     borderRadius: Radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  actionBtnSecText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#58413F',
+  actionBtnGray: {
+    backgroundColor: '#ECEEF0',
+  },
+  actionBtnRemind: {
+    backgroundColor: '#FFD9DC',
+  },
+  orderActionBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  actionTextGray: {
+    color: '#191C1E',
+  },
+  actionTextRemind: {
+    color: Colors.primaryContainer,
   },
 
   centerLoading: {
