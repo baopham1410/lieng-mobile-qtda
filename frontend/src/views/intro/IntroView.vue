@@ -5,6 +5,7 @@ import StoreFooter from '@/components/intro/StoreFooter.vue'
 import StoreProductCard from '@/components/intro/StoreProductCard.vue'
 import StoreCartDrawer from '@/components/intro/StoreCartDrawer.vue'
 import StoreProductModal from '@/components/intro/StoreProductModal.vue'
+import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
 import { withApiFallback } from '@/utils/apiFallback'
 import {
@@ -98,17 +99,17 @@ function addToCart(product) {
       productId: product.productId,
       name: product.name,
       brand: product.brand,
-      image: product.image,
       price: product.price,
+      image: product.image,
       qty: 1,
     })
   }
-  productModalOpen.value = false
+  cartOpen.value = true
 }
 
 function updateCartQty(id, qty) {
-  if (qty < 1) {
-    cartItems.value = cartItems.value.filter((item) => item.id !== id)
+  if (qty <= 0) {
+    removeFromCart(id)
     return
   }
   const item = cartItems.value.find((i) => i.id === id)
@@ -116,13 +117,13 @@ function updateCartQty(id, qty) {
 }
 
 function removeFromCart(id) {
-  cartItems.value = cartItems.value.filter((item) => item.id !== id)
+  cartItems.value = cartItems.value.filter((i) => i.id !== id)
 }
 
 async function handleCheckout() {
-  const name = window.prompt('Nhập họ tên để nhân viên liên hệ:')
+  const name = window.prompt('Nhập họ tên để chuyên viên liên hệ:')
   if (!name?.trim()) return
-  const phone = window.prompt('Số điện thoại:')
+  const phone = window.prompt('Số điện thoại liên hệ:')
   if (!phone?.trim()) return
 
   if (!useMockCatalog.value) {
@@ -170,7 +171,7 @@ function selectCategory(id) {
     </div>
 
     <main>
-      <!-- Hero -->
+      <!-- Hero ban đầu với màu đỏ #7a0c10 -->
       <section class="pt-4 text-white">
         <div class="relative w-full overflow-hidden bg-[#7a0c10] shadow-xl">
           <div
@@ -197,32 +198,34 @@ function selectCategory(id) {
           <div class="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col items-start px-6 py-16 md:px-10 md:py-20 lg:min-h-[calc(100vh-88px)] lg:justify-center lg:px-16 lg:py-24 xl:px-20">
             <transition name="fade" mode="out-in">
               <div :key="activeSlide" class="max-w-xl lg:max-w-2xl">
-              <span
-                class="inline-block rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white"
-                :class="`bg-gradient-to-r ${heroSlides[activeSlide].accent}`"
-              >
-                {{ heroSlides[activeSlide].badge }}
-              </span>
-              <h1 class="mt-5 max-w-2xl text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
-                {{ heroSlides[activeSlide].title }}
-              </h1>
-              <p class="mt-4 max-w-xl text-lg text-gray-300">
-                {{ heroSlides[activeSlide].subtitle }}
-              </p>
-              <div class="mt-8 flex flex-wrap gap-4">
-                <a
-                  href="#san-pham"
-                  class="rounded-xl bg-white px-8 py-3 font-semibold text-gray-900 transition hover:bg-gray-100"
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white"
+                  :class="`bg-gradient-to-r ${heroSlides[activeSlide].accent}`"
                 >
-                  {{ heroSlides[activeSlide].cta }}
-                </a>
-                <a
-                  :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-                  class="rounded-xl border border-white/40 px-8 py-3 font-medium transition hover:bg-white/10"
-                >
-                  Tư vấn: {{ storeInfo.hotlineDisplay }}
-                </a>
-              </div>
+                  <StoreDeviceIcon name="fire" size-class="h-3.5 w-3.5 text-white" />
+                  <span>{{ heroSlides[activeSlide].badge }}</span>
+                </span>
+                <h1 class="mt-5 max-w-2xl text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
+                  {{ heroSlides[activeSlide].title }}
+                </h1>
+                <p class="mt-4 max-w-xl text-lg text-gray-300">
+                  {{ heroSlides[activeSlide].subtitle }}
+                </p>
+                <div class="mt-8 flex flex-wrap gap-4">
+                  <a
+                    href="#san-pham"
+                    class="rounded-xl bg-white px-8 py-3 font-semibold text-gray-900 transition hover:bg-gray-100"
+                  >
+                    {{ heroSlides[activeSlide].cta }}
+                  </a>
+                  <a
+                    :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
+                    class="inline-flex items-center gap-2 rounded-xl border border-white/40 px-8 py-3 font-medium transition hover:bg-white/10"
+                  >
+                    <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-white" />
+                    <span>Tư vấn: {{ storeInfo.hotlineDisplay }}</span>
+                  </a>
+                </div>
               </div>
             </transition>
 
@@ -231,7 +234,7 @@ function selectCategory(id) {
                 v-for="(_, index) in heroSlides"
                 :key="index"
                 type="button"
-                class="h-2 rounded-full transition-all"
+                class="h-2 rounded-full transition-all cursor-pointer"
                 :class="index === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'"
                 :aria-label="`Slide ${index + 1}`"
                 @click="goToSlide(index)"
@@ -251,7 +254,7 @@ function selectCategory(id) {
         </div>
       </section>
 
-      <!-- Categories -->
+      <!-- Categories ban đầu với Icon vector mới -->
       <section class="mx-auto max-w-7xl px-4 py-14">
         <div class="text-center">
           <h2 class="text-2xl font-bold md:text-3xl">Danh mục nổi bật</h2>
@@ -262,11 +265,16 @@ function selectCategory(id) {
             v-for="cat in categories"
             :key="cat.name"
             href="#san-pham"
-            class="flex flex-col items-center rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-gray-100 transition hover:shadow-md"
+            class="flex flex-col items-center rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-gray-100 transition hover:shadow-md group"
             :class="cat.color"
             @click.prevent="selectCategory(cat.name === 'Điện thoại' ? 'phone' : cat.name === 'Tablet' ? 'tablet' : cat.name === 'Laptop' ? 'laptop' : cat.name === 'Phụ kiện' ? 'accessory' : cat.name === 'Đồng hồ' ? 'watch' : 'all')"
           >
-            <span class="text-3xl">{{ cat.icon }}</span>
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 group-hover:scale-110 transition-transform">
+              <StoreDeviceIcon
+                :name="cat.name === 'Điện thoại' ? 'phone' : cat.name === 'Tablet' ? 'tablet' : cat.name === 'Laptop' ? 'laptop' : cat.name === 'Phụ kiện' ? 'accessory' : cat.name === 'Đồng hồ' ? 'watch' : 'all'"
+                size-class="h-6 w-6"
+              />
+            </div>
             <p class="mt-3 font-semibold">{{ cat.name }}</p>
             <p class="mt-1 text-xs opacity-80">{{ cat.count }}</p>
           </a>
@@ -313,11 +321,15 @@ function selectCategory(id) {
                     v-for="cat in catalogCategories"
                     :key="cat.id"
                     type="button"
-                    class="rounded-xl px-3 py-2 text-left text-sm font-medium transition"
+                    class="flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition cursor-pointer"
                     :class="selectedCategory === cat.id ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
                     @click="selectedCategory = cat.id"
                   >
-                    {{ cat.icon }} {{ cat.label }}
+                    <StoreDeviceIcon
+                      :name="cat.id === 'phone' ? 'phone' : cat.id === 'tablet' ? 'tablet' : cat.id === 'laptop' ? 'laptop' : cat.id === 'accessory' ? 'accessory' : cat.id === 'watch' ? 'watch' : 'all'"
+                      size-class="h-4 w-4"
+                    />
+                    <span>{{ cat.label }}</span>
                   </button>
                 </div>
               </div>
@@ -362,11 +374,14 @@ function selectCategory(id) {
       <!-- Promo banner -->
       <section id="khuyen-mai" class="mx-auto max-w-7xl px-4 py-6">
         <div
-          class="overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 p-8 text-white md:p-12"
+          class="overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 p-8 text-white md:p-12 shadow-lg shadow-red-500/20"
         >
           <div class="flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div>
-              <p class="text-sm font-semibold uppercase tracking-wider text-red-100">Flash sale</p>
+              <p class="text-sm font-semibold uppercase tracking-wider text-red-100 flex items-center gap-1.5">
+                <StoreDeviceIcon name="fire" size-class="h-4 w-4 text-amber-300" />
+                <span>Flash sale</span>
+              </p>
               <h2 class="mt-2 text-3xl font-bold md:text-4xl">Giảm thêm 500.000đ</h2>
               <p class="mt-2 max-w-lg text-red-50">
                 Áp dụng khi thanh toán online hoặc trả góp qua thẻ — Duy nhất cuối tuần này.
@@ -375,15 +390,16 @@ function selectCategory(id) {
             <div class="flex shrink-0 flex-col gap-3 sm:flex-row">
               <a
                 href="#san-pham"
-                class="rounded-xl bg-white px-8 py-3 text-center font-semibold text-red-600 transition hover:bg-red-50"
+                class="rounded-xl bg-white px-8 py-3 text-center font-semibold text-red-600 transition hover:bg-red-50 shadow-sm"
               >
                 Săn deal ngay
               </a>
               <a
                 :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-                class="rounded-xl border border-white/50 px-8 py-3 text-center font-medium transition hover:bg-white/10"
+                class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/50 px-8 py-3 text-center font-medium transition hover:bg-white/10"
               >
-                Gọi tư vấn
+                <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-white" />
+                <span>Gọi tư vấn</span>
               </a>
             </div>
           </div>
@@ -423,7 +439,7 @@ function selectCategory(id) {
         </div>
       </section>
 
-      <!-- Services -->
+      <!-- Services với Icon vector mới -->
       <section id="dich-vu" class="mx-auto max-w-7xl px-4 py-14">
         <div class="text-center">
           <h2 class="text-2xl font-bold md:text-3xl">Dịch vụ tại cửa hàng</h2>
@@ -433,13 +449,13 @@ function selectCategory(id) {
           <article
             v-for="service in services"
             :key="service.title"
-            class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+            class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition"
           >
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-2xl text-red-600">
-              <span v-if="service.icon === 'shield'">🛡️</span>
-              <span v-else-if="service.icon === 'card'">💳</span>
-              <span v-else-if="service.icon === 'wrench'">🔧</span>
-              <span v-else>🚚</span>
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <StoreDeviceIcon v-if="service.icon === 'shield'" name="warranty" size-class="h-6 w-6" />
+              <StoreDeviceIcon v-else-if="service.icon === 'card'" name="installment" size-class="h-6 w-6" />
+              <StoreDeviceIcon v-else-if="service.icon === 'wrench'" name="trade-in" size-class="h-6 w-6" />
+              <StoreDeviceIcon v-else name="delivery" size-class="h-6 w-6" />
             </div>
             <h3 class="mt-4 font-semibold">{{ service.title }}</h3>
             <p class="mt-2 text-sm leading-relaxed text-gray-600">{{ service.description }}</p>
@@ -490,8 +506,9 @@ function selectCategory(id) {
             <ul class="mt-4 space-y-2 text-sm">
               <li>
                 <span class="text-gray-500">Điện thoại:</span>
-                <a :href="`tel:${branch.phone.replace(/\s/g, '')}`" class="ml-1 font-medium text-red-600">
-                  {{ branch.phone }}
+                <a :href="`tel:${branch.phone.replace(/\s/g, '')}`" class="ml-1 inline-flex items-center gap-1 font-medium text-red-600">
+                  <StoreDeviceIcon name="phone-call" size-class="h-3.5 w-3.5 text-red-600" />
+                  <span>{{ branch.phone }}</span>
                 </a>
               </li>
               <li>
@@ -513,9 +530,14 @@ function selectCategory(id) {
         <div class="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-gray-200">
           <div class="flex h-56 items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 text-gray-500 md:h-72">
             <div class="text-center">
-              <p class="text-4xl">📍</p>
-              <p class="mt-2 font-medium">{{ storeInfo.address }}</p>
-              <p class="text-sm">Bản đồ cửa hàng — tích hợp Google Maps sau</p>
+              <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-md mb-2">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <p class="font-medium text-gray-800">{{ storeInfo.address }}</p>
+              <p class="text-sm text-gray-500 mt-0.5">Bản đồ cửa hàng — hỗ trợ giao hàng và trải nghiệm thực tế</p>
             </div>
           </div>
         </div>
@@ -531,9 +553,10 @@ function selectCategory(id) {
           <div class="mt-8 flex flex-wrap justify-center gap-4">
             <a
               :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-              class="rounded-xl bg-red-600 px-8 py-3 font-semibold transition hover:bg-red-700"
+              class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-8 py-3 font-semibold transition hover:bg-red-700 shadow-md"
             >
-              Gọi {{ storeInfo.hotlineDisplay }}
+              <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-white" />
+              <span>Gọi {{ storeInfo.hotlineDisplay }}</span>
             </a>
             <a
               href="#cua-hang"

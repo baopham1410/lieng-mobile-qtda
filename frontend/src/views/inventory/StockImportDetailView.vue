@@ -412,6 +412,11 @@ async function persistDraft() {
   message.value = ''
   error.value = ''
 
+  if (!selectedSupplier.value) {
+    error.value = 'Vui lòng chọn hoặc thêm nhà cung cấp'
+    return false
+  }
+
   if (isAddingSupplier.value) {
     if (!newSupplier.value.name.trim()) {
       error.value = 'Vui lòng nhập tên nhà cung cấp'
