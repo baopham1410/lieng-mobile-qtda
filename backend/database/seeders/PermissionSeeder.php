@@ -31,6 +31,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'customers.view', 'module' => 'customers'],
             ['name' => 'customers.create', 'module' => 'customers'],
             ['name' => 'customers.update', 'module' => 'customers'],
+            ['name' => 'customers.delete', 'module' => 'customers'],
             ['name' => 'finance.view', 'module' => 'finance'],
             ['name' => 'finance.create', 'module' => 'finance'],
             ['name' => 'finance.reports', 'module' => 'finance'],
