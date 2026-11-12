@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>Liêng Mobile POS</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-error": "#ffffff", "on-secondary-container": "#63001e", "on-secondary-fixed": "#400010", "secondary-container": "#fe5e7a", "on-secondary-fixed-variant": "#910130", "error": "#ba1a1a", "on-primary-container": "#ff8076", "primary-fixed-dim": "#ffb3ac", "background": "#f7f9fb", "surface-dim": "#d8dadc", "secondary-fixed-dim": "#ffb2ba", "on-surface": "#191c1e", "on-surface-variant": "#58413f", "primary-container": "#7a0c10", "error-container": "#ffdad6", "on-tertiary-fixed": "#1f1a1b", "inverse-primary": "#ffb3ac", "on-error-container": "#93000a", "secondary": "#b32446", "outline": "#8c716e", "secondary-fixed": "#ffd9dc", "surface-container": "#eceef0", "tertiary-fixed": "#ebe0e0", "surface-container-low": "#f2f4f6", "outline-variant": "#dfbfbc", "surface-bright": "#f7f9fb", "surface-tint": "#ab332e", "tertiary-container": "#403a3a", "primary-fixed": "#ffdad6", "on-primary-fixed": "#410003", "on-secondary": "#ffffff", "on-tertiary-fixed-variant": "#4c4546", "primary": "#550005", "surface-variant": "#e0e3e5", "tertiary-fixed-dim": "#cec4c4", "surface-container-high": "#e6e8ea", "tertiary": "#2a2525", "on-primary": "#ffffff", "on-primary-fixed-variant": "#8a1a1a", "surface-container-lowest": "#ffffff", "inverse-on-surface": "#eff1f3", "on-tertiary": "#ffffff", "on-background": "#191c1e", "on-tertiary-container": "#ada4a4", "surface-container-highest": "#e0e3e5", "surface": "#f7f9fb", "inverse-surface": "#2d3133" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "margin": "1rem", "space-xs": "0.25rem", "margin-tablet": "1.5rem", "space-sm": "0.5rem", "gutter": "1rem", "space-2xl": "2rem", "gutter-compact": "0.75rem", "space-md": "0.75rem", "space-lg": "1rem", "space-xl": "1.5rem" }, fontFamily: { "body-sm": ["Inter"], "body-lg": ["Inter"], "label-sm": ["Inter"], "label-md": ["Inter"], "headline-md": ["Inter"], "display-currency": ["Inter"], "label-lg": ["Inter"], "headline-sm": ["Inter"], "display-currency-mobile": ["Inter"], "body-md": ["Inter"], "headline-lg": ["Inter"] }, fontSize: { "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }], "display-currency": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "600" }], "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }], "display-currency-mobile": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }] } } } }</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="Liêng Mobile Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/ALJJyrCo2mOcwL6nSVtbATQlxHDLxZKVk4ZuqVpBmUE00PdhCmJcZEMwjgOHmiRHs6LXyH0S_GYeWj3n9k-A4LXof7K2lIx9p50DMCDI4IxLd23jvIfeq30VafmTSpeJnkrC_8Q9deJxTKBADoVDcRzo58xyxXRJ7C_xI31sIS1s2qODP2rfavaCxHgFGDToC2tj_a1dZwJKfChhloI1qcI1UHbO66XI--Ucsg368DW8h_UQ"/><div class="flex flex-col"><div class="flex items-center gap-1"><span class="font-headline-sm text-headline-sm text-primary-container leading-none">Liêng Mobile</span><span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-semibold">POS</span></div><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">store</span>Chi nhánh Cầu Giấy • Toi</span></div></div><div class="flex items-center gap-space-sm"><button class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:bg-surface-container-high transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-secondary"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-28 bg-surface"><div class="flex flex-col w-full px-space-lg py-space-md gap-space-lg pb-12">
+<!-- 1. THẺ HỒ SƠ NHÂN VIÊN -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md transition-all">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-surface-container-high shadow-inner">
+<img alt="Nguyễn Văn A - Tư vấn bán lẻ" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ8pu5nndv5S-voRv7hLvPsJJGYBQ_GA01b4Z28dCOhfH9B-Gk5E5V8gNnxeC0wt22GBsmlWR1j-rMWOjpjOSHbBWOk4wXwBpCegT3VqIoYnX7XD5CVJovrO6Y1d3LHiplp42TIFpdbVlnfbnrGzJaGl8qJWB_N2bIUAUB7xF7n-zy02AYYhvkNHFkacdk9YiQ4NCQiAgE4Wac2sESx6Mtf8uPyO3TV_fRPxYMmVU"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-secondary-fixed flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-[10px] text-on-secondary-fixed">verified</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Nguyễn Văn A</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">banhang@liengmobile.com</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[12px] text-primary-container">call</span>
+            0988.777.666
+          </span>
+</div>
+</div>
+<button class="flex-shrink-0 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface-variant text-label-md font-label-md flex items-center gap-1 active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[14px]">edit</span>
+<span>Sửa</span>
+</button>
+</div>
+<!-- Chức danh POS Badge -->
+<div class="flex items-center gap-2 p-2.5 rounded-xl bg-primary-fixed/40 text-on-primary-fixed">
+<span class="material-symbols-outlined text-[18px] text-primary-container" style="font-variation-settings: 'FILL' 1;">shield_person</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-primary-container tracking-wide uppercase">Cấp bậc chuyên môn</span>
+<span class="font-label-md text-label-md text-on-primary-fixed truncate">Nhân viên Bán hàng &amp; Tư vấn POS (Flagship Level 2)</span>
+</div>
+</div>
+</section>
+<!-- 2. THẺ CA LÀM VIỆC & CHI NHÁNH (RETAIL SHIFT & STORE) -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<!-- Tiêu đề & Trạng thái ca -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary shadow-xs">
+<span class="material-symbols-outlined text-[18px]">badge</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">PHIÊN TRỰC QUẦY</span>
+<span class="font-label-lg text-label-lg text-on-surface">Ca chính: Bán lẻ &amp; Quầy POS</span>
+</div>
+</div>
+<!-- Trạng thái live -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Đang trong ca</span>
+</div>
+</div>
+<!-- Chi tiết khung giờ -->
+<div class="flex items-center justify-between px-3 py-2 rounded-xl bg-surface-container-low text-on-surface">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">schedule</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Khung giờ:</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-primary-container">08:00 — 16:30 (Hôm nay)</span>
+</div>
+<!-- Doanh số ca cá nhân & Progress Bar -->
+<div class="flex flex-col gap-1.5 p-3 rounded-xl bg-surface-container-lowest shadow-xs">
+<div class="flex items-baseline justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">DOANH SỐ ĐÃ CHỐT</span>
+<span class="font-label-md text-label-md text-primary-container font-bold">85% chỉ tiêu</span>
+</div>
+<div class="flex items-baseline justify-between">
+<span class="font-display-currency-mobile text-display-currency-mobile text-primary-container">42.500.000 <span class="text-sm font-normal text-on-surface-variant">đ</span></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mục tiêu: 50.000.000 đ</span>
+</div>
+<!-- Progress Bar Liêng Red -->
+<div class="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden mt-1">
+<div class="h-full bg-primary-container rounded-full transition-all duration-500 ease-out" style="width: 85%;"></div>
+</div>
+</div>
+<!-- Phân cách thẩm mỹ màu nhẹ -->
+<div class="h-px w-full bg-surface-container-high my-0.5"></div>
+<!-- Thông tin Flagship Store -->
+<div class="flex flex-col gap-2">
+<div class="flex items-start gap-3">
+<div class="w-9 h-9 rounded-xl bg-primary-fixed flex items-center justify-center text-primary-container flex-shrink-0 mt-0.5 shadow-xs">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center gap-1.5">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Liêng Mobile - Flagship #01</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-medium">Q.3</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-0.5 leading-snug">
+            123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
+          </span>
+<div class="flex items-center gap-1.5 mt-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-primary-container">support_agent</span>
+<span class="font-body-sm text-body-sm">Quản lý ca trực:</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Trần Quốc Bảo</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. THẺ TÙY CHỌN & TIỆN ÍCH NGHIỆP VỤ -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Cài đặt &amp; Nghiệp vụ POS</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hệ thống v2.6</span>
+</div>
+<!-- Mục 1: Bộ chuyển đổi ngôn ngữ -->
+<div class="flex flex-col gap-2 p-3 rounded-xl bg-surface-container-low">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary-container">translate</span>
+<span class="font-label-lg text-label-lg text-on-surface">Ngôn ngữ hiển thị</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Song ngữ Việt - Lào</span>
+</div>
+<!-- Tab ngôn ngữ -->
+<div class="grid grid-cols-2 gap-1.5 p-1 bg-surface-container-highest rounded-xl text-center">
+<button class="py-2 px-3 rounded-lg bg-surface-container-lowest text-primary-container font-label-md text-label-md font-semibold shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all" type="button">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>Tiếng Việt (Chuẩn)</span>
+</button>
+<button class="py-2 px-3 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container active:scale-95 transition-all flex items-center justify-center gap-1" type="button">
+<span>ພາສາລາວ (Lao)</span>
+</button>
+</div>
+</div>
+<!-- Mục 2: Phục vụ khách hàng VIP - Quán nhỏ Bar/Lounge -->
+<a class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors group" href="#">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed flex-shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[22px]">local_cafe</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Tiện ích "Quán Nhỏ"</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-primary-container text-on-primary">VIP Care</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Gọi trà, cà phê phục vụ khách tại bàn trải nghiệm máy</span>
+</div>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant group-hover:text-primary-container transition-colors">
+<span class="font-label-sm text-label-sm font-semibold">Menu</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</a>
+<!-- Mục 3: Cấu hình máy in hóa đơn POS -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant flex-shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[22px]">print</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Máy in bill hóa đơn POS</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Epson TM-T82 (Cổng LAN/Bluetooth)</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+<span class="font-label-sm text-label-sm text-on-secondary-container font-semibold">Sẵn sàng</span>
+<button class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-95 ml-1" type="button">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+</button>
+</div>
+</div>
+<!-- Mục 4: Thông tin máy chủ trung tâm -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant flex-shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[22px]">dns</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Máy chủ POS Trung tâm</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Đồng bộ đám mây thời gian thực</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-container">wifi</span>
+<span class="font-label-sm text-label-sm text-primary-container font-bold">18 ms</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Bình thường</span>
+</div>
+</div>
+</section>
+<!-- 4. KHU VỰC ĐĂNG XUẤT & PHIÊN BẢN HỆ THỐNG -->
+<section class="flex flex-col items-center gap-space-md pt-2">
+<!-- Nút Đăng xuất màu Đỏ Đô Liêng Mobile -->
+<button class="w-full min-h-[52px] rounded-2xl bg-primary-container hover:bg-primary active:scale-[0.98] text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-md transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">logout</span>
+<span>ĐĂNG XUẤT TÀI KHOẢN POS</span>
+</button>
+<!-- Thông tin phiên bản & Bản quyền phần mềm -->
+<div class="flex flex-col items-center text-center gap-0.5 px-space-md">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+<span class="font-label-sm text-label-sm font-semibold tracking-wide">Liêng Mobile Retail POS v2.6.4</span>
+<span class="font-label-sm text-label-sm px-1 rounded bg-surface-container-high">Build 20261109</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant/80 mt-0.5">
+        Bản quyền thiết kế &amp; vận hành thuộc Liêng Mobile Inc.
+      </span>
+</div>
+</section>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)]" data-active-classes="text-primary-container font-semibold"><div class="h-16 px-space-xs flex items-center justify-around relative"><a class="flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 text-on-surface-variant transition-colors" data-path="tong-quan" href="#"><span class="material-symbols-outlined text-[24px]">dashboard</span><span class="font-label-sm text-label-sm mt-0.5">Tổng quan</span></a><a class="flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 text-on-surface-variant transition-colors" data-path="don-hang" href="#"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="font-label-sm text-label-sm mt-0.5">Đơn hàng</span></a><div class="flex-1 flex flex-col items-center justify-center relative"><a class="-top-5 absolute flex flex-col items-center justify-center" data-path="quay-pos" href="#"><div class="w-14 h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-[0_6px_16px_rgba(122,12,16,0.35)] active:scale-95 transition-transform"><span class="material-symbols-outlined text-[28px]">point_of_sale</span></div><span class="font-label-sm text-label-sm font-semibold text-primary-container mt-10">Quầy POS</span></a></div><a class="flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 text-on-surface-variant transition-colors" data-path="dich-vu" href="#"><span class="material-symbols-outlined text-[24px]">verified_user</span><span class="font-label-sm text-label-sm mt-0.5">Dịch vụ</span></a><a aria-current="page" class="flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 transition-colors text-primary-container font-semibold" data-path="toi" href="#"><span class="material-symbols-outlined text-[24px]">account_circle</span><span class="font-label-sm text-label-sm mt-0.5">Tôi</span></a></div></nav></body></html>

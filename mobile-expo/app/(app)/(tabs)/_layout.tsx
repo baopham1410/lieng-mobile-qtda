@@ -11,10 +11,10 @@ export default function TabsLayout() {
       }}
       initialRouteName="home"
     >
-      {/* 5 Tab chính của Shell Cửa hàng Lieng Mobile (Issue #115 & #116) */}
+      {/* 5 Tab chính của Shell Cửa hàng Lieng Mobile theo chuẩn Google Stitch */}
       <Tabs.Screen name="home" options={{ title: 'Tổng quan' }} />
-      <Tabs.Screen name="pos" options={{ title: 'Quầy POS' }} />
       <Tabs.Screen name="orders" options={{ title: 'Đơn hàng' }} />
+      <Tabs.Screen name="pos" options={{ title: 'Quầy POS' }} />
       <Tabs.Screen name="services" options={{ title: 'Dịch vụ' }} />
       <Tabs.Screen name="account" options={{ title: 'Tôi' }} />
 

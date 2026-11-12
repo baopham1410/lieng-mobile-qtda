@@ -11,10 +11,37 @@ export const TOKEN_KEY = 'auth_token'
 export const USER_KEY = 'auth_user'
 
 export const Colors = {
-  /** Đỏ thương hiệu (AuthLayout / sidebar) */
+  /** Google Stitch - Premium Flagship Retail Theme */
+  primary: '#550005',
+  primaryContainer: '#7A0C10',
+  onPrimary: '#FFFFFF',
+  onPrimaryContainer: '#FF8076',
+  inversePrimary: '#FFB3AC',
+
+  secondary: '#B32446',
+  secondaryContainer: '#FE5E7A',
+  secondaryFixed: '#FFD9DC',
+  secondaryFixedDim: '#FFB2BA',
+  onSecondaryFixed: '#400010',
+
+  surface: '#F7F9FB',
+  surfaceDim: '#D8DADC',
+  surfaceBright: '#F7F9FB',
+  surfaceContainerLowest: '#FFFFFF',
+  surfaceContainerLow: '#F2F4F6',
+  surfaceContainer: '#ECEEF0',
+  surfaceContainerHigh: '#E6E8EA',
+  surfaceContainerHighest: '#E0E3E5',
+
+  onSurface: '#191C1E',
+  onSurfaceVariant: '#58413F',
+  outline: '#8C716E',
+  outlineVariant: '#DFBFBC',
+
+  /** Đỏ thương hiệu (AuthLayout / sidebar tương thích) */
   brand: '#7A0C10',
-  brandDeep: '#5B0B0F',
-  brandSoft: '#9F1239',
+  brandDeep: '#550005',
+  brandSoft: '#B32446',
 
   /** Accent đỏ */
   accent: '#DC2626',
@@ -29,14 +56,14 @@ export const Colors = {
   amberBorder: '#FDE68A',
 
   /** Nền shell web */
-  canvas: '#FDF2F2',
+  canvas: '#F7F9FB',
   panel: '#FFFFFF',
-  panelSoft: '#FFF7F7',
+  panelSoft: '#F2F4F6',
   panelWarm: '#FFF8F0',
   white: '#FFFFFF',
-  ink: '#111118',
+  ink: '#191C1E',
 
-  /** Status - Emerald green (chuẩn Tailwind của Web) */
+  /** Status - Emerald green */
   green: '#059669',
   greenDeep: '#047857',
   greenSoft: '#ECFDF5',
@@ -44,9 +71,9 @@ export const Colors = {
   greenRing: '#6EE7B7',
 
   /** Status - Red */
-  red: '#DC2626',
-  redDeep: '#B91C1C',
-  redSoft: '#FEF2F2',
+  red: '#BA1A1A',
+  redDeep: '#93000A',
+  redSoft: '#FFDAD6',
   redBorder: '#FECACA',
   redRing: '#FCA5A5',
 
@@ -57,22 +84,22 @@ export const Colors = {
   blueBorder: '#BAE6FD',
 
   /** Slates & Grays */
-  slate: '#64748B',
-  slate400: '#94A3B8',
+  slate: '#58413F',
+  slate400: '#8C716E',
   slate500: '#64748B',
   slate600: '#475569',
   slate700: '#334155',
-  slateLight: '#F1F5F9',
+  slateLight: '#F2F4F6',
   slate50: '#F8FAFC',
-  slate100: '#F1F5F9',
+  slate100: '#ECEEF0',
   slate200: '#E2E8F0',
-  tabInactive: '#94A3B8',
+  tabInactive: '#8C716E',
 
   /** Borders */
-  border: '#FECACA',
-  borderLight: '#FEE2E2',
+  border: '#DFBFBC',
+  borderLight: '#ECEEF0',
   borderAmber: '#FDE68A',
-  shadow: 'rgba(0, 0, 0, 0.04)',
+  shadow: 'rgba(0, 0, 0, 0.05)',
 } as const
 
 export const Radius = {
