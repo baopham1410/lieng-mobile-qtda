@@ -184,7 +184,7 @@ export function WarehouseStockCenter() {
   if (loading && !data) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#8C1D18" />
+        <ActivityIndicator size="large" color="#7A0C10" />
         <Text style={styles.loadingText}>Đang tải dữ liệu kho thực tế...</Text>
       </View>
     )
@@ -194,20 +194,20 @@ export function WarehouseStockCenter() {
 
   return (
     <View style={styles.container}>
-      {/* ── TOOLBAR / SCANNER BAR ── */}
+      {/* ── TOOLBAR / SCANNER BAR (Chuẩn màu Brand Lieng) ── */}
       <View style={styles.topToolbar}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={17} color="#78716C" />
+          <Ionicons name="search" size={17} color="#7A0C10" />
           <TextInput
             style={styles.searchInput}
             placeholder="Tìm theo tên máy, SKU, số IMEI..."
-            placeholderTextColor="#A8A29E"
+            placeholderTextColor="#8C716E"
             value={search}
             onChangeText={setSearch}
           />
           {search !== '' && (
             <Pressable onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={16} color="#78716C" />
+              <Ionicons name="close-circle" size={16} color="#7A0C10" />
             </Pressable>
           )}
         </View>
@@ -223,35 +223,38 @@ export function WarehouseStockCenter() {
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#8C1D18']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#7A0C10']} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── KPI METRICS CARDS (Pure DB Data) ── */}
+        {/* ── KPI METRICS CARDS (Chuẩn Tone Đỏ Rượu Vang #7A0C10 & Hồng Phấn #FDF2F2) ── */}
         <View style={styles.kpiGrid}>
-          <View style={[styles.kpiCard, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
-            <View style={styles.kpiIconWrap}>
-              <Ionicons name="cube" size={20} color="#B45309" />
+          {/* Card 1: Tồn sẵn sàng (Đỏ đô chủ đạo) */}
+          <View style={[styles.kpiCard, { backgroundColor: '#FDF2F2', borderColor: '#FECDD3' }]}>
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="cube" size={20} color="#7A0C10" />
             </View>
-            <Text style={styles.kpiLabel}>TỒN SẴN SÀNG</Text>
-            <Text style={[styles.kpiValue, { color: '#B45309' }]}>
+            <Text style={[styles.kpiLabel, { color: '#7A0C10' }]}>TỒN SẴN SÀNG</Text>
+            <Text style={[styles.kpiValue, { color: '#7A0C10' }]}>
               {kpis?.total_in_stock ?? 0} <Text style={styles.kpiUnit}>máy</Text>
             </Text>
             <Text style={styles.kpiSub}>Khớp 100% thẻ kho</Text>
           </View>
 
-          <View style={[styles.kpiCard, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#BBF7D0' }]}>
-              <Ionicons name="arrow-up-circle" size={20} color="#16A34A" />
+          {/* Card 2: Đã xuất bán (Emerald hoàn tất) */}
+          <View style={[styles.kpiCard, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#D1FAE5' }]}>
+              <Ionicons name="arrow-up-circle" size={20} color="#059669" />
             </View>
-            <Text style={[styles.kpiLabel, { color: '#16A34A' }]}>ĐÃ XUẤT BÁN</Text>
-            <Text style={[styles.kpiValue, { color: '#16A34A' }]}>
+            <Text style={[styles.kpiLabel, { color: '#059669' }]}>ĐÃ XUẤT BÁN</Text>
+            <Text style={[styles.kpiValue, { color: '#059669' }]}>
               {kpis?.total_exported ?? 0} <Text style={styles.kpiUnit}>máy</Text>
             </Text>
             <Text style={styles.kpiSub}>Đơn hoàn tất</Text>
           </View>
 
+          {/* Card 3: Phiếu nhập */}
           <View style={[styles.kpiCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#BFDBFE' }]}>
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#DBEAFE' }]}>
               <Ionicons name="receipt" size={20} color="#2563EB" />
             </View>
             <Text style={[styles.kpiLabel, { color: '#2563EB' }]}>PHIẾU NHẬP</Text>
@@ -261,12 +264,13 @@ export function WarehouseStockCenter() {
             <Text style={styles.kpiSub}>Từ NCC chính hãng</Text>
           </View>
 
-          <View style={[styles.kpiCard, { backgroundColor: '#FDF2F8', borderColor: '#FBCFE8' }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#FBCFE8' }]}>
-              <Ionicons name="time" size={20} color="#DB2777" />
+          {/* Card 4: Chờ xuất kho */}
+          <View style={[styles.kpiCard, { backgroundColor: '#FFF1F2', borderColor: '#FECDD3' }]}>
+            <View style={[styles.kpiIconWrap, { backgroundColor: '#FFE4E6' }]}>
+              <Ionicons name="time" size={20} color="#E11D48" />
             </View>
-            <Text style={[styles.kpiLabel, { color: '#DB2777' }]}>CHỜ XUẤT KHO</Text>
-            <Text style={[styles.kpiValue, { color: '#DB2777' }]}>
+            <Text style={[styles.kpiLabel, { color: '#E11D48' }]}>CHỜ XUẤT KHO</Text>
+            <Text style={[styles.kpiValue, { color: '#E11D48' }]}>
               {kpis?.pending_orders ?? 0} <Text style={styles.kpiUnit}>đơn</Text>
             </Text>
             <Text style={styles.kpiSub}>Cần chuẩn bị máy</Text>
@@ -297,10 +301,10 @@ export function WarehouseStockCenter() {
             disabled={auditing}
           >
             {auditing ? (
-              <ActivityIndicator size="small" color="#8C1D18" />
+              <ActivityIndicator size="small" color="#7A0C10" />
             ) : (
               <>
-                <Ionicons name="checkbox-outline" size={17} color="#8C1D18" />
+                <Ionicons name="checkbox-outline" size={17} color="#7A0C10" />
                 <Text style={styles.secondaryActionText}>Kiểm kê kho</Text>
               </>
             )}
@@ -391,7 +395,7 @@ export function WarehouseStockCenter() {
                         }
                       }}
                     >
-                      <Ionicons name="hardware-chip-outline" size={14} color="#8C1D18" />
+                      <Ionicons name="hardware-chip-outline" size={14} color="#7A0C10" />
                       <Text style={styles.quickImeiBtnText}>
                         {item.imei_list.length > 0 ? `Tra IMEI (${item.imei_list.length})` : 'Hết IMEI'}
                       </Text>
@@ -412,8 +416,8 @@ export function WarehouseStockCenter() {
                         </Pressable>
                       ))}
                       {item.imei_list.length > 3 && (
-                        <View style={[styles.imeiPill, { backgroundColor: '#F3E8E2' }]}>
-                          <Text style={[styles.imeiPillText, { color: '#8C1D18', fontWeight: '700' }]}>
+                        <View style={[styles.imeiPill, { backgroundColor: '#FDF2F2', borderColor: '#FECDD3' }]}>
+                          <Text style={[styles.imeiPillText, { color: '#7A0C10', fontWeight: '700' }]}>
                             +{item.imei_list.length - 3} máy khác
                           </Text>
                         </View>
@@ -433,7 +437,7 @@ export function WarehouseStockCenter() {
               <View key={imp.id} style={styles.importCard}>
                 <View style={styles.importTopRow}>
                   <View style={styles.importCodeBadge}>
-                    <Ionicons name="document-text-outline" size={13} color="#8C1D18" />
+                    <Ionicons name="document-text-outline" size={13} color="#7A0C10" />
                     <Text style={styles.importCodeText}>{imp.code}</Text>
                   </View>
                   <View style={styles.statusConfirmedBadge}>
@@ -466,19 +470,19 @@ export function WarehouseStockCenter() {
               <View key={ord.id} style={styles.exportCard}>
                 <View style={styles.exportTopRow}>
                   <View style={styles.exportCodeBadge}>
-                    <Ionicons name="cube-outline" size={13} color="#B45309" />
+                    <Ionicons name="cube-outline" size={13} color="#7A0C10" />
                     <Text style={styles.exportCodeText}>{ord.code}</Text>
                   </View>
                   <View
                     style={[
                       styles.exportStatusBadge,
-                      ord.status === 'completed' ? { backgroundColor: '#DCFCE7' } : { backgroundColor: '#FEF3C7' },
+                      ord.status === 'completed' ? { backgroundColor: '#ECFDF5' } : { backgroundColor: '#FDF2F2' },
                     ]}
                   >
                     <Text
                       style={[
                         styles.exportStatusText,
-                        ord.status === 'completed' ? { color: '#16A34A' } : { color: '#B45309' },
+                        ord.status === 'completed' ? { color: '#059669' } : { color: '#7A0C10' },
                       ]}
                     >
                       {ord.status_label}
@@ -567,7 +571,6 @@ export function WarehouseStockCenter() {
                     ]}
                     onPress={() => {
                       setSelectedVariantId(variant.id)
-                      // Suggest unit cost based on price - 15%
                       const approxCost = Math.round((variant.price * 0.85) / 10000) * 10000
                       setImportCost(approxCost.toString())
                     }}
@@ -622,12 +625,12 @@ export function WarehouseStockCenter() {
               <Text style={[styles.inputLabel, { marginTop: 14 }]}>Ghi chú phiếu nhập:</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="VD: Lô hàng bảo hành chính hãng từ FPT..."
+                placeholder="VD: Lô hàng chính hãng từ Apple/FPT Synnex..."
                 value={importNotes}
                 onChangeText={setImportNotes}
               />
 
-              {/* Total preview */}
+              {/* Total preview (Chuẩn màu Brand Lieng) */}
               <View style={styles.totalPreviewBox}>
                 <Text style={styles.totalPreviewLabel}>Tổng giá trị phiếu nhập:</Text>
                 <Text style={styles.totalPreviewValue}>
@@ -675,14 +678,14 @@ export function WarehouseStockCenter() {
 
             {imeiLoading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#8C1D18" />
+                <ActivityIndicator size="large" color="#7A0C10" />
                 <Text style={{ marginTop: 12, color: '#58413F' }}>Đang tra cứu số IMEI...</Text>
               </View>
             ) : scannedImei?.found ? (
               <View style={{ padding: 20 }}>
                 <View style={styles.imeiResultHeader}>
                   <View style={styles.imeiResultIcon}>
-                    <Ionicons name="phone-portrait" size={24} color="#8C1D18" />
+                    <Ionicons name="phone-portrait" size={24} color="#7A0C10" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.imeiCodeLarge}>{scannedImei.imei}</Text>
@@ -690,14 +693,14 @@ export function WarehouseStockCenter() {
                       style={[
                         styles.imeiStatusBadge,
                         scannedImei.status === 'in_stock'
-                          ? { backgroundColor: '#DCFCE7' }
-                          : { backgroundColor: '#FEF3C7' },
+                          ? { backgroundColor: '#ECFDF5' }
+                          : { backgroundColor: '#FDF2F2' },
                       ]}
                     >
                       <Text
                         style={[
                           styles.imeiStatusText,
-                          scannedImei.status === 'in_stock' ? { color: '#16A34A' } : { color: '#B45309' },
+                          scannedImei.status === 'in_stock' ? { color: '#059669' } : { color: '#7A0C10' },
                         ]}
                       >
                         {scannedImei.status_label}
@@ -720,7 +723,7 @@ export function WarehouseStockCenter() {
                 </View>
                 <View style={styles.imeiDetailRow}>
                   <Text style={styles.imeiDetailLabel}>Giá niêm yết:</Text>
-                  <Text style={[styles.imeiDetailVal, { color: '#8C1D18', fontWeight: '800' }]}>
+                  <Text style={[styles.imeiDetailVal, { color: '#7A0C10', fontWeight: '800' }]}>
                     {formatMoney(scannedImei.product?.price ?? 0)}
                   </Text>
                 </View>
@@ -778,13 +781,13 @@ export function WarehouseStockCenter() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBF9F8',
+    backgroundColor: '#F7F9FB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FBF9F8',
+    backgroundColor: '#F7F9FB',
   },
   loadingText: {
     marginTop: 12,
@@ -801,34 +804,36 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6E1E5',
+    borderBottomColor: '#ECEEF0',
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#F1F3F5',
     borderRadius: Radius.full,
     paddingHorizontal: 14,
     height: 40,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
   },
   searchInput: {
     flex: 1,
     fontSize: 13,
-    color: '#1C1B1F',
+    color: '#191C1E',
     paddingVertical: 0,
   },
   scanBtn: {
     width: 40,
     height: 40,
     borderRadius: Radius.full,
-    backgroundColor: '#8C1D18',
+    backgroundColor: '#7A0C10',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#8C1D18',
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowColor: '#7A0C10',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
     elevation: 3,
   },
   scrollContent: {
@@ -850,7 +855,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#FDE68A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -858,7 +862,6 @@ const styles = StyleSheet.create({
   kpiLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#B45309',
     letterSpacing: 0.5,
   },
   kpiValue: {
@@ -872,7 +875,7 @@ const styles = StyleSheet.create({
   },
   kpiSub: {
     fontSize: 11,
-    color: '#78716C',
+    color: '#64748B',
     marginTop: 2,
   },
   actionRow: {
@@ -881,17 +884,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   primaryActionBtn: {
-    backgroundColor: '#8C1D18',
+    backgroundColor: '#7A0C10',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
     borderRadius: Radius.lg,
-    shadowColor: '#8C1D18',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowColor: '#7A0C10',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   primaryActionText: {
     color: '#FFFFFF',
@@ -899,9 +902,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   secondaryActionBtn: {
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#FDF2F2',
     borderWidth: 1,
-    borderColor: '#E7D1C9',
+    borderColor: '#FECDD3',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -910,13 +913,13 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
   },
   secondaryActionText: {
-    color: '#8C1D18',
+    color: '#7A0C10',
     fontWeight: '700',
     fontSize: 13,
   },
   segmentContainer: {
     flexDirection: 'row',
-    backgroundColor: '#EAE5E1',
+    backgroundColor: '#F1F3F5',
     borderRadius: Radius.full,
     padding: 3,
     marginBottom: 16,
@@ -940,7 +943,7 @@ const styles = StyleSheet.create({
     color: '#58413F',
   },
   segmentTextActive: {
-    color: '#8C1D18',
+    color: '#7A0C10',
     fontWeight: '800',
   },
   tabContent: {
@@ -955,10 +958,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: Radius.full,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#F1F3F5',
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
   },
   categoryChipActive: {
-    backgroundColor: '#8C1D18',
+    backgroundColor: '#7A0C10',
+    borderColor: '#7A0C10',
   },
   categoryChipText: {
     fontSize: 12,
@@ -975,17 +981,17 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E6E1E5',
+    borderColor: '#ECEEF0',
   },
   emptyTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1C1B1F',
+    color: '#191C1E',
     marginTop: 8,
   },
   emptyDesc: {
     fontSize: 12,
-    color: '#78716C',
+    color: '#64748B',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -994,10 +1000,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ECE6E2',
+    borderColor: '#ECEEF0',
     shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
     elevation: 1,
   },
   inventoryHeader: {
@@ -1007,7 +1013,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   categoryTag: {
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#FDF2F2',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1017,34 +1023,36 @@ const styles = StyleSheet.create({
   categoryTagText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#8C1D18',
+    color: '#7A0C10',
   },
   productName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   skuText: {
     fontSize: 11,
-    color: '#78716C',
+    color: '#64748B',
     marginTop: 2,
   },
   stockBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FDF2F2',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
   },
   stockBadgeNumber: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#B45309',
+    color: '#7A0C10',
   },
   stockBadgeUnit: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#B45309',
+    color: '#7A0C10',
   },
   inventoryFooter: {
     flexDirection: 'row',
@@ -1053,18 +1061,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F5F0EC',
+    borderTopColor: '#F1F3F5',
   },
   priceText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#8C1D18',
+    color: '#7A0C10',
   },
   quickImeiBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.full,
@@ -1072,7 +1082,7 @@ const styles = StyleSheet.create({
   quickImeiBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#8C1D18',
+    color: '#7A0C10',
   },
   imeiPillContainer: {
     flexDirection: 'row',
@@ -1084,7 +1094,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1092,7 +1104,7 @@ const styles = StyleSheet.create({
   imeiPillText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#58413F',
+    color: '#334155',
     fontFamily: Platform.select({ ios: 'Courier', default: 'monospace' }),
   },
   importCard: {
@@ -1100,7 +1112,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ECE6E2',
+    borderColor: '#ECEEF0',
   },
   importTopRow: {
     flexDirection: 'row',
@@ -1116,10 +1128,10 @@ const styles = StyleSheet.create({
   importCodeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#8C1D18',
+    color: '#7A0C10',
   },
   statusConfirmedBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1127,12 +1139,12 @@ const styles = StyleSheet.create({
   statusConfirmedText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#059669',
   },
   importSupplierText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   importSummaryText: {
     fontSize: 12,
@@ -1146,7 +1158,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F5F0EC',
+    borderTopColor: '#F1F3F5',
   },
   importDateRow: {
     flexDirection: 'row',
@@ -1155,7 +1167,7 @@ const styles = StyleSheet.create({
   },
   importDateText: {
     fontSize: 11,
-    color: '#78716C',
+    color: '#64748B',
   },
   importQtyText: {
     fontSize: 11,
@@ -1165,14 +1177,14 @@ const styles = StyleSheet.create({
   importTotalText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#8C1D18',
+    color: '#7A0C10',
   },
   exportCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ECE6E2',
+    borderColor: '#ECEEF0',
   },
   exportTopRow: {
     flexDirection: 'row',
@@ -1188,7 +1200,7 @@ const styles = StyleSheet.create({
   exportCodeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#B45309',
+    color: '#7A0C10',
   },
   exportStatusBadge: {
     paddingHorizontal: 8,
@@ -1202,7 +1214,7 @@ const styles = StyleSheet.create({
   exportCustomerText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   exportSummaryText: {
     fontSize: 12,
@@ -1216,19 +1228,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F5F0EC',
+    borderTopColor: '#F1F3F5',
   },
   exportTimeText: {
     fontSize: 11,
-    color: '#78716C',
+    color: '#64748B',
   },
   exportTotalText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   verifyOrderBtn: {
-    backgroundColor: '#8C1D18',
+    backgroundColor: '#7A0C10',
     borderRadius: Radius.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1259,23 +1271,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECE6E2',
+    borderBottomColor: '#ECEEF0',
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   modalSubtitle: {
     fontSize: 12,
-    color: '#78716C',
+    color: '#64748B',
     marginTop: 2,
   },
   modalCloseBtn: {
     width: 32,
     height: 32,
     borderRadius: Radius.full,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#F1F3F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1298,13 +1310,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: Radius.full,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#F1F3F5',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#ECEEF0',
   },
   supplierChipActive: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#B45309',
+    backgroundColor: '#7A0C10',
+    borderColor: '#7A0C10',
   },
   supplierChipText: {
     fontSize: 12,
@@ -1312,69 +1324,71 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   supplierChipTextActive: {
-    color: '#B45309',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   variantSelectCard: {
     width: 140,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     padding: 10,
     marginRight: 8,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: '#E2E8F0',
   },
   variantSelectCardActive: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#8C1D18',
+    backgroundColor: '#FDF2F2',
+    borderColor: '#7A0C10',
   },
   variantSelectName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   variantSelectSku: {
     fontSize: 10,
-    color: '#78716C',
+    color: '#64748B',
     marginTop: 2,
   },
   variantSelectPrice: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#8C1D18',
+    color: '#7A0C10',
     marginTop: 4,
   },
   textInput: {
-    backgroundColor: '#FBF9F8',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E6E1E5',
+    borderColor: '#E2E8F0',
     borderRadius: Radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
-    color: '#1C1B1F',
+    color: '#191C1E',
   },
   totalPreviewBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FDF2F2',
     borderRadius: Radius.md,
     padding: 12,
     marginTop: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
   },
   totalPreviewLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#B45309',
+    color: '#7A0C10',
   },
   totalPreviewValue: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#B45309',
+    color: '#7A0C10',
   },
   submitImportBtn: {
-    backgroundColor: '#8C1D18',
+    backgroundColor: '#7A0C10',
     borderRadius: Radius.lg,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -1382,6 +1396,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 18,
+    shadowColor: '#7A0C10',
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 2,
   },
   submitImportBtnText: {
     color: '#FFFFFF',
@@ -1398,14 +1416,16 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F3E8E2',
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
     justifyContent: 'center',
     alignItems: 'center',
   },
   imeiCodeLarge: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#1C1B1F',
+    color: '#191C1E',
     fontFamily: Platform.select({ ios: 'Courier', default: 'monospace' }),
   },
   imeiStatusBadge: {
@@ -1424,18 +1444,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F0EC',
+    borderBottomColor: '#F1F3F5',
   },
   imeiDetailLabel: {
     fontSize: 13,
-    color: '#78716C',
+    color: '#64748B',
   },
   imeiDetailVal: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1C1B1F',
+    color: '#191C1E',
     maxWidth: '65%',
     textAlign: 'right',
   },
 })
-
