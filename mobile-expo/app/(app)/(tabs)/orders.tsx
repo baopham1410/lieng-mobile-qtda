@@ -327,6 +327,7 @@ export default function OrdersScreen() {
 
   const handleApproveDiscount = async (order: DisplayOrder) => {
     await approveOrderDiscount(order.code)
+    await loadOrders()
     Alert.alert(
       'Đã duyệt chiết khấu 🎉',
       `Đã phê duyệt chiết khấu VIP cho hóa đơn ${order.code}.\nTổng tiền thu: ${formatMoney(order.total)}.\nĐơn hàng đã được xác nhận hoàn tất và lưu hệ thống!`,

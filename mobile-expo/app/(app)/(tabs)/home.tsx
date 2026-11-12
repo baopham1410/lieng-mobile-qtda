@@ -209,6 +209,10 @@ export default function HomeScreen() {
     }
   }, [isStoreOwner, refreshStoreData, user?.name])
 
+  useEffect(() => {
+    onRefresh()
+  }, [onRefresh])
+
   const handleApproveDiscount = async (id: string) => {
     await approveOwnerRequest(id)
     Alert.alert(

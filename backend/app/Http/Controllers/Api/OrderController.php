@@ -7,6 +7,7 @@ use App\Http\Resources\OrderResource;
 use App\Models\ImeiCode;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\QuanEntry;
 use App\Models\Transaction;
 use App\Models\Warranty;
 use App\Services\ActivityLogger;
