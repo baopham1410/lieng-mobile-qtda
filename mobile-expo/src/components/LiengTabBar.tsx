@@ -44,7 +44,6 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
           }
           const { options } = descriptors[route.key]
           const label = options.title ?? meta.label
-          const isPos = route.name === 'pos'
 
           const onPress = () => {
             const event = navigation.emit({
@@ -57,39 +56,6 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
             }
           }
 
-          // Tab Quầy POS: Khi nhấn vào (focused) sẽ có hình tròn đỏ bao quanh như hình mẫu
-          if (isPos) {
-            return (
-              <Pressable
-                key={route.key}
-                accessibilityRole="button"
-                accessibilityState={{ selected: focused }}
-                accessibilityLabel={label}
-                onPress={onPress}
-                style={({ pressed }) => [
-                  styles.posItem,
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                {focused ? (
-                  // Có hình tròn bao quanh màu đỏ đô chuẩn hình khi chọn
-                  <View style={styles.posActiveCircle}>
-                    <MaterialIcons name="point-of-sale" size={26} color="#FFFFFF" />
-                  </View>
-                ) : (
-                  // Nằm thẳng hàng bình thường với các mục khác khi chưa chọn
-                  <View style={styles.posInactiveIconBox}>
-                    <MaterialIcons name="point-of-sale" size={22} color="#58413F" />
-                  </View>
-                )}
-                <Text style={[styles.label, focused && styles.labelFocused]}>
-                  {label}
-                </Text>
-              </Pressable>
-            )
-          }
-
-          // Các tab còn lại (Tổng quan, Đơn hàng, Dịch vụ, Tôi)
           return (
             <Pressable
               key={route.key}
@@ -99,34 +65,40 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
               onPress={onPress}
               style={({ pressed }) => [
                 styles.item,
-                pressed && { opacity: 0.75 },
+                pressed && { opacity: 0.8 },
               ]}
             >
-              <View
-                style={[
-                  styles.iconContainer,
-                  focused && styles.iconContainerFocused,
-                ]}
-              >
-                <Ionicons
-                  name={(focused ? meta.iconOn : meta.icon) as any}
-                  size={focused ? 22 : 21}
-                  color={focused ? '#7A0C10' : '#58413F'}
-                />
-                {options.tabBarBadge !== undefined && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
-                  </View>
-                )}
-              </View>
+              {focused ? (
+                // Khi bấm vào bất kỳ tab nào: có hình tròn đỏ đô bao quanh và phóng to
+                <View style={styles.activeCircle}>
+                  {meta.iconType === 'material' ? (
+                    <MaterialIcons name={meta.iconOn as any} size={25} color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name={meta.iconOn as any} size={24} color="#FFFFFF" />
+                  )}
+                  {options.tabBarBadge !== undefined && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                // Khi chưa chọn: nằm thẳng hàng bình thường với các mục khác
+                <View style={styles.inactiveIconBox}>
+                  {meta.iconType === 'material' ? (
+                    <MaterialIcons name={meta.icon as any} size={22} color="#58413F" />
+                  ) : (
+                    <Ionicons name={meta.icon as any} size={22} color="#58413F" />
+                  )}
+                  {options.tabBarBadge !== undefined && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
-              <Text
-                style={[
-                  styles.label,
-                  focused && styles.labelFocused,
-                ]}
-                numberOfLines={1}
-              >
+              <Text style={[styles.label, focused && styles.labelFocused]} numberOfLines={1}>
                 {label}
               </Text>
             </Pressable>
@@ -171,55 +143,26 @@ const styles = StyleSheet.create({
     }),
   },
 
-  // ── Tab Item thông thường ──
+  // ── Tab Item ──
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 2,
-    minHeight: 50,
+    minHeight: 52,
     gap: 3,
-  },
-  iconContainer: {
-    width: 38,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 15,
-  },
-  iconContainerFocused: {
-    backgroundColor: '#FFECEF',
-    transform: [{ scale: 1.05 }],
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#58413F',
-    textAlign: 'center',
-  },
-  labelFocused: {
-    color: '#7A0C10',
-    fontWeight: '700',
-    fontSize: 11.5,
   },
 
-  // ── Tab Quầy POS ──
-  posItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 2,
-    minHeight: 50,
-    gap: 3,
-  },
-  posActiveCircle: {
+  // ── Khi tab được chọn (focused): có hình tròn đỏ đô bao quanh và phóng to ──
+  activeCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#7A0C10', // Chuẩn hình tròn đỏ đậm trong hình
+    backgroundColor: '#7A0C10',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -10, // Nhẹ nhàng nổi tròn cân đối như ảnh
+    marginTop: -10, // Nổi tròn nhẹ cân đối
+    position: 'relative',
     ...Platform.select({
       ios: {
         shadowColor: '#7A0C10',
@@ -233,11 +176,26 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  posInactiveIconBox: {
+
+  // ── Khi tab chưa được chọn ──
+  inactiveIconBox: {
     width: 38,
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+
+  label: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#58413F',
+    textAlign: 'center',
+  },
+  labelFocused: {
+    color: '#7A0C10',
+    fontWeight: '700',
+    fontSize: 11.5,
   },
 
   // ── Badge ──
