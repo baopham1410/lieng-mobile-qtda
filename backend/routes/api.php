@@ -78,6 +78,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');
         Route::get('/customers/{customer}', [CustomerController::class, 'show']);
         Route::put('/customers/{customer}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
+        Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->middleware('permission:customers.delete');
 
         // Orders
         Route::get('/orders', [OrderController::class, 'index']);
