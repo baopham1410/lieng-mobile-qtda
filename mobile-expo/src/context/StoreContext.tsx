@@ -62,7 +62,7 @@ export interface StoreStats {
   ownerCashInVault: number
   ownerOrdersCount: number
   ownerPendingCount: number
-  totalOrders: number
+  totalOrders?: number
   completedCount: number
   pendingCount: number
   revenueToday: number
