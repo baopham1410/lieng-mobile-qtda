@@ -21,6 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ordersApi from '@/api/orders'
 import { Colors, Radius } from '@/constants/config'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
+import { useUserRole } from '@/hooks/useUserRole'
+import { useStore } from '@/context/StoreContext'
 
 interface DisplayOrder {
   id: number | string
@@ -31,13 +33,16 @@ interface DisplayOrder {
   itemCount: number
   itemsSummary: string
   paymentMethod: 'cash' | 'transfer' | 'mixed' | string
-  status: 'completed' | 'pending' | 'cancelled' | string
+  status: 'completed' | 'pending' | 'pending_discount' | 'cancelled' | string
   createdAt: string
   cashier: string
   imei?: string
   imageUrl: string
   productSubtitle: string
   actionBtnLabel: string
+  secondaryBtnLabel?: string
+  isVipCustomer?: boolean
+  discountInfo?: string
   items?: Array<{
     name: string
     qty: number
@@ -89,6 +94,84 @@ function getProductMeta(name: string = '', defaultSubtitle?: string) {
     subtitle: defaultSubtitle || 'Mới 100% VN/A chính hãng',
   }
 }
+
+// 4 Hóa đơn chuẩn 100% từ Google Stitch Screen c044c6cb997f4baebfc1cf79c9730dcc cho Chủ Quán
+const STITCH_OWNER_ORDERS: DisplayOrder[] = [
+  {
+    id: 'owner-1',
+    code: 'HD-20261109-024',
+    customerName: 'Anh Hoàng Long',
+    customerPhone: '0988.xxx.456',
+    total: 28016000,
+    itemCount: 1,
+    itemsSummary: 'iPhone 15 Pro Max 256GB',
+    productSubtitle: 'Titan Tự Nhiên • Mới 100% VN/A',
+    paymentMethod: 'transfer',
+    status: 'pending_discount',
+    createdAt: '14:45 Hôm nay',
+    cashier: 'Nguyen Van A',
+    imei: '357892110482914',
+    imageUrl: PRODUCT_IMAGES.iphone.image,
+    actionBtnLabel: 'Duyệt chiết khấu',
+    secondaryBtnLabel: 'Xem hóa đơn',
+    isVipCustomer: true,
+    discountInfo: 'Chiết khấu 5% (-1.474.000 đ)',
+  },
+  {
+    id: 'owner-2',
+    code: 'HD-20261109-023',
+    customerName: 'Anh Hoàng ...',
+    customerPhone: '0988.xxx.456',
+    total: 29490000,
+    itemCount: 1,
+    itemsSummary: 'iPhone 15 Pro Max 256GB',
+    productSubtitle: 'Titan Xanh • 1 Sản phẩm',
+    paymentMethod: 'transfer',
+    status: 'completed',
+    createdAt: '14:30 Hôm nay',
+    cashier: 'Nguyen Van A',
+    imei: '357892110482914',
+    imageUrl: PRODUCT_IMAGES.iphone.image,
+    actionBtnLabel: 'Hủy & Hoàn tiền',
+    secondaryBtnLabel: 'Xem hóa đơn',
+  },
+  {
+    id: 'owner-3',
+    code: 'HD-20261109-022',
+    customerName: 'Chị Minh ...',
+    customerPhone: '0903.xxx.789',
+    total: 26890000,
+    itemCount: 1,
+    itemsSummary: 'Galaxy S24 Ultra 512GB',
+    productSubtitle: 'Titan Xám • Kèm S Pen zin',
+    paymentMethod: 'cash',
+    status: 'completed',
+    createdAt: '13:15 Hôm nay',
+    cashier: 'Nguyen Van A',
+    imei: '359012384756182',
+    imageUrl: PRODUCT_IMAGES.samsung.image,
+    actionBtnLabel: 'Chia sẻ HĐ',
+    secondaryBtnLabel: 'In lại hóa đơn',
+  },
+  {
+    id: 'owner-4',
+    code: 'HD-20261109-021',
+    customerName: 'Anh Tuấn Kiệt',
+    customerPhone: '0912.xxx.333',
+    total: 5390000,
+    itemCount: 1,
+    itemsSummary: 'AirPods Pro 2 (USB-C)',
+    productSubtitle: 'Chính hãng Apple VN/A',
+    paymentMethod: 'transfer',
+    status: 'pending',
+    createdAt: '11:45 Hôm nay',
+    cashier: 'Nguyen Van A',
+    imei: 'Serial: H7K9X2LM',
+    imageUrl: PRODUCT_IMAGES.airpods.image,
+    actionBtnLabel: 'Hủy đơn hàng',
+    secondaryBtnLabel: 'Nhắc thanh toán',
+  },
+]
 
 // 3 Hóa đơn chuẩn 100% từ Google Stitch Screen 25d1406771cf4d80a267ffcff7b2841a
 const STITCH_ORDERS: DisplayOrder[] = [
@@ -151,82 +234,84 @@ const STITCH_ORDERS: DisplayOrder[] = [
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { isStoreOwner, roleTitle } = useUserRole()
+  const {
+    orders: storeOrders,
+    stats,
+    approveOrderDiscount,
+    cancelAndRefundOrder,
+    remindOrderPayment,
+    refreshStoreData,
+  } = useStore()
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'cancelled'>('all')
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'completed' | 'pending' | 'pending_discount' | 'cancelled'
+  >('all')
   const [filterPayment, setFilterPayment] = useState<'all' | 'cash' | 'transfer' | 'mixed'>('all')
-  const [orders, setOrders] = useState<DisplayOrder[]>(STITCH_ORDERS)
 
   // Order detail modal
   const [selectedOrder, setSelectedOrder] = useState<DisplayOrder | null>(null)
-
-  const loadOrders = useCallback(async () => {
-    try {
-      const res = await ordersApi.fetchOrders({ per_page: 20 })
-      const raw = res.data ?? res
-      if (Array.isArray(raw) && raw.length > 0) {
-        const mapped: DisplayOrder[] = raw.map((o: any) => {
-          const items = Array.isArray(o.items) ? o.items : []
-          const summary =
-            items.length > 0
-              ? items.map((i: any) => i.product_name || i.name || 'Sản phẩm').join(', ')
-              : 'iPhone 15 Pro Max 256GB'
-
-          const firstImei = items.find((i: any) => i.imei_code || (i.imeis && i.imeis[0]))
-          const imeiStr = firstImei?.imei_code || firstImei?.imeis?.[0]
-          const meta = getProductMeta(summary)
-
-          return {
-            id: o.id,
-            code: o.code || `HD-${o.id}`,
-            customerName: o.customer_name || 'Khách lẻ tại quầy',
-            customerPhone: o.customer_phone,
-            total: Number(o.total_amount) || 29490000,
-            itemCount: items.length || 1,
-            itemsSummary: summary,
-            productSubtitle: meta.subtitle,
-            imageUrl: meta.image,
-            paymentMethod: o.payment_method || 'transfer',
-            status: o.status === 'completed' || o.status === 'paid' ? 'completed' : o.status || 'completed',
-            createdAt: o.created_at ? formatDateTimeVi(o.created_at) : '14:30 Hôm nay',
-            cashier: o.cashier_name || 'Nguyen Van A',
-            imei: imeiStr,
-            actionBtnLabel: 'Xem hóa đơn',
-            items: items.map((i: any) => ({
-              name: i.product_name || i.name || 'Món',
-              qty: i.quantity || 1,
-              price: Number(i.price) || 0,
-              imeis: i.imei_code ? [i.imei_code] : i.imeis,
-            })),
-          }
-        })
-
-        // Ưu tiên các hóa đơn chuẩn Stitch lên đầu
-        const existingCodes = new Set(STITCH_ORDERS.map((s) => s.code))
-        const nonDuplicateApi = mapped.filter((m) => !existingCodes.has(m.code))
-        setOrders([...STITCH_ORDERS, ...nonDuplicateApi])
-      } else {
-        setOrders(STITCH_ORDERS)
-      }
-    } catch {
-      setOrders(STITCH_ORDERS)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadOrders()
-  }, [loadOrders])
 
   const copyOrderCode = (code: string) => {
     Alert.alert('Sao chép mã', `Mã đơn: ${code}\nĐã lưu vào bộ nhớ tạm.`)
   }
 
+  const handleApproveDiscount = async (order: DisplayOrder) => {
+    await approveOrderDiscount(order.code)
+    Alert.alert(
+      'Đã duyệt chiết khấu 🎉',
+      `Đã phê duyệt chiết khấu VIP cho hóa đơn ${order.code}.\nTổng tiền thu: ${formatMoney(order.total)}.\nĐơn hàng đã được xác nhận hoàn tất và lưu hệ thống!`,
+    )
+  }
+
+  const handleCancelAndRefund = (order: DisplayOrder) => {
+    Alert.alert(
+      'Xác nhận Hủy & Hoàn tiền',
+      `Bạn có chắc chắn muốn hủy hóa đơn ${order.code} và hoàn lại ${formatMoney(order.total)} cho khách hàng?`,
+      [
+        { text: 'Bỏ qua', style: 'cancel' },
+        {
+          text: 'Hủy & Hoàn tiền',
+          style: 'destructive',
+          onPress: async () => {
+            await cancelAndRefundOrder(order.code)
+            Alert.alert('Đã hoàn tất', `Đã hủy đơn ${order.code} và lập phiếu hoàn tiền tại két.`)
+          },
+        },
+      ],
+    )
+  }
+
+  const handleRemindPayment = async (order: DisplayOrder) => {
+    await remindOrderPayment(order.code)
+    Alert.alert(
+      'Nhắc thanh toán 🎉',
+      `Đã gửi tin nhắn thông báo hóa đơn ${order.code} đến khách hàng ${order.customerName} (${order.customerPhone || '0912.xxx.333'}).`,
+    )
+  }
+
+  const handleCancelOrder = (order: DisplayOrder) => {
+    Alert.alert(
+      'Hủy đơn hàng',
+      `Xác nhận hủy đơn hàng ${order.code}?`,
+      [
+        { text: 'Không', style: 'cancel' },
+        {
+          text: 'Hủy đơn',
+          style: 'destructive',
+          onPress: async () => {
+            await cancelAndRefundOrder(order.code)
+            Alert.alert('Đã hủy đơn', `Đã hủy hóa đơn ${order.code}.`)
+          },
+        },
+      ],
+    )
+  }
+
   // Filtered list
-  const filtered = orders.filter((o) => {
+  const filtered = storeOrders.filter((o) => {
     if (filterStatus !== 'all' && o.status !== filterStatus) return false
     if (filterPayment !== 'all' && o.paymentMethod !== filterPayment) return false
     if (search.trim()) {
@@ -268,13 +353,29 @@ export default function OrdersScreen() {
           <View>
             <View style={styles.brandTitleRow}>
               <Text style={styles.brandTitle}>Liêng Mobile</Text>
-              <View style={styles.posBadge}>
-                <Text style={styles.posBadgeText}>POS</Text>
+              <View
+                style={[
+                  styles.posBadge,
+                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.posBadgeText,
+                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                  ]}
+                >
+                  {roleTitle}
+                </Text>
               </View>
             </View>
             <View style={styles.storeSubtitleRow}>
               <Ionicons name="storefront-outline" size={11} color="#58413F" />
-              <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Don Hang</Text>
+              <Text style={styles.brandSubtitle}>
+                {isStoreOwner
+                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : 'Chi nhánh Cầu Giấy • Đơn Hàng'}
+              </Text>
             </View>
           </View>
         </View>
@@ -324,63 +425,119 @@ export default function OrdersScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => {
+            onRefresh={async () => {
               setRefreshing(true)
-              loadOrders()
+              try {
+                await refreshStoreData()
+              } finally {
+                setRefreshing(false)
+              }
             }}
             tintColor={Colors.primaryContainer}
           />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 3 Top Shift Stat Cards (Khớp 100% Stitch) ── */}
-        <View style={styles.statsRow}>
-          {/* Doanh số ca */}
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <Text style={styles.statLabel}>Doanh số ca</Text>
-              <View style={[styles.statIconWrap, { backgroundColor: '#FFDAD6' }]}>
-                <Ionicons name="wallet-outline" size={12} color={Colors.primaryContainer} />
+        {/* ── Top Shift Stat Cards (Chủ quán vs Nhân viên) ── */}
+        {isStoreOwner ? (
+          <View style={styles.ownerKpiSection}>
+            {/* Thẻ Lớn: DOANH SỐ CA TRỰC */}
+            <View style={styles.ownerBigStatCard}>
+              <View style={styles.ownerBigHeader}>
+                <View style={styles.ownerBigHeaderLeft}>
+                  <View style={styles.ownerWalletIconBox}>
+                    <Ionicons name="wallet-outline" size={16} color={Colors.primaryContainer} />
+                  </View>
+                  <View>
+                    <View style={styles.ownerShiftTitleRow}>
+                      <Text style={styles.ownerShiftTitle}>DOANH SỐ CA TRỰC</Text>
+                      <View style={styles.ownerTodayPill}>
+                        <Text style={styles.ownerTodayPillText}>HÔM NAY</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.ownerBigAmount}>{formatMoney(stats.ownerRevenueToday)}</Text>
+                  </View>
+                </View>
+                <View style={styles.ownerShiftTargetBox}>
+                  <Text style={styles.ownerTargetLabel}>Mục tiêu ca</Text>
+                  <Text style={styles.ownerTargetPercent}>85%</Text>
+                </View>
               </View>
             </View>
-            <Text style={styles.statValRed}>42.500.000đ</Text>
-            <Text style={styles.statSub}>Hôm nay</Text>
-          </View>
 
-          {/* Hoàn tất */}
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <Text style={styles.statLabel}>Hoàn tất</Text>
-              <View style={[styles.statIconWrap, { backgroundColor: '#ECEEF0' }]}>
-                <Ionicons name="checkmark-circle" size={13} color="#16A34A" />
+            {/* 2 Thẻ phụ: Hoàn tất & Chờ xử lý */}
+            <View style={styles.ownerSubStatsRow}>
+              <View style={styles.ownerSubCard}>
+                <View style={styles.ownerSubCardHeader}>
+                  <Text style={styles.ownerSubCardLabel}>Hoàn tất</Text>
+                  <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
+                </View>
+                <Text style={styles.ownerSubCardVal}>{stats.completedCount} đơn</Text>
+                <View style={styles.ownerTrendRow}>
+                  <Ionicons name="trending-up" size={12} color="#16A34A" />
+                  <Text style={styles.ownerTrendText}>Tỷ lệ 92%</Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.statValGreen}>
-              8 <Text style={styles.statUnitText}>đơn</Text>
-            </Text>
-            <Text style={styles.statSubGreen}>Tỷ lệ 89%</Text>
-          </View>
 
-          {/* Chờ xử lý */}
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <Text style={styles.statLabel}>Chờ xử lý</Text>
-              <View style={[styles.statIconWrap, { backgroundColor: '#ECEEF0' }]}>
-                <Ionicons name="time" size={13} color="#D97706" />
+              <View style={styles.ownerSubCard}>
+                <View style={styles.ownerSubCardHeader}>
+                  <Text style={styles.ownerSubCardLabel}>Chờ xử lý</Text>
+                  <Ionicons name="clipboard-outline" size={15} color="#D97706" />
+                </View>
+                <Text style={[styles.ownerSubCardVal, { color: '#DC2626' }]}>{stats.pendingCount} đơn</Text>
+                <Text style={styles.ownerSubCardHint}>Cần duyệt / thu tiền</Text>
               </View>
             </View>
-            <Text style={styles.statValAmber}>
-              1 <Text style={styles.statUnitText}>đơn</Text>
-            </Text>
-            <Text style={styles.statSubAmber}>Cần thu tiền</Text>
           </View>
-        </View>
+        ) : (
+          <View style={styles.statsRow}>
+            {/* Doanh số ca */}
+            <View style={styles.statCard}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>Doanh số ca</Text>
+                <View style={[styles.statIconWrap, { backgroundColor: '#FFDAD6' }]}>
+                  <Ionicons name="wallet-outline" size={12} color={Colors.primaryContainer} />
+                </View>
+              </View>
+              <Text style={styles.statValRed}>42.500.000đ</Text>
+              <Text style={styles.statSub}>Hôm nay</Text>
+            </View>
+
+            {/* Hoàn tất */}
+            <View style={styles.statCard}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>Hoàn tất</Text>
+                <View style={[styles.statIconWrap, { backgroundColor: '#ECEEF0' }]}>
+                  <Ionicons name="checkmark-circle" size={13} color="#16A34A" />
+                </View>
+              </View>
+              <Text style={styles.statValGreen}>
+                8 <Text style={styles.statUnitText}>đơn</Text>
+              </Text>
+              <Text style={styles.statSubGreen}>Tỷ lệ 89%</Text>
+            </View>
+
+            {/* Chờ xử lý */}
+            <View style={styles.statCard}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statLabel}>Chờ xử lý</Text>
+                <View style={[styles.statIconWrap, { backgroundColor: '#ECEEF0' }]}>
+                  <Ionicons name="time" size={13} color="#D97706" />
+                </View>
+              </View>
+              <Text style={styles.statValAmber}>
+                1 <Text style={styles.statUnitText}>đơn</Text>
+              </Text>
+              <Text style={styles.statSubAmber}>Cần thu tiền</Text>
+            </View>
+          </View>
+        )}
 
         {/* ── Dual Filter Rows (Chuẩn Stitch) ── */}
         <View style={styles.filterSection}>
           {/* Row 1: Status Chips */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {/* Tất cả (9) */}
+            {/* Tất cả */}
             <Pressable
               style={[styles.statusChip, filterStatus === 'all' && styles.statusChipActive]}
               onPress={() => setFilterStatus('all')}
@@ -390,41 +547,41 @@ export default function OrdersScreen() {
               </Text>
               <View style={[styles.countBadge, filterStatus === 'all' && styles.countBadgeActive]}>
                 <Text style={[styles.countBadgeText, filterStatus === 'all' && styles.countBadgeTextActive]}>
-                  9
+                  {storeOrders.length}
                 </Text>
               </View>
             </Pressable>
 
-            {/* Hoàn tất (8) */}
+            {/* Hoàn tất */}
             <Pressable
               style={[styles.statusChip, filterStatus === 'completed' && styles.statusChipActive]}
               onPress={() => setFilterStatus('completed')}
             >
               <View style={styles.greenFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'completed' && styles.statusChipTextActive]}>
-                Hoàn tất (8)
+                Hoàn tất ({storeOrders.filter((o) => o.status === 'completed').length})
               </Text>
             </Pressable>
 
-            {/* Chờ xử lý (1) */}
+            {/* Chờ xử lý */}
             <Pressable
               style={[styles.statusChip, filterStatus === 'pending' && styles.statusChipActive]}
               onPress={() => setFilterStatus('pending')}
             >
               <View style={styles.amberFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'pending' && styles.statusChipTextActive]}>
-                Chờ xử lý (1)
+                Chờ xử lý ({storeOrders.filter((o) => o.status === 'pending' || o.status === 'pending_discount').length})
               </Text>
             </Pressable>
 
-            {/* Đã hủy (0) */}
+            {/* Đã hủy */}
             <Pressable
               style={[styles.statusChip, filterStatus === 'cancelled' && styles.statusChipActive]}
               onPress={() => setFilterStatus('cancelled')}
             >
               <View style={styles.redFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'cancelled' && styles.statusChipTextActive]}>
-                Đã hủy (0)
+                Đã hủy ({storeOrders.filter((o) => o.status === 'cancelled').length})
               </Text>
             </Pressable>
           </ScrollView>
@@ -478,18 +635,17 @@ export default function OrdersScreen() {
           <View style={styles.ordersList}>
             {filtered.map((item, idx) => {
               const isCompleted = item.status === 'completed'
+              const isPendingDiscount = item.status === 'pending_discount'
               const isVietQr = item.paymentMethod === 'transfer'
-              const badgeLabel = isCompleted
-                ? isVietQr
-                  ? 'VietQR Hoàn tất'
-                  : 'Tiền mặt Hoàn tất'
-                : 'Chờ thanh toán'
 
-              const actionBtn =
-                item.actionBtnLabel ||
-                (idx === 0 ? 'Xem hóa đơn' : idx === 1 ? 'In lại' : 'Nhắc thanh toán')
-
-              const isRemindBtn = actionBtn === 'Nhắc thanh toán'
+              let badgeLabel = 'Chờ thanh toán'
+              if (isPendingDiscount) {
+                badgeLabel = 'Chờ duyệt chiết khấu'
+              } else if (isCompleted) {
+                badgeLabel = isVietQr ? 'VietQR Hoàn tất' : 'Tiền mặt Hoàn tất'
+              } else if (item.status === 'cancelled') {
+                badgeLabel = 'Đã hủy'
+              }
 
               return (
                 <View key={item.id} style={styles.orderCardExact}>
@@ -505,18 +661,40 @@ export default function OrdersScreen() {
                     <View
                       style={[
                         styles.statusBadgeExact,
-                        isCompleted ? styles.badgeSuccessExact : styles.badgeWaitExact,
+                        isPendingDiscount
+                          ? styles.badgePendingDiscount
+                          : isCompleted
+                          ? styles.badgeSuccessExact
+                          : styles.badgeWaitExact,
                       ]}
                     >
                       <Ionicons
-                        name={isCompleted ? (isVietQr ? 'checkmark-circle' : 'cash-outline') : 'time-outline'}
+                        name={
+                          isPendingDiscount
+                            ? 'time'
+                            : isCompleted
+                            ? isVietQr
+                              ? 'checkmark-circle'
+                              : 'cash-outline'
+                            : 'time-outline'
+                        }
                         size={12}
-                        color={isCompleted ? Colors.white : '#D97706'}
+                        color={
+                          isPendingDiscount
+                            ? '#D97706'
+                            : isCompleted
+                            ? Colors.white
+                            : '#D97706'
+                        }
                       />
                       <Text
                         style={[
                           styles.statusBadgeTextExact,
-                          isCompleted ? styles.textSuccessExact : styles.textWaitExact,
+                          isPendingDiscount
+                            ? styles.textPendingDiscount
+                            : isCompleted
+                            ? styles.textSuccessExact
+                            : styles.textWaitExact,
                         ]}
                       >
                         {badgeLabel}
@@ -535,7 +713,6 @@ export default function OrdersScreen() {
 
                   {/* Hàng 3: HỘP SẢN PHẨM CÓ HÌNH ẢNH (KHỚP 100% GOOGLE STITCH) */}
                   <View style={styles.orderProductInnerBox}>
-                    {/* Khung ảnh thumbnail sản phẩm nền trắng bo góc */}
                     <View style={styles.orderProductThumbWrap}>
                       <Image
                         source={{ uri: item.imageUrl || getProductMeta(item.itemsSummary).image }}
@@ -544,7 +721,6 @@ export default function OrdersScreen() {
                       />
                     </View>
 
-                    {/* Tiêu đề máy + Subtitle + Tag IMEI */}
                     <View style={styles.orderProductInfoCol}>
                       <Text style={styles.orderProductNameBold} numberOfLines={1}>
                         {item.itemsSummary}
@@ -557,67 +733,97 @@ export default function OrdersScreen() {
                         <View style={styles.orderImeiPillBox}>
                           <Ionicons name="qr-code-outline" size={12} color={Colors.primaryContainer} />
                           <Text style={styles.orderImeiPillText}>
-                            {item.imei.startsWith('H') ? `Serial: ${item.imei}` : `IMEI: ${item.imei}`}
+                            {item.imei.startsWith('H') || item.imei.startsWith('Serial')
+                              ? item.imei
+                              : `IMEI: ${item.imei}`}
                           </Text>
                         </View>
                       )}
                     </View>
                   </View>
 
-                  {/* Hàng 4: Khách hàng + Giá tiền + Nút hành động */}
-                  <View style={styles.orderCardFooterRow}>
-                    <View style={styles.footerCustomerCol}>
-                      <View style={styles.customerLineMini}>
-                        <Ionicons name="person-outline" size={12} color="#58413F" />
-                        <Text style={styles.customerMiniText}>
-                          Khách: <Text style={{ fontWeight: '700', color: '#191C1E' }}>{item.customerName}</Text>
-                          {item.customerPhone ? ` (${item.customerPhone})` : ''}
-                        </Text>
+                  {/* Hàng 4: Khách hàng & Chiết khấu & Giá tiền */}
+                  <View style={styles.orderCardMiddleDetail}>
+                    <View style={styles.customerRowWithVip}>
+                      <Ionicons name="person-circle-outline" size={15} color="#DC2626" />
+                      <Text style={styles.customerNameBold}>{item.customerName}</Text>
+                      {item.customerPhone && (
+                        <Text style={styles.customerPhoneText}>({item.customerPhone})</Text>
+                      )}
+                      {item.isVipCustomer && (
+                        <View style={styles.vipTagPill}>
+                          <Text style={styles.vipTagPillText}>VIP</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.orderPaymentSummaryLine}>
+                      <View>
+                        <Text style={styles.totalPayLabel}>Tổng tiền thanh toán</Text>
+                        {item.discountInfo && (
+                          <Text style={styles.discountInfoRedText}>{item.discountInfo}</Text>
+                        )}
                       </View>
                       <Text style={styles.orderAmountRedText}>{formatMoney(item.total)}</Text>
                     </View>
+                  </View>
 
-                    <Pressable
-                      style={[
-                        styles.orderActionBtnRight,
-                        isRemindBtn
-                          ? styles.actionBtnRemind
-                          : actionBtn === 'Xem hóa đơn'
-                          ? styles.actionBtnViewInvoice
-                          : styles.actionBtnGray,
-                      ]}
-                      onPress={() => setSelectedOrder(item)}
-                    >
-                      <Ionicons
-                        name={
-                          isRemindBtn
-                            ? 'paper-plane-outline'
-                            : actionBtn === 'In lại'
-                            ? 'print-outline'
-                            : 'receipt-outline'
-                        }
-                        size={14}
-                        color={
-                          isRemindBtn
-                            ? '#400010'
-                            : actionBtn === 'Xem hóa đơn'
-                            ? Colors.primaryContainer
-                            : '#191C1E'
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.orderActionBtnText,
-                          isRemindBtn
-                            ? styles.actionTextRemind
-                            : actionBtn === 'Xem hóa đơn'
-                            ? styles.actionTextViewInvoice
-                            : styles.actionTextGray,
-                        ]}
+                  {/* Hàng 5: Nút hành động */}
+                  <View style={styles.orderActionButtonsRow}>
+                    {item.secondaryBtnLabel && (
+                      <Pressable
+                        style={styles.actionBtnSecondaryOutline}
+                        onPress={() => setSelectedOrder(item)}
                       >
-                        {actionBtn}
-                      </Text>
-                    </Pressable>
+                        <Ionicons name="document-text-outline" size={14} color="#374151" />
+                        <Text style={styles.actionBtnSecondaryText}>
+                          {item.secondaryBtnLabel}
+                        </Text>
+                      </Pressable>
+                    )}
+
+                    {item.actionBtnLabel === 'Duyệt chiết khấu' ? (
+                      <Pressable
+                        style={styles.actionBtnApproveDiscount}
+                        onPress={() => handleApproveDiscount(item)}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={15} color="#FFFFFF" />
+                        <Text style={styles.actionBtnApproveDiscountText}>Duyệt chiết khấu</Text>
+                      </Pressable>
+                    ) : item.actionBtnLabel === 'Hủy & Hoàn tiền' ? (
+                      <Pressable
+                        style={styles.actionBtnRefundDanger}
+                        onPress={() => handleCancelAndRefund(item)}
+                      >
+                        <Ionicons name="shield-outline" size={14} color="#DC2626" />
+                        <Text style={styles.actionBtnRefundDangerText}>Hủy & Hoàn tiền</Text>
+                      </Pressable>
+                    ) : item.actionBtnLabel === 'Chia sẻ HĐ' ? (
+                      <Pressable
+                        style={styles.actionBtnSecondaryOutline}
+                        onPress={() => handleShare(item)}
+                      >
+                        <Ionicons name="share-social-outline" size={14} color="#374151" />
+                        <Text style={styles.actionBtnSecondaryText}>Chia sẻ HĐ</Text>
+                      </Pressable>
+                    ) : item.actionBtnLabel === 'Hủy đơn hàng' ? (
+                      <Pressable
+                        style={styles.actionBtnCancelOrder}
+                        onPress={() => handleCancelOrder(item)}
+                      >
+                        <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
+                        <Text style={styles.actionBtnCancelOrderText}>Hủy đơn hàng</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        style={styles.actionBtnPrimaryGeneral}
+                        onPress={() => setSelectedOrder(item)}
+                      >
+                        <Text style={styles.actionBtnPrimaryGeneralText}>
+                          {item.actionBtnLabel}
+                        </Text>
+                      </Pressable>
+                    )}
                   </View>
                 </View>
               )
@@ -1564,5 +1770,274 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#BA1A1A',
+  },
+
+  // Role Badges
+  staffBadgeBg: {
+    backgroundColor: '#FFECEF',
+  },
+  staffBadgeText: {
+    color: Colors.primaryContainer,
+  },
+  ownerBadgeBg: {
+    backgroundColor: '#FFD9DD',
+  },
+  ownerBadgeText: {
+    color: '#991B1B',
+  },
+
+  // Owner Big KPI Section (Image 3)
+  ownerKpiSection: {
+    gap: 8,
+  },
+  ownerBigStatCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+  },
+  ownerBigHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ownerBigHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ownerWalletIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
+    backgroundColor: '#FFECEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerShiftTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ownerShiftTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#8C716E',
+    letterSpacing: 0.3,
+  },
+  ownerTodayPill: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  ownerTodayPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  ownerBigAmount: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191C1E',
+    marginTop: 2,
+  },
+  ownerShiftTargetBox: {
+    alignItems: 'flex-end',
+  },
+  ownerTargetLabel: {
+    fontSize: 10.5,
+    color: '#8C716E',
+  },
+  ownerTargetPercent: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  ownerSubStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ownerSubCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 3,
+  },
+  ownerSubCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ownerSubCardLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  ownerSubCardVal: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  ownerTrendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  ownerTrendText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  ownerSubCardHint: {
+    fontSize: 10.5,
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+
+  // Badges & Statuses
+  badgePendingDiscount: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  textPendingDiscount: {
+    color: '#D97706',
+    fontWeight: '700',
+  },
+
+  // Card Middle Detail
+  orderCardMiddleDetail: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    gap: 6,
+  },
+  customerRowWithVip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  customerNameBold: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  customerPhoneText: {
+    fontSize: 11.5,
+    color: '#6B7280',
+  },
+  vipTagPill: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  vipTagPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  orderPaymentSummaryLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  totalPayLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  discountInfoRedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+
+  // Action Buttons Row
+  orderActionButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  actionBtnSecondaryOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: Radius.md,
+    paddingVertical: 8,
+  },
+  actionBtnSecondaryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  actionBtnApproveDiscount: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: Radius.md,
+    paddingVertical: 8,
+  },
+  actionBtnApproveDiscountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  actionBtnRefundDanger: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#FEE2E2',
+    borderRadius: Radius.md,
+    paddingVertical: 8,
+  },
+  actionBtnRefundDangerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  actionBtnCancelOrder: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: Radius.md,
+    paddingVertical: 8,
+  },
+  actionBtnCancelOrderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  actionBtnPrimaryGeneral: {
+    flex: 1,
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: Radius.md,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnPrimaryGeneralText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 })

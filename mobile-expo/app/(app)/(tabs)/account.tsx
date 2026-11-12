@@ -13,14 +13,18 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Radius, Space } from '@/constants/config'
+import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
+import { useUserRole } from '@/hooks/useUserRole'
+import { useStore } from '@/context/StoreContext'
+import { formatMoney } from '@/utils/format'
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets()
   const { user, logout } = useAuth()
   const { locale, setLocale, t } = useLocale()
+  const { vault, recordVaultExpense, settleVault } = useStore()
   const [syncing, setSyncing] = useState(false)
   const [avatarErr, setAvatarErr] = useState(false)
 
@@ -58,9 +62,13 @@ export default function AccountScreen() {
     }, 600)
   }
 
-  const employeeName = user?.name || 'Nguyễn Văn A'
-  const employeeEmail = user?.email || 'banhang@liengmobile.com'
-  const employeePhone = user?.phone || '0988.777.666'
+  const {
+    isStoreOwner,
+    roleTitle,
+    employeeName,
+    employeeEmail,
+    employeePhone,
+  } = useUserRole()
   const userInitial = employeeName.trim().charAt(0).toUpperCase()
 
   const avatarUri =
@@ -77,13 +85,29 @@ export default function AccountScreen() {
           <View>
             <View style={styles.brandTitleRow}>
               <Text style={styles.brandTitle}>Liêng Mobile</Text>
-              <View style={styles.posBadge}>
-                <Text style={styles.posBadgeText}>POS</Text>
+              <View
+                style={[
+                  styles.posBadge,
+                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.posBadgeText,
+                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                  ]}
+                >
+                  {roleTitle}
+                </Text>
               </View>
             </View>
             <View style={styles.brandSubRow}>
               <Ionicons name="storefront" size={11} color="#58413F" />
-              <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Tôi</Text>
+              <Text style={styles.brandSubtitle}>
+                {isStoreOwner
+                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : 'Chi nhánh Cầu Giấy • Tôi'}
+              </Text>
             </View>
           </View>
         </View>
@@ -107,7 +131,7 @@ export default function AccountScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. Thẻ Hồ Sơ Nhân Viên ── */}
+        {/* ── 1. Thẻ Hồ Sơ Người Dùng ── */}
         <View style={styles.profileCard}>
           <View style={styles.profileRow}>
             <View style={styles.avatarWrap}>
@@ -129,7 +153,12 @@ export default function AccountScreen() {
 
             <View style={styles.profileInfoCol}>
               <View style={styles.nameActionRow}>
-                <Text style={styles.userName}>{employeeName}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.userName}>{employeeName}</Text>
+                  {isStoreOwner && (
+                    <Ionicons name="checkmark-circle" size={15} color="#DC2626" />
+                  )}
+                </View>
                 <Pressable
                   style={styles.editBtn}
                   onPress={() => Alert.alert('Thông tin', 'Chỉnh sửa thông tin tài khoản cá nhân.')}
@@ -148,95 +177,258 @@ export default function AccountScreen() {
             </View>
           </View>
 
-          {/* Cấp bậc chuyên môn Flagship Level 2 */}
-          <View style={styles.rankBadgeBox}>
+          {/* Cấp bậc */}
+          <View style={[styles.rankBadgeBox, isStoreOwner && styles.rankBadgeBoxOwner]}>
             <View style={styles.rankIconBox}>
-              <Ionicons name="shield-checkmark" size={15} color="#7A0C10" />
+              <Ionicons
+                name={isStoreOwner ? 'shield-checkmark' : 'shield-checkmark-outline'}
+                size={15}
+                color="#7A0C10"
+              />
             </View>
             <View style={styles.rankTextBox}>
-              <Text style={styles.rankTitle}>CẤP BẬC CHUYÊN MÔN</Text>
+              <Text style={styles.rankTitle}>
+                {isStoreOwner ? 'CẤP BẬC TỔNG QUẢN' : 'CẤP BẬC CHUYÊN MÔN'}
+              </Text>
               <Text style={styles.rankValue}>
-                Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)
+                {isStoreOwner
+                  ? 'Chủ quán / Quản lý Điều hành Flagship #01 (Toàn quyền)'
+                  : 'Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)'}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* ── 2. Thẻ Ca Làm Việc & Chi Nhánh (Phiên trực quầy) ── */}
-        <View style={styles.shiftCard}>
-          {/* Header phiên trực */}
-          <View style={styles.shiftHeaderLine}>
-            <View style={styles.shiftHeaderLeft}>
-              <View style={styles.shiftIconBox}>
-                <Ionicons name="briefcase" size={17} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.shiftTagText}>PHIÊN TRỰC QUẦY</Text>
-                <Text style={styles.shiftMainTitle}>Ca chính: Bán lẻ & Quầy POS</Text>
-              </View>
-            </View>
-            <View style={styles.shiftStatusPill}>
-              <View style={styles.pulseLiveDot} />
-              <Text style={styles.shiftStatusText}>Đang trong ca</Text>
-            </View>
-          </View>
-
-          {/* Khung giờ */}
-          <View style={styles.shiftTimeBox}>
-            <View style={styles.shiftTimeLeft}>
-              <Ionicons name="time-outline" size={15} color="#58413F" />
-              <Text style={styles.shiftTimeLabel}>Khung giờ:</Text>
-            </View>
-            <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
-          </View>
-
-          {/* Doanh số đã chốt & Progress Bar */}
-          <View style={styles.targetSection}>
-            <View style={styles.targetHeaderLine}>
-              <Text style={styles.targetLabel}>DOANH SỐ ĐÃ CHỐT</Text>
-              <Text style={styles.targetPercent}>85% chỉ tiêu</Text>
-            </View>
-
-            <View style={styles.targetValueLine}>
-              <Text style={styles.targetAmountVal}>
-                42.500.000 <Text style={styles.targetCurrency}>đ</Text>
-              </Text>
-              <Text style={styles.targetHint}>Mục tiêu: 50.000.000 đ</Text>
-            </View>
-
-            {/* Progress Bar Liêng Red */}
-            <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: '85%' }]} />
-            </View>
-          </View>
-
-          {/* Phân cách */}
-          <View style={styles.cardDivider} />
-
-          {/* Chi tiết Flagship Store */}
-          <View style={styles.storeDetailsBox}>
-            <View style={styles.storeIconBox}>
-              <Ionicons name="storefront" size={18} color="#7A0C10" />
-            </View>
-            <View style={styles.storeInfoCol}>
-              <View style={styles.storeTitleRow}>
-                <Text style={styles.storeCardTitle}>Liêng Mobile - Flagship #01</Text>
-                <View style={styles.q3Badge}>
-                  <Text style={styles.q3BadgeText}>Q.3</Text>
+        {/* ── 2. Thẻ Ca Làm Việc (Chủ quán vs Nhân viên) ── */}
+        {isStoreOwner ? (
+          <>
+            {/* SỔ QUỸ & CHỐT KÉT SHOWROOM (IMAGE 5) */}
+            <View style={styles.ownerVaultCard}>
+              <View style={styles.ownerVaultHeader}>
+                <View style={styles.ownerVaultHeaderLeft}>
+                  <View style={styles.ownerVaultIconBox}>
+                    <Ionicons name="wallet-outline" size={18} color="#7A0C10" />
+                  </View>
+                  <View>
+                    <Text style={styles.ownerVaultTitle}>SỔ QUỸ & CHỐT KÉT SHOWROOM</Text>
+                    <Text style={styles.ownerVaultTime}>08:00 — 16:30 (Hôm nay)</Text>
+                  </View>
+                </View>
+                <View style={styles.ownerVaultStatusPill}>
+                  <View style={styles.pulseLiveDot} />
+                  <Text style={styles.ownerVaultStatusText}>Đang mở két</Text>
                 </View>
               </View>
-              <Text style={styles.storeAddress}>
-                123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
-              </Text>
 
-              <View style={styles.managerLine}>
-                <Ionicons name="headset" size={13} color="#7A0C10" />
-                <Text style={styles.managerLabel}>Quản lý ca trực: </Text>
-                <Text style={styles.managerName}>Trần Quốc Bảo</Text>
+              {/* Các dòng biến động tiền */}
+              <View style={styles.ownerVaultRowsList}>
+                <View style={styles.ownerVaultRowItem}>
+                  <View style={styles.ownerVaultRowLabelGroup}>
+                    <Ionicons name="swap-horizontal-outline" size={13} color="#6B7280" />
+                    <Text style={styles.ownerVaultRowLabel}>
+                      Tiền mặt đầu ca (tiền lẻ trả lại)
+                    </Text>
+                  </View>
+                  <Text style={styles.ownerVaultRowValDark}>10.000.000 đ</Text>
+                </View>
+
+                <View style={styles.ownerVaultRowItem}>
+                  <View style={styles.ownerVaultRowLabelGroup}>
+                    <Ionicons name="arrow-down-circle-outline" size={13} color="#16A34A" />
+                    <Text style={styles.ownerVaultRowLabel}>
+                      Thu tiền mặt bán hàng trong ca
+                    </Text>
+                  </View>
+                  <Text style={styles.ownerVaultRowValGreen}>+{formatMoney(vault.cashSales)}</Text>
+                </View>
+
+                <View style={styles.ownerVaultRowItem}>
+                  <View style={styles.ownerVaultRowLabelGroup}>
+                    <Ionicons name="arrow-up-circle-outline" size={13} color="#DC2626" />
+                    <Text style={styles.ownerVaultRowLabel}>
+                      Chi phí vận hành quán tại quầy
+                    </Text>
+                  </View>
+                  <Text style={styles.ownerVaultRowValRed}>-{formatMoney(vault.operationalExpenses)}</Text>
+                </View>
+              </View>
+
+              {/* Khung lớn: TIỀN MẶT THỰC TẾ TRONG KÉT */}
+              <View style={styles.ownerActualVaultBox}>
+                <View>
+                  <Text style={styles.ownerActualVaultLabel}>
+                    TIỀN MẶT THỰC TẾ TRONG KÉT
+                  </Text>
+                  <Text style={styles.ownerActualVaultAmount}>{formatMoney(vault.actualCashInVault)}</Text>
+                </View>
+                <Pressable
+                  style={styles.ownerVaultLockBtn}
+                  onPress={() => Alert.alert('Két tiền mặt', 'Két showroom đang được bảo mật điện tử.')}
+                >
+                  <Ionicons name="lock-closed" size={20} color="#FFFFFF" />
+                </Pressable>
+              </View>
+
+              {/* Tiến độ doanh số ca đạt chỉ tiêu */}
+              <View style={styles.ownerTargetProgressSection}>
+                <View style={styles.ownerTargetProgressHeader}>
+                  <Text style={styles.ownerTargetProgressLabel}>
+                    Tiến độ doanh số ca đạt chỉ tiêu
+                  </Text>
+                  <Text style={styles.ownerTargetProgressValue}>
+                    {vault.targetProgress}% ({Math.round(vault.targetRevenue / 1000000)}M Target)
+                  </Text>
+                </View>
+                <View style={styles.ownerProgressBarTrack}>
+                  <View style={[styles.ownerProgressBarFill, { width: `${vault.targetProgress}%` }]} />
+                </View>
+              </View>
+
+              {/* 2 nút hành động: Chi tiền quán & Kiểm đếm két */}
+              <View style={styles.ownerVaultActionsRow}>
+                <Pressable
+                  style={styles.ownerVaultActionBtn}
+                  onPress={() => {
+                    Alert.alert(
+                      'Chi tiền quán tại quầy',
+                      'Chọn khoản mục chi phí tiền mặt cần xuất:',
+                      [
+                        {
+                          text: 'Nước & Cafe khách VIP (150.000 đ)',
+                          onPress: async () => {
+                            await recordVaultExpense(150000, 'Nước suối & Cafe tiếp khách VIP')
+                            Alert.alert('Thành công', 'Đã ghi nhận chi phí 150.000 đ vào sổ quỹ két.')
+                          },
+                        },
+                        {
+                          text: 'Văn phòng phẩm / Giấy in (250.000 đ)',
+                          onPress: async () => {
+                            await recordVaultExpense(250000, 'Văn phòng phẩm & Giấy in bill')
+                            Alert.alert('Thành công', 'Đã ghi nhận chi phí 250.000 đ vào sổ quỹ két.')
+                          },
+                        },
+                        { text: 'Đóng', style: 'cancel' },
+                      ],
+                    )
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={16} color="#7A0C10" />
+                  <Text style={styles.ownerVaultActionBtnText}>Chi tiền quán</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.ownerVaultActionBtn}
+                  onPress={() =>
+                    Alert.alert(
+                      'Kiểm đếm két',
+                      `Đã kiểm đếm két: Tiền mặt thực tế ${formatMoney(vault.actualCashInVault)} khớp 100% sao kê hệ thống.`,
+                    )
+                  }
+                >
+                  <Ionicons name="calculator-outline" size={16} color="#191C1E" />
+                  <Text style={styles.ownerVaultActionBtnText}>Kiểm đếm két</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Chi tiết Flagship Store Độc Lập Cho Chủ Quán */}
+            <View style={styles.storeCardStandalone}>
+              <View style={styles.storeDetailsBox}>
+                <View style={styles.storeIconBox}>
+                  <Ionicons name="storefront" size={18} color="#7A0C10" />
+                </View>
+                <View style={styles.storeInfoCol}>
+                  <View style={styles.storeTitleRow}>
+                    <Text style={styles.storeCardTitle}>Liêng Mobile - Flagship #01</Text>
+                  </View>
+                  <Text style={styles.storeAddress}>
+                    123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
+                  </Text>
+                  <View style={styles.managerLine}>
+                    <Ionicons name="person-circle-outline" size={13} color="#7A0C10" />
+                    <Text style={styles.managerLabel}>Quản lý điều hành: </Text>
+                    <Text style={styles.managerName}>Trần Quốc Bảo</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </>
+        ) : (
+          <View style={styles.shiftCard}>
+            {/* Header phiên trực */}
+            <View style={styles.shiftHeaderLine}>
+              <View style={styles.shiftHeaderLeft}>
+                <View style={styles.shiftIconBox}>
+                  <Ionicons name="briefcase" size={17} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.shiftTagText}>PHIÊN TRỰC QUẦY</Text>
+                  <Text style={styles.shiftMainTitle}>Ca chính: Bán lẻ & Quầy POS</Text>
+                </View>
+              </View>
+              <View style={styles.shiftStatusPill}>
+                <View style={styles.pulseLiveDot} />
+                <Text style={styles.shiftStatusText}>Đang trong ca</Text>
+              </View>
+            </View>
+
+            {/* Khung giờ */}
+            <View style={styles.shiftTimeBox}>
+              <View style={styles.shiftTimeLeft}>
+                <Ionicons name="time-outline" size={15} color="#58413F" />
+                <Text style={styles.shiftTimeLabel}>Khung giờ:</Text>
+              </View>
+              <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
+            </View>
+
+            {/* Doanh số đã chốt & Progress Bar */}
+            <View style={styles.targetSection}>
+              <View style={styles.targetHeaderLine}>
+                <Text style={styles.targetLabel}>DOANH SỐ ĐÃ CHỐT</Text>
+                <Text style={styles.targetPercent}>85% chỉ tiêu</Text>
+              </View>
+
+              <View style={styles.targetValueLine}>
+                <Text style={styles.targetAmountVal}>
+                  42.500.000 <Text style={styles.targetCurrency}>đ</Text>
+                </Text>
+                <Text style={styles.targetHint}>Mục tiêu: 50.000.000 đ</Text>
+              </View>
+
+              {/* Progress Bar Liêng Red */}
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: '85%' }]} />
+              </View>
+            </View>
+
+            {/* Phân cách */}
+            <View style={styles.cardDivider} />
+
+            {/* Chi tiết Flagship Store */}
+            <View style={styles.storeDetailsBox}>
+              <View style={styles.storeIconBox}>
+                <Ionicons name="storefront" size={18} color="#7A0C10" />
+              </View>
+              <View style={styles.storeInfoCol}>
+                <View style={styles.storeTitleRow}>
+                  <Text style={styles.storeCardTitle}>Liêng Mobile - Flagship #01</Text>
+                  <View style={styles.q3Badge}>
+                    <Text style={styles.q3BadgeText}>Q.3</Text>
+                  </View>
+                </View>
+                <Text style={styles.storeAddress}>
+                  123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
+                </Text>
+
+                <View style={styles.managerLine}>
+                  <Ionicons name="headset" size={13} color="#7A0C10" />
+                  <Text style={styles.managerLabel}>Quản lý ca trực: </Text>
+                  <Text style={styles.managerName}>Trần Quốc Bảo</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* ── 3. Thẻ Cài đặt & Nghiệp vụ POS ── */}
         <View style={styles.settingsCard}>
@@ -379,12 +571,55 @@ export default function AccountScreen() {
 
         {/* ── 4. Nút Đăng Xuất & Footer ── */}
         <View style={styles.logoutSection}>
+          {isStoreOwner && (
+            <Pressable
+              style={styles.confirmSettleBtn}
+              onPress={async () => {
+                await settleVault('Chốt két ca trực 08:00 - 16:30 hoàn tất.')
+                Alert.alert(
+                  'Xác nhận chốt két thành công 🎉',
+                  `Đã lưu kho sao kê thành công!\nSố tiền bàn giao: ${formatMoney(vault.actualCashInVault)}\nTự động đồng bộ máy chủ & in 02 liên bàn giao ca (Liên 1 Kế toán, Liên 2 Bàn giao ca).`,
+                )
+              }}
+            >
+              <View style={styles.confirmSettleLeft}>
+                <Ionicons name="refresh-circle-outline" size={24} color="#FFFFFF" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.confirmSettleTitle}>
+                    XÁC NHẬN CHỐT KÉT & LƯU KHO SAO KÊ
+                  </Text>
+                  <Text style={styles.confirmSettleSubtitle}>
+                    Tự động đồng bộ máy chủ & in 02 liên bàn giao ca
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </Pressable>
+          )}
+
           <Pressable
-            style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.88 }]}
+            style={({ pressed }) => [
+              isStoreOwner ? styles.logoutOwnerOutlineBtn : styles.logoutBtn,
+              pressed && { opacity: 0.88 },
+            ]}
             onPress={handleLogout}
           >
-            <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.logoutBtnText}>ĐĂNG XUẤT TÀI KHOẢN POS</Text>
+            <Ionicons
+              name="log-out-outline"
+              size={20}
+              color={isStoreOwner ? '#7A0C10' : '#FFFFFF'}
+            />
+            <Text
+              style={
+                isStoreOwner
+                  ? styles.logoutOwnerOutlineBtnText
+                  : styles.logoutBtnText
+              }
+            >
+              {isStoreOwner
+                ? 'ĐĂNG XUẤT TÀI KHOẢN CHỦ QUÁN'
+                : 'ĐĂNG XUẤT TÀI KHOẢN POS'}
+            </Text>
           </Pressable>
 
           <View style={styles.footerInfoBox}>
@@ -1134,5 +1369,253 @@ const styles = StyleSheet.create({
   footerCopyrightText: {
     fontSize: 10,
     color: '#8C716E',
+  },
+
+  // Role Badges
+  staffBadgeBg: {
+    backgroundColor: '#FFECEF',
+  },
+  staffBadgeText: {
+    color: Colors.primaryContainer,
+  },
+  ownerBadgeBg: {
+    backgroundColor: '#FFD9DD',
+  },
+  ownerBadgeText: {
+    color: '#991B1B',
+  },
+  rankBadgeBoxOwner: {
+    backgroundColor: '#FFF5F6',
+    borderColor: '#FECDD3',
+  },
+
+  // Sổ quỹ & Chốt két Showroom (Image 5)
+  ownerVaultCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.xl,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 12,
+  },
+  ownerVaultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ownerVaultHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ownerVaultIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    backgroundColor: '#FFECEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerVaultTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#7A0C10',
+    letterSpacing: 0.3,
+  },
+  ownerVaultTime: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  ownerVaultStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  ownerVaultStatusText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  ownerVaultRowsList: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  ownerVaultRowItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ownerVaultRowLabelGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ownerVaultRowLabel: {
+    fontSize: 12,
+    color: '#4B5563',
+  },
+  ownerVaultRowValDark: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  ownerVaultRowValGreen: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  ownerVaultRowValRed: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+
+  // Highlight Box: TIỀN MẶT THỰC TẾ TRONG KÉT
+  ownerActualVaultBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF5F6',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    borderRadius: Radius.lg,
+    padding: 14,
+  },
+  ownerActualVaultLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#881337',
+    letterSpacing: 0.3,
+  },
+  ownerActualVaultAmount: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#7A0C10',
+    marginTop: 2,
+  },
+  ownerVaultLockBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: '#7A0C10',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Progress Bar Target
+  ownerTargetProgressSection: {
+    gap: 5,
+  },
+  ownerTargetProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ownerTargetProgressLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  ownerTargetProgressValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  ownerProgressBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
+  },
+  ownerProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#7A0C10',
+    borderRadius: 3,
+  },
+
+  // Vault Actions (Chi tiền quán & Kiểm đếm két)
+  ownerVaultActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  ownerVaultActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: Radius.md,
+    paddingVertical: 10,
+  },
+  ownerVaultActionBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+
+  // Standalone Store Card
+  storeCardStandalone: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.xl,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+  },
+
+  // Chốt két & Logout buttons
+  confirmSettleBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#7A0C10',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  confirmSettleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  confirmSettleTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  confirmSettleSubtitle: {
+    fontSize: 10.5,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  logoutOwnerOutlineBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 14,
+    paddingVertical: 13,
+  },
+  logoutOwnerOutlineBtnText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#7A0C10',
+    letterSpacing: 0.3,
   },
 })

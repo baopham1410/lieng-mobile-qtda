@@ -23,6 +23,8 @@ import * as posApi from '@/api/pos'
 import { ScannerModal } from '@/components/ScannerModal'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
+import { useUserRole } from '@/hooks/useUserRole'
+import { useStore } from '@/context/StoreContext'
 
 interface PosUnitItem {
   id: number
@@ -338,11 +340,14 @@ interface CartItem {
   imei?: string
   qty: number
   hasImei: boolean
+  imageUrl?: string
 }
 
 export default function PosScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { isStoreOwner, roleTitle, employeeName } = useUserRole()
+  const { addPosOrder } = useStore()
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -351,26 +356,26 @@ export default function PosScreen() {
 
   const [catalog, setCatalog] = useState<PosUnitItem[]>(FALLBACK_POS_UNITS)
 
-  // Giỏ hàng (Khởi tạo sẵn 2 món mẫu khớp 100% Google Stitch Image 2: 43.380.000 đ)
+  // Giỏ hàng mẫu (Khớp chuẩn 100% Google Stitch Image 1 & 2)
   const [cart, setCart] = useState<CartItem[]>([
     {
-      id: 'imei-1-356892110482910',
+      id: 'imei-1-357892110482914',
       imeiCodeId: 101,
       productVariantId: 1,
-      name: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
+      name: 'iPhone 15 Pro Max 256GB Tit...',
       sku: 'IP15PM-256-NAT',
       price: 29490000,
-      imei: '356892110482910',
+      imei: '357892110482914',
       qty: 1,
       hasImei: true,
     },
     {
-      id: 'non-imei-5',
-      imeiCodeId: 105,
-      productVariantId: 5,
-      name: 'iPad Air 5 M1 64GB & Phụ kiện Store',
-      sku: 'PK-APPLE-60W',
-      price: 13890000,
+      id: 'acc-4',
+      imeiCodeId: 104,
+      productVariantId: 4,
+      name: 'Tai nghe AirPods Pro 2 Type-...',
+      sku: 'AP-PRO2-TYPEC',
+      price: 5390000,
       qty: 1,
       hasImei: false,
     },
@@ -386,10 +391,20 @@ export default function PosScreen() {
   const [lookupLoading, setLookupLoading] = useState(false)
 
   // Thanh toán
-  const [discount, setDiscount] = useState<number>(0)
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'mixed'>('cash')
+  const [discount, setDiscount] = useState<number>(1000000)
+  const [ownerDiscountInput, setOwnerDiscountInput] = useState<string>('1.000.000')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'mixed'>('transfer')
   const [cashAmount, setCashAmount] = useState<string>('')
   const [checkingOut, setCheckingOut] = useState(false)
+
+  const handleApplyOwnerDiscount = () => {
+    const cleanNum = Number(ownerDiscountInput.replace(/\./g, '').replace(/,/g, '').trim()) || 0
+    setDiscount(cleanNum)
+    Alert.alert(
+      'Áp dụng đặc quyền',
+      `Đã áp dụng Chiết khấu Chủ quán VIP: -${formatMoney(cleanNum)} trực tiếp vào đơn hàng.`,
+    )
+  }
 
   // Modal QR chuyển khoản
   const [qrModalOpen, setQrModalOpen] = useState(false)
@@ -498,6 +513,7 @@ export default function PosScreen() {
       imei: assignedImei,
       qty: 1,
       hasImei: item.hasImei,
+      imageUrl: item.imageUrl,
     }
     setCart((prev) => [newCartItem, ...prev])
   }
@@ -564,6 +580,40 @@ export default function PosScreen() {
     })
   }, [catalog, search, selectedCat, subFilter])
 
+  // Đồng bộ hóa đơn vào StoreContext và lưu trữ bền vững
+  const buildAndPersistOrder = async (orderCode: string, pMethod: string) => {
+    if (cart.length === 0) return
+    const firstCartItem = cart[0]
+    const summary =
+      cart.length === 1 ? firstCartItem.name : `${firstCartItem.name} (+${cart.length - 1} món)`
+    const subtitle = firstCartItem.hasImei
+      ? `IMEI: ${firstCartItem.imei || '357892110482914'}`
+      : 'Phụ kiện chính hãng • Mới 100%'
+
+    await addPosOrder({
+      code: orderCode,
+      customerName: customerName || matchedCustomer?.name || 'Khách vãng lai',
+      customerPhone: customerPhone || matchedCustomer?.phone || '0988.xxx.456',
+      total: totalAmount,
+      itemCount: cart.reduce((acc, i) => acc + i.qty, 0),
+      itemsSummary: summary,
+      productSubtitle: subtitle,
+      paymentMethod: pMethod,
+      status: 'completed',
+      cashier: employeeName || 'Nguyễn Văn A',
+      imei: firstCartItem.imei,
+      imageUrl: firstCartItem.imageUrl,
+      discountInfo: discount > 0 ? `Chiết khấu ${formatMoney(discount)}` : undefined,
+      isVipCustomer: isStoreOwner || !!matchedCustomer,
+      items: cart.map((i) => ({
+        name: i.name,
+        qty: i.qty,
+        price: i.price,
+        imeis: i.imei ? [i.imei] : [],
+      })),
+    })
+  }
+
   // Xử lý thanh toán
   const handleCheckout = async () => {
     if (cart.length === 0) {
@@ -610,9 +660,11 @@ export default function PosScreen() {
         setOrderSuccessData({ orderCode, total: qrAmount })
         setQrModalOpen(true)
       } else {
+        // Lưu và đồng bộ hóa đơn tiền mặt vào hệ thống ngay lập tức
+        await buildAndPersistOrder(orderCode, 'cash')
         Alert.alert(
           'Thanh toán thành công 🎉',
-          `Đã tạo hóa đơn ${orderCode}.\nTổng thu tiền mặt: ${formatMoney(totalAmount)}.`,
+          `Đã tạo hóa đơn ${orderCode}.\nTổng thu tiền mặt: ${formatMoney(totalAmount)}.\nĐã tự động cộng vào Doanh số & Sổ quỹ két!`,
           [
             {
               text: 'In hóa đơn',
@@ -649,15 +701,19 @@ export default function PosScreen() {
         })
         setQrModalOpen(true)
       } else {
+        await buildAndPersistOrder(mockCode, 'cash')
         Alert.alert(
           'Thanh toán thành công 🎉',
-          `Hóa đơn ${mockCode} đã được ghi nhận vào hệ thống ca trực.\nThu ngân: Nguyễn Văn A.`,
+          `Hóa đơn ${mockCode} đã được ghi nhận vào hệ thống ca trực.\nTổng thu: ${formatMoney(totalAmount)}.\nĐã cộng vào Doanh số & Sổ quỹ két.`,
           [
             {
               text: 'OK',
               onPress: () => {
                 setCart([])
                 setCartModalOpen(false)
+                setCustomerPhone('')
+                setCustomerName('')
+                setMatchedCustomer(null)
               },
             },
           ]
@@ -691,13 +747,29 @@ export default function PosScreen() {
           <View>
             <View style={styles.titleRow}>
               <Text style={styles.brandTitle}>Liêng Mobile</Text>
-              <View style={styles.posBadge}>
-                <Text style={styles.posBadgeText}>POS</Text>
+              <View
+                style={[
+                  styles.posBadge,
+                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.posBadgeText,
+                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                  ]}
+                >
+                  {roleTitle}
+                </Text>
               </View>
             </View>
             <View style={styles.branchRow}>
               <Ionicons name="storefront-outline" size={11} color="#58413F" />
-              <Text style={styles.branchText}>Chi nhánh Cầu Giấy • Quay Pos</Text>
+              <Text style={styles.branchText}>
+                {isStoreOwner
+                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : 'Chi nhánh Cầu Giấy • Quầy POS'}
+              </Text>
             </View>
           </View>
         </View>
@@ -880,6 +952,16 @@ export default function PosScreen() {
                     {item.name}
                   </Text>
 
+                  {/* Ghi chú IMEI đã chọn */}
+                  {inCartQty > 0 && inCartItem?.imei && (
+                    <View style={styles.selectedImeiNote}>
+                      <Ionicons name="checkmark-circle" size={12} color="#16A34A" />
+                      <Text style={styles.selectedImeiNoteText}>
+                        Đã chọn 1 máy (IMEI kết thúc: {inCartItem.imei.slice(-3)})
+                      </Text>
+                    </View>
+                  )}
+
                   {/* SKU & Tồn kho */}
                   <View style={styles.skuStockRow}>
                     <Text style={styles.skuText}>SKU: {item.sku}</Text>
@@ -937,6 +1019,184 @@ export default function PosScreen() {
               </View>
             )
           }}
+          ListFooterComponent={
+            isStoreOwner && cart.length > 0 ? (
+              <View style={styles.inlineCartContainer}>
+                {/* Header giỏ */}
+                <View style={styles.inlineCartHeader}>
+                  <View style={styles.inlineCartTitleRow}>
+                    <Ionicons name="cart-outline" size={18} color="#991B1B" />
+                    <Text style={styles.inlineCartTitle}>Giỏ hàng thanh toán</Text>
+                  </View>
+                  <View style={styles.inlineCartBadge}>
+                    <Text style={styles.inlineCartBadgeText}>{cartItemCount} sản phẩm</Text>
+                  </View>
+                </View>
+
+                {/* Danh sách các món trong giỏ */}
+                {cart.map((c) => (
+                  <View key={c.id} style={styles.inlineCartItemCard}>
+                    <View style={styles.inlineCartItemLeft}>
+                      <Text style={styles.inlineCartItemName} numberOfLines={1}>
+                        {c.name}
+                      </Text>
+                      <View style={styles.inlineCartTagRow}>
+                        {c.hasImei ? (
+                          <View style={styles.inlineImeiPill}>
+                            <Text style={styles.inlineImeiPillText}>
+                              IMEI: {c.imei || '357892110482914'}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.inlineAccessoryPill}>
+                            <Text style={styles.inlineAccessoryPillText}>Phụ kiện kèm máy</Text>
+                          </View>
+                        )}
+                        <Text style={styles.inlineQtyText}>x{c.qty}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.inlineCartItemPrice}>{formatMoney(c.price * c.qty)}</Text>
+                  </View>
+                ))}
+
+                {/* Card Đặc quyền Chủ quán: Chiết khấu VIP */}
+                <View style={styles.vipDiscountCard}>
+                  <View style={styles.vipDiscountHeader}>
+                    <View style={styles.vipDiscountTitleRow}>
+                      <Ionicons name="shield-checkmark" size={15} color="#991B1B" />
+                      <Text style={styles.vipDiscountTitle}>Đặc quyền Chủ quán: Chiết khấu VIP</Text>
+                    </View>
+                    <View style={styles.vipNoApprovalBadge}>
+                      <Text style={styles.vipNoApprovalBadgeText}>Không cần duyệt</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.vipInputRow}>
+                    <View style={styles.vipInputContainer}>
+                      <Ionicons name="card-outline" size={16} color="#991B1B" />
+                      <TextInput
+                        style={styles.vipInput}
+                        value={ownerDiscountInput}
+                        onChangeText={setOwnerDiscountInput}
+                        keyboardType="numeric"
+                        placeholder="1.000.000"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                      <Text style={styles.vipInputCurrency}>đ</Text>
+                    </View>
+                    <Pressable
+                      style={styles.vipApplyBtn}
+                      onPress={handleApplyOwnerDiscount}
+                    >
+                      <Text style={styles.vipApplyBtnText}>Áp dụng</Text>
+                    </Pressable>
+                  </View>
+
+                  <Text style={styles.vipDiscountNote}>
+                    Giảm trừ trực tiếp vào lợi nhuận đơn hàng. Áp quyền Quản lý Chi nhánh Cầu Giấy.
+                  </Text>
+                </View>
+
+                {/* Phương thức thanh toán */}
+                <View style={styles.inlinePaySection}>
+                  <Text style={styles.inlinePayTitle}>Phương thức thanh toán</Text>
+                  <View style={styles.inlinePayRow}>
+                    <Pressable
+                      style={[
+                        styles.inlinePayBtn,
+                        paymentMethod === 'cash' && styles.inlinePayBtnActive,
+                      ]}
+                      onPress={() => setPaymentMethod('cash')}
+                    >
+                      <Ionicons
+                        name="cash-outline"
+                        size={15}
+                        color={paymentMethod === 'cash' ? '#FFFFFF' : '#374151'}
+                      />
+                      <Text
+                        style={[
+                          styles.inlinePayBtnText,
+                          paymentMethod === 'cash' && styles.inlinePayBtnTextActive,
+                        ]}
+                      >
+                        Tiền mặt
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.inlinePayBtn,
+                        paymentMethod === 'transfer' && styles.inlinePayBtnActive,
+                      ]}
+                      onPress={() => setPaymentMethod('transfer')}
+                    >
+                      <Ionicons
+                        name="qr-code-outline"
+                        size={15}
+                        color={paymentMethod === 'transfer' ? '#FFFFFF' : '#374151'}
+                      />
+                      <Text
+                        style={[
+                          styles.inlinePayBtnText,
+                          paymentMethod === 'transfer' && styles.inlinePayBtnTextActive,
+                        ]}
+                      >
+                        VietQR (Tự Động)
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[
+                        styles.inlinePayBtn,
+                        paymentMethod === 'mixed' && styles.inlinePayBtnActive,
+                      ]}
+                      onPress={() => setPaymentMethod('mixed')}
+                    >
+                      <Ionicons
+                        name="swap-horizontal-outline"
+                        size={15}
+                        color={paymentMethod === 'mixed' ? '#FFFFFF' : '#374151'}
+                      />
+                      <Text
+                        style={[
+                          styles.inlinePayBtnText,
+                          paymentMethod === 'mixed' && styles.inlinePayBtnTextActive,
+                        ]}
+                      >
+                        Kết hợp
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                {/* Chi tiết giá tiền */}
+                <View style={styles.inlineSummaryBox}>
+                  <View style={styles.inlineSummaryRow}>
+                    <Text style={styles.inlineSummaryLabel}>
+                      Tổng giá bán lẻ tạm tính ({cartItemCount} món):
+                    </Text>
+                    <Text style={styles.inlineSummaryVal}>{formatMoney(subtotal)}</Text>
+                  </View>
+
+                  {discount > 0 && (
+                    <View style={styles.inlineSummaryRow}>
+                      <Text style={styles.inlineSummaryLabel}>
+                        Chiết khấu Chủ quán (Trừ trực tiếp):
+                      </Text>
+                      <Text style={[styles.inlineSummaryVal, { color: '#16A34A' }]}>
+                        -{formatMoney(discount)}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.inlineSummaryRowTotal}>
+                    <Text style={styles.inlineTotalLabel}>Cần thanh toán:</Text>
+                    <Text style={styles.inlineTotalVal}>{formatMoney(totalAmount)}</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null
+          }
         />
       )}
 
@@ -959,9 +1219,17 @@ export default function PosScreen() {
 
             <Pressable
               style={styles.floatingCheckoutBtn}
-              onPress={() => setCartModalOpen(true)}
+              onPress={() => {
+                if (isStoreOwner) {
+                  handleCheckout()
+                } else {
+                  setCartModalOpen(true)
+                }
+              }}
             >
-              <Text style={styles.floatingCheckoutBtnText}>Xem giỏ & Thanh toán</Text>
+              <Text style={styles.floatingCheckoutBtnText}>
+                {isStoreOwner ? 'Thu tiền' : 'Xem giỏ & Thanh toán'}
+              </Text>
               <Ionicons name="arrow-forward" size={15} color={Colors.white} />
             </Pressable>
           </View>
@@ -1236,11 +1504,19 @@ export default function PosScreen() {
 
             <Pressable
               style={styles.qrConfirmBtn}
-              onPress={() => {
+              onPress={async () => {
+                const finalCode = orderSuccessData?.orderCode || `HD-${Date.now().toString().slice(-6)}`
+                await buildAndPersistOrder(finalCode, paymentMethod)
                 setQrModalOpen(false)
                 setCart([])
                 setCartModalOpen(false)
-                Alert.alert('Thành công', 'Hệ thống đã nhận diện giao dịch VietQR hợp lệ!')
+                setCustomerPhone('')
+                setCustomerName('')
+                setMatchedCustomer(null)
+                Alert.alert(
+                  'Thanh toán thành công 🎉',
+                  `Đã nhận tiền chuyển khoản đơn ${finalCode}.\nĐơn hàng đã được thêm vào Sổ đơn & Doanh số hôm nay!`,
+                )
               }}
             >
               <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
@@ -2216,5 +2492,293 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#58413F',
     textAlign: 'center',
+  },
+
+  // Role Badges
+  staffBadgeBg: {
+    backgroundColor: '#FFECEF',
+  },
+  staffBadgeText: {
+    color: Colors.primaryContainer,
+  },
+  ownerBadgeBg: {
+    backgroundColor: '#FFD9DD',
+  },
+  ownerBadgeText: {
+    color: '#991B1B',
+  },
+
+  // Selected IMEI Note on product card
+  selectedImeiNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+    alignSelf: 'flex-start',
+    marginVertical: 2,
+  },
+  selectedImeiNoteText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+
+  // Inline Cart for Owner (Image 1)
+  inlineCartContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1.5,
+    borderTopColor: '#ECEEF0',
+    gap: 12,
+  },
+  inlineCartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  inlineCartTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  inlineCartTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  inlineCartBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: Radius.full,
+  },
+  inlineCartBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  inlineCartItemCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inlineCartItemLeft: {
+    flex: 1,
+    gap: 4,
+    paddingRight: 10,
+  },
+  inlineCartItemName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  inlineCartTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  inlineImeiPill: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  inlineImeiPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  inlineAccessoryPill: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  inlineAccessoryPillText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  inlineQtyText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  inlineCartItemPrice: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+
+  // VIP Owner Discount Box
+  vipDiscountCard: {
+    backgroundColor: '#FFF5F6',
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    gap: 8,
+  },
+  vipDiscountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  vipDiscountTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  vipDiscountTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#991B1B',
+  },
+  vipNoApprovalBadge: {
+    backgroundColor: '#FFE4E6',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  vipNoApprovalBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#BE123C',
+  },
+  vipInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  vipInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FDA4AF',
+    borderRadius: Radius.md,
+    paddingHorizontal: 10,
+    height: 40,
+    gap: 6,
+  },
+  vipInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#991B1B',
+    padding: 0,
+  },
+  vipInputCurrency: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  vipApplyBtn: {
+    backgroundColor: Colors.primaryContainer,
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vipApplyBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  vipDiscountNote: {
+    fontSize: 11,
+    color: '#881337',
+    lineHeight: 15,
+  },
+
+  // Inline Payment Buttons
+  inlinePaySection: {
+    gap: 8,
+  },
+  inlinePayTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  inlinePayRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inlinePayBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: Radius.md,
+    paddingVertical: 9,
+  },
+  inlinePayBtnActive: {
+    backgroundColor: Colors.primaryContainer,
+    borderColor: Colors.primaryContainer,
+  },
+  inlinePayBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  inlinePayBtnTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Inline Summary Box
+  inlineSummaryBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.lg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 8,
+  },
+  inlineSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inlineSummaryLabel: {
+    fontSize: 12,
+    color: '#58413F',
+  },
+  inlineSummaryVal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  inlineSummaryRowTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  inlineTotalLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  inlineTotalVal: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.primaryContainer,
   },
 })

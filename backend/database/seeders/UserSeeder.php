@@ -32,9 +32,15 @@ class UserSeeder extends Seeder
             ],
             [
                 'role' => 'quan_manager',
-                'name' => 'Chủ Quán',
+                'name' => 'Trần Quốc Bảo',
+                'email' => 'quanly@liengmobile.com',
+                'phone' => '0988777666',
+            ],
+            [
+                'role' => 'quan_manager',
+                'name' => 'Trần Quốc Bảo',
                 'email' => 'quan@liengmobile.com',
-                'phone' => '0903333333',
+                'phone' => '0988777666',
             ],
             [
                 'role' => 'quan_staff',
