@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\WarrantyController;
 use App\Http\Controllers\Api\AssistantController;
 use Illuminate\Support\Facades\Route;
@@ -151,6 +152,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/owner/vault/expense', [StoreOwnerController::class, 'recordExpense']);
         Route::post('/owner/vault/audit', [StoreOwnerController::class, 'auditVault']);
         Route::post('/owner/vault/settle', [StoreOwnerController::class, 'settleVault']);
+
+        // Warehouse Management (Nghiệp vụ Thủ kho & Nhập kho)
+        Route::get('/warehouse/dashboard', [WarehouseController::class, 'dashboard']);
+        Route::get('/warehouse/imports', [WarehouseController::class, 'imports']);
+        Route::post('/warehouse/imports', [WarehouseController::class, 'storeImport']);
+        Route::get('/warehouse/imei/{imei}', [WarehouseController::class, 'scanImei']);
+        Route::get('/warehouse/orders/{code}/verify', [WarehouseController::class, 'verifyExportOrder']);
+        Route::post('/warehouse/audit', [WarehouseController::class, 'auditStock']);
 
         // Suppliers & Stock imports
         Route::get('/suppliers', [SupplierController::class, 'index']);

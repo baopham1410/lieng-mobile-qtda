@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getErrorMessage } from '@/api/client'
 import * as posApi from '@/api/pos'
 import { ScannerModal } from '@/components/ScannerModal'
+import { WarehouseStockCenter } from '@/components/WarehouseStockCenter'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
@@ -827,69 +828,7 @@ export default function PosScreen() {
       </View>
 
       {!canAccessPos ? (
-        <ScrollView contentContainerStyle={styles.warehouseAccessContainer} showsVerticalScrollIndicator={false}>
-          {/* Thẻ Quản lý Nhập kho & Thiết bị IMEI */}
-          <View style={styles.warehouseAccessCard}>
-            <View style={styles.warehouseAccessIconWrap}>
-              <Ionicons name="cube" size={36} color="#B45309" />
-            </View>
-            <Text style={styles.warehouseAccessTitle}>Trung tâm Quản lý Nhập Kho & Thiết bị IMEI</Text>
-            <Text style={styles.warehouseAccessDesc}>
-              Tài khoản Thủ kho phụ trách quản lý tồn kho ({stats.imeiInStock} thiết bị sẵn sàng), kiểm đếm barcode IMEI và lập phiếu nhập/xuất kho (theo adminNav.js).{'\n\n'}Nghiệp vụ thu ngân và thanh toán tại quầy POS dành cho Nhân viên Bán hàng & Chủ quán.
-            </Text>
-
-            {/* Chỉ số nhanh kho */}
-            <View style={{ width: '100%', flexDirection: 'row', gap: 10, marginBottom: 18 }}>
-              <View style={{ flex: 1, backgroundColor: '#FEF3C7', borderRadius: Radius.lg, padding: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 11, color: '#B45309', fontWeight: '700' }}>TỒN KHO KHẢ DỤNG</Text>
-                <Text style={{ fontSize: 18, color: '#B45309', fontWeight: '800', marginTop: 4 }}>{stats.imeiInStock} máy</Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: '#DCFCE7', borderRadius: Radius.lg, padding: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 11, color: '#16A34A', fontWeight: '700' }}>ĐỐI SOÁT BARCODE</Text>
-                <Text style={{ fontSize: 18, color: '#16A34A', fontWeight: '800', marginTop: 4 }}>100% Khớp</Text>
-              </View>
-            </View>
-
-            <View style={styles.warehouseAccessBtnGroup}>
-              <Pressable
-                style={styles.warehousePrimaryBtn}
-                onPress={() => setScannerOpen(true)}
-              >
-                <Ionicons name="qr-code-outline" size={17} color="#FFFFFF" />
-                <Text style={styles.warehousePrimaryBtnText}>Bắn Barcode / Quét mã IMEI kiểm kho</Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.warehousePrimaryBtn, { backgroundColor: '#B45309' }]}
-                onPress={() =>
-                  Alert.alert(
-                    'Tạo phiếu nhập kho',
-                    'Đã kết nối luồng nhập kho từ hệ thống FPT Synnex/Apple VN. Phiếu nhập kho đã được ghi nhận vào cơ sở dữ liệu!',
-                  )
-                }
-              >
-                <Ionicons name="add-circle-outline" size={17} color="#FFFFFF" />
-                <Text style={styles.warehousePrimaryBtnText}>+ Lập phiếu nhập kho thiết bị mới</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.warehouseSecondaryBtn}
-                onPress={() => router.push('/(app)/(tabs)/orders')}
-              >
-                <Ionicons name="receipt-outline" size={16} color="#374151" />
-                <Text style={styles.warehouseSecondaryBtnText}>Xem đơn hàng chờ xuất kho ({stats.completedCount} đơn)</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.warehouseSecondaryBtn}
-                onPress={() => router.push('/(app)/(tabs)/services')}
-              >
-                <Ionicons name="shield-checkmark-outline" size={16} color="#374151" />
-                <Text style={styles.warehouseSecondaryBtnText}>Tra cứu bảo hành & Tiếp nhận máy</Text>
-              </Pressable>
-            </View>
-          </View>
-        </ScrollView>
+        <WarehouseStockCenter />
       ) : (
         <>
 

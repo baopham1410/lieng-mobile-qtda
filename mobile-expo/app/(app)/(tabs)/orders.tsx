@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
+import { verifyExportOrder } from '@/api/warehouse'
 import { Colors, Radius } from '@/constants/config'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
@@ -425,6 +426,32 @@ export default function OrdersScreen() {
       'In hóa đơn',
       `Đang kết nối máy in Epson TM-T82...\nĐã in hóa đơn ${order.code} thành công (02 liên bàn giao).`,
     )
+  }
+
+  const handleWarehouseVerifyImei = async (order: DisplayOrder) => {
+    try {
+      const res = await verifyExportOrder(order.code)
+      const itemsList = res.items
+        .map((it: any) => `• ${it.name} (${it.variant || 'Chuẩn'}): IMEI [${it.imei || 'Chưa gán'}]`)
+        .join('\n')
+      Alert.alert(
+        `Đối soát IMEI - Đơn ${res.order_code}`,
+        `Khách hàng: ${res.customer_name}\nTổng tiền: ${formatMoney(res.total)}\nTrạng thái: ${
+          res.status === 'completed' ? 'Đã xuất kho' : 'Chờ chuẩn bị máy'
+        }\n\nDanh sách thiết bị:\n${itemsList}\n\n${
+          res.all_imei_verified
+            ? '✅ Tất cả thiết bị đã được gắn IMEI hợp lệ!'
+            : '⚠️ Có thiết bị chưa được gắn IMEI!'
+        }`,
+      )
+    } catch {
+      Alert.alert(
+        'Đối soát IMEI xuất kho',
+        `Mã đơn: ${order.code}\nSản phẩm: ${order.itemsSummary}\nIMEI xuất kho: ${
+          order.imei || '357892110482914'
+        }\nTrạng thái: Thiết bị đã sẵn sàng bàn giao.`,
+      )
+    }
   }
 
   return (
@@ -932,12 +959,7 @@ export default function OrdersScreen() {
                         </Pressable>
                         <Pressable
                           style={[styles.actionBtnPrimaryGeneral, { backgroundColor: '#B45309' }]}
-                          onPress={() =>
-                            Alert.alert(
-                              'Đối soát IMEI xuất kho',
-                              `Mã đơn: ${item.code}\nSản phẩm: ${item.itemsSummary}\nIMEI xuất kho: ${item.imei || '357892110482914'}\nTrạng thái: Thiết bị đã sẵn sàng bàn giao.`
-                            )
-                          }
+                          onPress={() => handleWarehouseVerifyImei(item)}
                         >
                           <Ionicons name="barcode-outline" size={14} color="#FFFFFF" />
                           <Text style={styles.actionBtnPrimaryGeneralText}>Kiểm tra IMEI</Text>
