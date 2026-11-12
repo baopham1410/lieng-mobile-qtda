@@ -99,8 +99,8 @@ export function useUserRole(): UserRoleInfo {
     } else if (isWarehouseStaff) {
       roleTitle = 'THỦ KHO'
       roleBadgeText = 'THỦ KHO'
-      roleBadgeBg = '#FEF3C7'
-      roleBadgeColor = '#B45309'
+      roleBadgeBg = '#FEE2E2'
+      roleBadgeColor = '#7A0C10'
       defaultName = 'Trần Minh Kho'
       defaultEmail = 'kho@liengmobile.com'
       defaultPhone = '0902.222.222'

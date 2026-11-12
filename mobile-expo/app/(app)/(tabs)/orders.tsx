@@ -949,16 +949,16 @@ export default function OrdersScreen() {
                     {isWarehouseStaff ? (
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <Pressable
-                          style={[styles.actionBtnSecondaryOutline, { borderColor: '#B45309' }]}
+                          style={[styles.actionBtnSecondaryOutline, { borderColor: '#7A0C10' }]}
                           onPress={() => handlePrint(item)}
                         >
-                          <Ionicons name="print-outline" size={14} color="#B45309" />
-                          <Text style={[styles.actionBtnSecondaryText, { color: '#B45309', fontWeight: '700' }]}>
+                          <Ionicons name="print-outline" size={14} color="#7A0C10" />
+                          <Text style={[styles.actionBtnSecondaryText, { color: '#7A0C10', fontWeight: '700' }]}>
                             In phiếu xuất
                           </Text>
                         </Pressable>
                         <Pressable
-                          style={[styles.actionBtnPrimaryGeneral, { backgroundColor: '#B45309' }]}
+                          style={[styles.actionBtnPrimaryGeneral, { backgroundColor: '#7A0C10' }]}
                           onPress={() => handleWarehouseVerifyImei(item)}
                         >
                           <Ionicons name="barcode-outline" size={14} color="#FFFFFF" />
