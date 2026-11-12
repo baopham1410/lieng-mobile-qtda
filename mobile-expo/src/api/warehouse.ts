@@ -167,3 +167,4 @@ export async function auditWarehouseStock() {
   const res = await api.post('/warehouse/audit')
   return res.data
 }
+
