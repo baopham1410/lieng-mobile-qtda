@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
+import { fetchDashboardReport } from '@/api/reports'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
@@ -96,29 +97,47 @@ export default function HomeScreen() {
 
   const loadDashboard = useCallback(async () => {
     try {
-      const res = await ordersApi.fetchOrders({ per_page: 5 })
-      const raw = res.data ?? res
+      const [res, report] = await Promise.all([
+        ordersApi.fetchOrders({ per_page: 5 }).catch(() => null),
+        fetchDashboardReport().catch(() => null),
+      ])
+
+      if (report) {
+        setStats((prev) => ({
+          ...prev,
+          revenueToday: Number(report.today_revenue) || prev.revenueToday,
+          ordersToday: Number(report.today_orders) || prev.ordersToday,
+          imeiInStock: Number(report.imei_in_stock) ?? prev.imeiInStock,
+          growthPercent: report.revenue_cost_chart?.monthly?.summary?.growth
+            ? `+${report.revenue_cost_chart.monthly.summary.growth}%`
+            : prev.growthPercent,
+        }))
+      }
+
+      const raw = res?.data ?? res
       if (Array.isArray(raw) && raw.length > 0) {
         const mapped: RecentOrder[] = raw.slice(0, 4).map((o: any) => ({
           id: o.id,
           code: o.code || `HD-${o.id}`,
-          customerName: o.customer_name || 'Khách lẻ tại quầy',
-          total: Number(o.total_amount) || 0,
-          itemCount: o.items ? o.items.length : 1,
-          summary: o.items
+          customerName: o.customer_name || o.customerName || 'Khách lẻ tại quầy',
+          total: Number(o.total_amount ?? o.total ?? 0),
+          itemCount: o.items ? o.items.length : (o.itemCount || 1),
+          summary: o.itemsSummary || (o.items
             ? o.items.map((i: any) => i.product_name || i.name).join(', ')
-            : 'Đơn bán lẻ showroom',
-          createdAt: o.created_at ? formatDateTimeVi(o.created_at) : '14:30',
+            : 'Đơn bán lẻ showroom'),
+          createdAt: (o.created_at || o.createdAt) ? formatDateTimeVi(o.created_at || o.createdAt) : 'Hôm nay',
           status: o.status === 'completed' || o.status === 'paid' ? 'completed' : 'pending',
-          cashier: user?.name || 'Nguyễn Văn A',
+          cashier: o.staffName || user?.name || 'Nguyễn Văn A',
         }))
         setRecentOrders(mapped)
-        const totalRev = mapped.reduce((sum, it) => sum + it.total, 0)
-        setStats((prev) => ({
-          ...prev,
-          revenueToday: totalRev > 0 ? totalRev : 42500000,
-          ordersToday: mapped.length > 0 ? mapped.length : 8,
-        }))
+        if (!report) {
+          const totalRev = mapped.reduce((sum, it) => sum + it.total, 0)
+          setStats((prev) => ({
+            ...prev,
+            revenueToday: totalRev > 0 ? totalRev : 42500000,
+            ordersToday: mapped.length > 0 ? mapped.length : 8,
+          }))
+        }
       }
     } catch {
       // Fallback Stitch dữ liệu chuẩn showroom

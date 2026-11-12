@@ -9,7 +9,6 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
       }}
-      initialRouteName="home"
     >
       {/* 5 Tab chính của Shell Cửa hàng Lieng Mobile theo chuẩn Google Stitch */}
       <Tabs.Screen name="home" options={{ title: 'Tổng quan' }} />

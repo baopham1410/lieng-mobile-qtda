@@ -14,7 +14,9 @@ class OrderResource extends JsonResource
             'id' => $this->id,
             'code' => $this->code,
             'customerName' => $this->customer?->name ?? 'Khách lẻ',
+            'customer_name' => $this->customer?->name ?? 'Khách lẻ',
             'customerPhone' => $this->customer?->phone ?? '',
+            'customer_phone' => $this->customer?->phone ?? '',
             'staffName' => $this->user?->name ?? '',
             'itemCount' => $items->count(),
             'itemsSummary' => $items->take(2)->map(function ($item) {
@@ -23,10 +25,13 @@ class OrderResource extends JsonResource
             'subtotal' => (float) $this->subtotal,
             'discount' => (float) $this->discount,
             'total' => (float) $this->total,
+            'total_amount' => (float) $this->total,
             'paymentMethod' => $this->payment_method,
+            'payment_method' => $this->payment_method,
             'paymentBreakdown' => $this->resource->paymentBreakdown(),
             'status' => $this->status,
             'paymentStatus' => $this->payment_status,
+            'payment_status' => $this->payment_status,
             'paymentProvider' => $this->payment_provider,
             'paymentReference' => $this->payment_reference,
             'checkoutUrl' => $this->checkout_url,
@@ -34,6 +39,8 @@ class OrderResource extends JsonResource
             'paymentExpiresAt' => $this->payment_expires_at?->toIso8601String(),
             'paymentConfirmedAt' => $this->payment_confirmed_at?->toIso8601String(),
             'paidAt' => $this->paid_at?->toIso8601String(),
+            'createdAt' => $this->created_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
             'notes' => $this->notes ?? '',
             'items' => $this->whenLoaded('items', function () {
                 return $this->items->map(function ($item) {

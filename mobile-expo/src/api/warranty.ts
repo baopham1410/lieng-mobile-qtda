@@ -24,11 +24,15 @@ export async function lookupWarrantyByImei(imei: string) {
 export async function createWarrantyRepair(payload: {
   imei: string
   symptom: string
+  description?: string
   notes?: string
   customer_name?: string
   customer_phone?: string
 }) {
-  const { data } = await api.post('/warranties/repairs', payload)
+  const { data } = await api.post('/warranties/repairs', {
+    ...payload,
+    description: payload.description || payload.symptom,
+  })
   return data
 }
 
