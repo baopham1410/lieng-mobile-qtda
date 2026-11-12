@@ -134,7 +134,17 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { user } = useAuth()
-  const { isStoreOwner, employeeName, roleTitle } = useUserRole()
+  const {
+    isStoreOwner,
+    isWarehouseStaff,
+    isSalesStaff,
+    employeeName,
+    roleTitle,
+    roleBadgeText,
+    roleBadgeBg,
+    roleBadgeColor,
+    canApproveDiscount,
+  } = useUserRole()
   const {
     stats,
     pendingApprovals,
@@ -145,9 +155,9 @@ export default function HomeScreen() {
   } = useStore()
   const [refreshing, setRefreshing] = useState(false)
   const [staffStats, setStaffStats] = useState({
-    revenueToday: 42500000,
+    revenueToday: 128450000,
     growthPercent: '+18.2%',
-    ordersToday: 8,
+    ordersToday: 22,
     imeiInStock: 142,
     servicesPending: 3,
   })
@@ -156,58 +166,48 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      if (isStoreOwner) {
-        await refreshStoreData()
-      } else {
-        const [res, report] = await Promise.all([
-          ordersApi.fetchOrders({ per_page: 5 }).catch(() => null),
-          fetchDashboardReport().catch(() => null),
-        ])
+      await refreshStoreData()
+      const [res, report] = await Promise.all([
+        ordersApi.fetchOrders({ per_page: 5 }).catch(() => null),
+        fetchDashboardReport().catch(() => null),
+      ])
 
-        if (report) {
-          setStaffStats((prev) => ({
-            ...prev,
-            revenueToday: Number(report.today_revenue) || prev.revenueToday,
-            ordersToday: Number(report.today_orders) || prev.ordersToday,
-            imeiInStock: Number(report.imei_in_stock) ?? prev.imeiInStock,
-            growthPercent: report.revenue_cost_chart?.monthly?.summary?.growth
-              ? `+${report.revenue_cost_chart.monthly.summary.growth}%`
-              : prev.growthPercent,
-          }))
-        }
+      if (report) {
+        setStaffStats((prev) => ({
+          ...prev,
+          revenueToday: Number(report.today_revenue) || prev.revenueToday,
+          ordersToday: Number(report.today_orders) || prev.ordersToday,
+          imeiInStock: Number(report.imei_in_stock) ?? prev.imeiInStock,
+          servicesPending: Number(report.services_pending) ?? prev.servicesPending,
+          growthPercent: report.revenue_cost_chart?.monthly?.summary?.growth
+            ? `+${report.revenue_cost_chart.monthly.summary.growth}%`
+            : prev.growthPercent,
+        }))
+      }
 
-        const raw = res?.data ?? res
-        if (Array.isArray(raw) && raw.length > 0) {
-          const mapped: RecentOrder[] = raw.slice(0, 4).map((o: any) => ({
-            id: o.id,
-            code: o.code || `HD-${o.id}`,
-            customerName: o.customer_name || o.customerName || 'Khách lẻ tại quầy',
-            total: Number(o.total_amount ?? o.total ?? 0),
-            itemCount: o.items ? o.items.length : (o.itemCount || 1),
-            summary: o.itemsSummary || (o.items
-              ? o.items.map((i: any) => i.product_name || i.name).join(', ')
-              : 'Đơn bán lẻ showroom'),
-            createdAt: (o.created_at || o.createdAt) ? formatDateTimeVi(o.created_at || o.createdAt) : 'Hôm nay',
-            status: o.status === 'completed' || o.status === 'paid' ? 'completed' : 'pending',
-            cashier: o.staffName || user?.name || 'Nguyễn Văn A',
-          }))
-          setRecentOrders(mapped)
-          if (!report) {
-            const totalRev = mapped.reduce((sum, it) => sum + it.total, 0)
-            setStaffStats((prev) => ({
-              ...prev,
-              revenueToday: totalRev > 0 ? totalRev : 42500000,
-              ordersToday: mapped.length > 0 ? mapped.length : 8,
-            }))
-          }
-        }
+      const raw = res?.data ?? res
+      if (Array.isArray(raw) && raw.length > 0) {
+        const mapped: RecentOrder[] = raw.slice(0, 4).map((o: any) => ({
+          id: o.id,
+          code: o.code || `HD-${o.id}`,
+          customerName: o.customer_name || o.customerName || 'Khách lẻ tại quầy',
+          total: Number(o.total_amount ?? o.total ?? 0),
+          itemCount: o.items ? o.items.length : (o.itemCount || 1),
+          summary: o.itemsSummary || (o.items
+            ? o.items.map((i: any) => i.product_name || i.name).join(', ')
+            : 'Đơn bán lẻ showroom'),
+          createdAt: (o.created_at || o.createdAt) ? formatDateTimeVi(o.created_at || o.createdAt) : 'Hôm nay',
+          status: o.status === 'completed' || o.status === 'paid' ? 'completed' : 'pending',
+          cashier: o.staffName || user?.name || 'Nguyễn Văn A',
+        }))
+        setRecentOrders(mapped)
       }
     } catch {
       // Fallback Stitch dữ liệu chuẩn showroom
     } finally {
       setRefreshing(false)
     }
-  }, [isStoreOwner, refreshStoreData, user?.name])
+  }, [refreshStoreData, user?.name])
 
   useEffect(() => {
     onRefresh()
@@ -248,16 +248,16 @@ export default function HomeScreen() {
               <View
                 style={[
                   styles.posBadge,
-                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                  { backgroundColor: roleBadgeBg },
                 ]}
               >
                 <Text
                   style={[
                     styles.posBadgeText,
-                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                    { color: roleBadgeColor },
                   ]}
                 >
-                  {roleTitle}
+                  {roleBadgeText}
                 </Text>
               </View>
             </View>
@@ -266,7 +266,9 @@ export default function HomeScreen() {
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
                   ? 'Chi nhánh Cầu Giấy • Quản lý'
-                  : 'Chi nhánh Cầu Giấy • Tổng Quan'}
+                  : isWarehouseStaff
+                  ? 'Chi nhánh Cầu Giấy • Kho Vận'
+                  : 'Chi nhánh Cầu Giấy • Bán Hàng'}
               </Text>
             </View>
           </View>
@@ -313,6 +315,8 @@ export default function HomeScreen() {
               <Text style={styles.storeBadgeText}>
                 {isStoreOwner
                   ? 'Liêng Mobile • Flagship #01 (Q.3)'
+                  : isWarehouseStaff
+                  ? 'Liêng Mobile • Trung tâm Kho Flagship'
                   : 'Liêng Mobile • Flagship #01'}
               </Text>
             </View>
@@ -320,7 +324,7 @@ export default function HomeScreen() {
           <View style={styles.shiftActivePill}>
             <View style={styles.pulseLiveDot} />
             <Text style={styles.shiftActiveText}>
-              {isStoreOwner ? 'Đang trực ca' : 'Trong ca trực'}
+              {isStoreOwner ? 'Đang trực ca' : isWarehouseStaff ? 'Đang trực kho' : 'Trong ca trực'}
             </Text>
           </View>
         </View>
@@ -330,38 +334,60 @@ export default function HomeScreen() {
           <View style={styles.heroGlowCorner} />
           <View style={styles.flagshipPill}>
             <Ionicons
-              name={isStoreOwner ? 'shield-checkmark' : 'sparkles'}
+              name={isStoreOwner ? 'shield-checkmark' : isWarehouseStaff ? 'cube' : 'sparkles'}
               size={12}
               color="#FF8076"
             />
             <Text style={styles.flagshipPillText}>
-              {isStoreOwner ? 'QUẢN TRỊ SHOWROOM' : 'TIÊU CHUẨN FLAGSHIP'}
+              {isStoreOwner
+                ? 'QUẢN TRỊ SHOWROOM'
+                : isWarehouseStaff
+                ? 'QUẢN LÝ KHO & THIẾT BỊ'
+                : 'BÁN LẺ SHOWROOM'}
             </Text>
           </View>
           <Text style={styles.heroTitle}>
             {isStoreOwner
               ? 'Quản trị vận hành Showroom & Quầy POS'
-              : 'Quản lý bán lẻ & POS'}
+              : isWarehouseStaff
+              ? 'Trung tâm Quản lý Kho & Thiết bị IMEI'
+              : 'Quản lý bán lẻ & Quầy POS'}
           </Text>
           <Text style={styles.heroSubtitle}>
-            Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.
+            {isStoreOwner
+              ? 'Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.'
+              : isWarehouseStaff
+              ? `Hệ thống kiểm đếm tồn kho, quản lý ${stats.imeiInStock} thiết bị sẵn sàng và đối soát xuất kho bảo hành.`
+              : 'Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.'}
           </Text>
           <Pressable
-            onPress={() => router.push('/(app)/(tabs)/pos')}
+            onPress={() =>
+              router.push(isWarehouseStaff ? '/(app)/(tabs)/services' : '/(app)/(tabs)/pos')
+            }
             style={({ pressed }) => [styles.heroCtaBtn, pressed && { opacity: 0.9 }]}
           >
             <Ionicons
-              name={isStoreOwner ? 'cart-outline' : 'add-circle'}
+              name={
+                isStoreOwner
+                  ? 'cart-outline'
+                  : isWarehouseStaff
+                  ? 'cube-outline'
+                  : 'cart-outline'
+              }
               size={18}
               color={Colors.primaryContainer}
             />
             <Text style={styles.heroCtaText}>
-              {isStoreOwner ? '+ Bán hàng quầy' : 'Tạo đơn bán ngay'}
+              {isStoreOwner
+                ? '+ Bán hàng quầy'
+                : isWarehouseStaff
+                ? 'Kiểm kê kho ngay'
+                : '+ Bán lẻ ngay'}
             </Text>
           </Pressable>
         </View>
 
-        {/* ── Chỉ số 4 KPI Cards (Chủ quán vs Nhân viên) ── */}
+        {/* ── Chỉ số 4 KPI Cards (Chủ quán vs Kho vs Bán hàng) ── */}
         <View style={styles.kpiGrid}>
           {isStoreOwner ? (
             <>
@@ -433,6 +459,69 @@ export default function HomeScreen() {
                 </View>
               </View>
             </>
+          ) : isWarehouseStaff ? (
+            <>
+              {/* Nhân viên kho */}
+              <View style={styles.kpiCard}>
+                <View style={styles.kpiCardHeader}>
+                  <Text style={styles.kpiLabel}>TỒN KHO KHẢ DỤNG</Text>
+                  <View style={[styles.kpiIconWrap, { backgroundColor: Colors.blueSoft }]}>
+                    <Ionicons name="cube-outline" size={16} color={Colors.blueDeep} />
+                  </View>
+                </View>
+                <Text style={styles.kpiValueLarge}>{stats.imeiInStock} máy</Text>
+                <View style={styles.kpiFooterTrend}>
+                  <Ionicons name="checkmark-circle" size={13} color={Colors.green} />
+                  <Text style={styles.kpiTrendGreen}>Sẵn sàng tại showroom</Text>
+                </View>
+              </View>
+
+              <View style={styles.kpiCard}>
+                <View style={styles.kpiCardHeader}>
+                  <Text style={styles.kpiLabel}>ĐÃ XUẤT BÁN</Text>
+                  <View style={[styles.kpiIconWrap, { backgroundColor: Colors.greenSoft }]}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
+                  </View>
+                </View>
+                <Text style={styles.kpiValueLarge}>{stats.completedCount} máy</Text>
+                <View style={styles.kpiFooterTrend}>
+                  <Ionicons name="shield-checkmark" size={13} color={Colors.green} />
+                  <Text style={styles.kpiHintText}>Đã kích hoạt IMEI</Text>
+                </View>
+              </View>
+
+              <View style={styles.kpiCard}>
+                <View style={styles.kpiCardHeader}>
+                  <Text style={styles.kpiLabel}>TIẾP NHẬN BẢO HÀNH</Text>
+                  <View style={[styles.kpiIconWrap, { backgroundColor: Colors.amber100 }]}>
+                    <Ionicons name="build-outline" size={16} color={Colors.amber800} />
+                  </View>
+                </View>
+                <Text style={styles.kpiValueLarge}>{stats.servicesPending} máy</Text>
+                <View style={styles.kpiFooterTrend}>
+                  <Ionicons name="alert-circle-outline" size={13} color={Colors.amber700} />
+                  <Text style={[styles.kpiHintText, { color: Colors.amber800 }]}>
+                    Chờ kỹ thuật xử lý
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.kpiCard}>
+                <View style={styles.kpiCardHeader}>
+                  <Text style={styles.kpiLabel}>TỶ LỆ KHỚP KHO</Text>
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F3F4F6' }]}>
+                    <Ionicons name="qr-code-outline" size={16} color="#374151" />
+                  </View>
+                </View>
+                <Text style={styles.kpiValueLarge}>100%</Text>
+                <View style={styles.kpiFooterTrend}>
+                  <Ionicons name="shield-checkmark" size={12} color="#16A34A" />
+                  <Text style={[styles.kpiHintText, { color: '#16A34A', fontWeight: '600' }]}>
+                    142/142 Barcode khớp
+                  </Text>
+                </View>
+              </View>
+            </>
           ) : (
             <>
               {/* Nhân viên bán hàng */}
@@ -457,7 +546,7 @@ export default function HomeScreen() {
                     <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.ordersToday} đơn</Text>
+                <Text style={styles.kpiValueLarge}>{stats.completedCount} đơn</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="time-outline" size={13} color={Colors.onSurfaceVariant} />
                   <Text style={styles.kpiHintText}>100% đúng hạn ca trực</Text>
@@ -576,7 +665,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── Thao tác nhanh (Chủ quán vs Nhân viên) ── */}
+        {/* ── Thao tác nhanh (Chủ quán vs Kho vs Bán hàng) ── */}
         <View style={styles.quickActionRow}>
           {isStoreOwner ? (
             <>
@@ -615,13 +704,66 @@ export default function HomeScreen() {
 
               {/* Chủ quán: Kiểm kê kho */}
               <Pressable
-                onPress={() => Alert.alert('Kiểm kê kho', 'Hệ thống kho đang đồng bộ 142 thiết bị tại Showroom.')}
+                onPress={() =>
+                  Alert.alert(
+                    'Kiểm kê kho',
+                    `Hệ thống kho đang đồng bộ ${stats.imeiInStock} thiết bị tại Showroom.`,
+                  )
+                }
                 style={styles.quickActionBtn}
               >
                 <View style={[styles.actionCircle, { backgroundColor: '#F2F4F6' }]}>
                   <Ionicons name="cube-outline" size={20} color="#374151" />
                 </View>
                 <Text style={styles.actionBtnLabel}>Kiểm kê kho</Text>
+              </Pressable>
+            </>
+          ) : isWarehouseStaff ? (
+            <>
+              {/* Nhân viên kho */}
+              <Pressable
+                onPress={() =>
+                  Alert.alert(
+                    'Kiểm kê kho',
+                    `Tổng tồn kho hiện tại: ${stats.imeiInStock} thiết bị sẵn sàng tại showroom.`,
+                  )
+                }
+                style={styles.quickActionBtn}
+              >
+                <View style={[styles.actionCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="cube-outline" size={22} color="#B45309" />
+                </View>
+                <Text style={styles.actionBtnLabel}>Kiểm kê kho</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/(app)/(tabs)/services')}
+                style={styles.quickActionBtn}
+              >
+                <View style={[styles.actionCircle, { backgroundColor: '#0284C7' }]}>
+                  <Ionicons name="qr-code-outline" size={20} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionBtnLabel}>Tra IMEI</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/(app)/(tabs)/services')}
+                style={styles.quickActionBtn}
+              >
+                <View style={[styles.actionCircle, { backgroundColor: '#7C3AED' }]}>
+                  <Ionicons name="speedometer-outline" size={20} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionBtnLabel}>Thẩm định máy</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/(app)/(tabs)/services')}
+                style={styles.quickActionBtn}
+              >
+                <View style={[styles.actionCircle, { backgroundColor: '#047857' }]}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionBtnLabel}>Tiếp nhận BH</Text>
               </Pressable>
             </>
           ) : (

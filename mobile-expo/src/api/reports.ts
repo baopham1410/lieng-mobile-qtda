@@ -6,6 +6,7 @@ export interface DashboardReportData {
   month_revenue: number
   month_profit: number
   imei_in_stock: number
+  services_pending?: number
   pending_imports: number
   low_stock_variants: number
   recent_orders?: Array<{

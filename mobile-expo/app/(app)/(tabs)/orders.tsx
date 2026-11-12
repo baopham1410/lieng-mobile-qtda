@@ -234,7 +234,17 @@ const STITCH_ORDERS: DisplayOrder[] = [
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { isStoreOwner, roleTitle } = useUserRole()
+  const {
+    isStoreOwner,
+    isWarehouseStaff,
+    isSalesStaff,
+    roleTitle,
+    roleBadgeText,
+    roleBadgeBg,
+    roleBadgeColor,
+    canApproveDiscount,
+    canCancelRefund,
+  } = useUserRole()
   const {
     orders: storeOrders,
     stats,
@@ -410,6 +420,13 @@ export default function OrdersScreen() {
     }
   }
 
+  const handlePrint = (order: DisplayOrder) => {
+    Alert.alert(
+      'In hóa đơn',
+      `Đang kết nối máy in Epson TM-T82...\nĐã in hóa đơn ${order.code} thành công (02 liên bàn giao).`,
+    )
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* ── Top Header chuẩn Stitch Mobile (Logo + Tên + Badge POS + Chuông + Avatar) ── */}
@@ -424,16 +441,16 @@ export default function OrdersScreen() {
               <View
                 style={[
                   styles.posBadge,
-                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                  { backgroundColor: roleBadgeBg },
                 ]}
               >
                 <Text
                   style={[
                     styles.posBadgeText,
-                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                    { color: roleBadgeColor },
                   ]}
                 >
-                  {roleTitle}
+                  {roleBadgeText}
                 </Text>
               </View>
             </View>
@@ -442,6 +459,8 @@ export default function OrdersScreen() {
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
                   ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : isWarehouseStaff
+                  ? 'Chi nhánh Cầu Giấy • Xuất Nhập Kho'
                   : 'Chi nhánh Cầu Giấy • Đơn Hàng'}
               </Text>
             </View>
@@ -506,7 +525,7 @@ export default function OrdersScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Top Shift Stat Cards (Chủ quán vs Nhân viên) ── */}
+        {/* ── Top Shift Stat Cards (Chủ quán vs Kho vs Bán hàng) ── */}
         {isStoreOwner ? (
           <View style={styles.ownerKpiSection}>
             {/* Thẻ Lớn: DOANH SỐ CA TRỰC */}
@@ -557,6 +576,56 @@ export default function OrdersScreen() {
               </View>
             </View>
           </View>
+        ) : isWarehouseStaff ? (
+          <View style={styles.ownerKpiSection}>
+            {/* Thẻ Lớn: ĐƠN XUẤT KHO THIẾT BỊ */}
+            <View style={styles.ownerBigStatCard}>
+              <View style={styles.ownerBigHeader}>
+                <View style={styles.ownerBigHeaderLeft}>
+                  <View style={[styles.ownerWalletIconBox, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="cube-outline" size={16} color="#B45309" />
+                  </View>
+                  <View>
+                    <View style={styles.ownerShiftTitleRow}>
+                      <Text style={styles.ownerShiftTitle}>ĐƠN XUẤT KHO THIẾT BỊ</Text>
+                      <View style={[styles.ownerTodayPill, { backgroundColor: '#FEF3C7' }]}>
+                        <Text style={[styles.ownerTodayPillText, { color: '#B45309' }]}>HÔM NAY</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.ownerBigAmount}>{stats.totalOrders} đơn hàng</Text>
+                  </View>
+                </View>
+                <View style={styles.ownerShiftTargetBox}>
+                  <Text style={styles.ownerTargetLabel}>Mục tiêu xuất</Text>
+                  <Text style={[styles.ownerTargetPercent, { color: '#16A34A' }]}>100%</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 2 Thẻ phụ: Đã xuất giao máy & Chờ xuất kho */}
+            <View style={styles.ownerSubStatsRow}>
+              <View style={styles.ownerSubCard}>
+                <View style={styles.ownerSubCardHeader}>
+                  <Text style={styles.ownerSubCardLabel}>Đã xuất giao</Text>
+                  <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
+                </View>
+                <Text style={styles.ownerSubCardVal}>{stats.completedCount} đơn</Text>
+                <View style={styles.ownerTrendRow}>
+                  <Ionicons name="barcode-outline" size={12} color="#16A34A" />
+                  <Text style={styles.ownerTrendText}>Đã kích hoạt IMEI</Text>
+                </View>
+              </View>
+
+              <View style={styles.ownerSubCard}>
+                <View style={styles.ownerSubCardHeader}>
+                  <Text style={styles.ownerSubCardLabel}>Chờ xuất kho</Text>
+                  <Ionicons name="clipboard-outline" size={15} color="#D97706" />
+                </View>
+                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{stats.pendingCount} đơn</Text>
+                <Text style={styles.ownerSubCardHint}>Cần kiểm IMEI</Text>
+              </View>
+            </View>
+          </View>
         ) : (
           <View style={styles.statsRow}>
             {/* Doanh số ca */}
@@ -567,7 +636,7 @@ export default function OrdersScreen() {
                   <Ionicons name="wallet-outline" size={12} color={Colors.primaryContainer} />
                 </View>
               </View>
-              <Text style={styles.statValRed}>42.500.000đ</Text>
+              <Text style={styles.statValRed}>{formatMoney(stats.revenueToday)}</Text>
               <Text style={styles.statSub}>Hôm nay</Text>
             </View>
 
@@ -580,9 +649,9 @@ export default function OrdersScreen() {
                 </View>
               </View>
               <Text style={styles.statValGreen}>
-                8 <Text style={styles.statUnitText}>đơn</Text>
+                {stats.completedCount} <Text style={styles.statUnitText}>đơn</Text>
               </Text>
-              <Text style={styles.statSubGreen}>Tỷ lệ 89%</Text>
+              <Text style={styles.statSubGreen}>Tỷ lệ 92%</Text>
             </View>
 
             {/* Chờ xử lý */}
@@ -594,7 +663,7 @@ export default function OrdersScreen() {
                 </View>
               </View>
               <Text style={styles.statValAmber}>
-                1 <Text style={styles.statUnitText}>đơn</Text>
+                {stats.pendingCount} <Text style={styles.statUnitText}>đơn</Text>
               </Text>
               <Text style={styles.statSubAmber}>Cần thu tiền</Text>
             </View>
@@ -851,21 +920,48 @@ export default function OrdersScreen() {
                     )}
 
                     {item.actionBtnLabel === 'Duyệt chiết khấu' ? (
-                      <Pressable
-                        style={styles.actionBtnApproveDiscount}
-                        onPress={() => handleApproveDiscount(item)}
-                      >
-                        <Ionicons name="checkmark-circle-outline" size={15} color="#FFFFFF" />
-                        <Text style={styles.actionBtnApproveDiscountText}>Duyệt chiết khấu</Text>
-                      </Pressable>
+                      canApproveDiscount ? (
+                        <Pressable
+                          style={styles.actionBtnApproveDiscount}
+                          onPress={() => handleApproveDiscount(item)}
+                        >
+                          <Ionicons name="checkmark-circle-outline" size={15} color="#FFFFFF" />
+                          <Text style={styles.actionBtnApproveDiscountText}>Duyệt chiết khấu</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          style={[styles.actionBtnSecondaryOutline, { borderColor: '#F59E0B' }]}
+                          onPress={() =>
+                            Alert.alert(
+                              'Chờ Chủ quán duyệt',
+                              `Đơn hàng ${item.code} có yêu cầu chiết khấu VIP ${item.discountInfo || ''}.\nYêu cầu đã được gửi tới Chủ quán để duyệt.`
+                            )
+                          }
+                        >
+                          <Ionicons name="time-outline" size={14} color="#D97706" />
+                          <Text style={[styles.actionBtnSecondaryText, { color: '#D97706', fontWeight: '700' }]}>
+                            Chờ duyệt
+                          </Text>
+                        </Pressable>
+                      )
                     ) : item.actionBtnLabel === 'Hủy & Hoàn tiền' ? (
-                      <Pressable
-                        style={styles.actionBtnRefundDanger}
-                        onPress={() => handleCancelAndRefund(item)}
-                      >
-                        <Ionicons name="shield-outline" size={14} color="#DC2626" />
-                        <Text style={styles.actionBtnRefundDangerText}>Hủy & Hoàn tiền</Text>
-                      </Pressable>
+                      canCancelRefund ? (
+                        <Pressable
+                          style={styles.actionBtnRefundDanger}
+                          onPress={() => handleCancelAndRefund(item)}
+                        >
+                          <Ionicons name="shield-outline" size={14} color="#DC2626" />
+                          <Text style={styles.actionBtnRefundDangerText}>Hủy & Hoàn tiền</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          style={styles.actionBtnSecondaryOutline}
+                          onPress={() => handlePrint(item)}
+                        >
+                          <Ionicons name="print-outline" size={14} color="#374151" />
+                          <Text style={styles.actionBtnSecondaryText}>In lại hóa đơn</Text>
+                        </Pressable>
+                      )
                     ) : item.actionBtnLabel === 'Chia sẻ HĐ' ? (
                       <Pressable
                         style={styles.actionBtnSecondaryOutline}

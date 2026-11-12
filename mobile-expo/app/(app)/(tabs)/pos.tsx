@@ -346,8 +346,18 @@ interface CartItem {
 export default function PosScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { isStoreOwner, roleTitle, employeeName } = useUserRole()
-  const { addPosOrder, refreshStoreData } = useStore()
+  const {
+    isStoreOwner,
+    isWarehouseStaff,
+    isSalesStaff,
+    canAccessPos,
+    roleTitle,
+    roleBadgeText,
+    roleBadgeBg,
+    roleBadgeColor,
+    employeeName,
+  } = useUserRole()
+  const { addPosOrder, refreshStoreData, stats } = useStore()
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -775,16 +785,16 @@ export default function PosScreen() {
               <View
                 style={[
                   styles.posBadge,
-                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                  { backgroundColor: roleBadgeBg },
                 ]}
               >
                 <Text
                   style={[
                     styles.posBadgeText,
-                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                    { color: roleBadgeColor },
                   ]}
                 >
-                  {roleTitle}
+                  {roleBadgeText}
                 </Text>
               </View>
             </View>
@@ -793,6 +803,8 @@ export default function PosScreen() {
               <Text style={styles.branchText}>
                 {isStoreOwner
                   ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : isWarehouseStaff
+                  ? 'Chi nhánh Cầu Giấy • Kho Vận'
                   : 'Chi nhánh Cầu Giấy • Quầy POS'}
               </Text>
             </View>
@@ -813,6 +825,37 @@ export default function PosScreen() {
           </Pressable>
         </View>
       </View>
+
+      {!canAccessPos ? (
+        <View style={styles.warehouseAccessContainer}>
+          <View style={styles.warehouseAccessCard}>
+            <View style={styles.warehouseAccessIconWrap}>
+              <Ionicons name="cube" size={36} color="#B45309" />
+            </View>
+            <Text style={styles.warehouseAccessTitle}>Phân quyền Quản lý Kho & Thiết bị</Text>
+            <Text style={styles.warehouseAccessDesc}>
+              Tài khoản của bạn thuộc bộ phận Kho vận, phụ trách quản lý tồn kho ({stats.imeiInStock} máy), kiểm đếm barcode IMEI và xuất nhập kho.{'\n\n'}Theo phân quyền hệ thống (adminNav.js), quầy bán lẻ & thanh toán POS dành riêng cho Nhân viên Bán hàng và Chủ quán.
+            </Text>
+            <View style={styles.warehouseAccessBtnGroup}>
+              <Pressable
+                style={styles.warehousePrimaryBtn}
+                onPress={() => router.push('/(app)/(tabs)/services')}
+              >
+                <Ionicons name="qr-code-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.warehousePrimaryBtnText}>Kiểm kê kho & Tra cứu IMEI</Text>
+              </Pressable>
+              <Pressable
+                style={styles.warehouseSecondaryBtn}
+                onPress={() => router.push('/(app)/(tabs)/orders')}
+              >
+                <Ionicons name="receipt-outline" size={16} color="#374151" />
+                <Text style={styles.warehouseSecondaryBtnText}>Xem đơn hàng xuất kho ({stats.completedCount} đơn)</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <>
 
       {/* ── THANH TÌM KIẾM & NÚT BẮN IMEI & GIỎ HÀNG (IMAGE 2) ── */}
       <View style={styles.utilityBar}>
@@ -1088,11 +1131,21 @@ export default function PosScreen() {
                 <View style={styles.vipDiscountCard}>
                   <View style={styles.vipDiscountHeader}>
                     <View style={styles.vipDiscountTitleRow}>
-                      <Ionicons name="shield-checkmark" size={15} color="#991B1B" />
-                      <Text style={styles.vipDiscountTitle}>Đặc quyền Chủ quán: Chiết khấu VIP</Text>
+                      <Ionicons
+                        name={isStoreOwner ? 'shield-checkmark' : 'pricetag'}
+                        size={15}
+                        color="#991B1B"
+                      />
+                      <Text style={styles.vipDiscountTitle}>
+                        {isStoreOwner
+                          ? 'Đặc quyền Chủ quán: Chiết khấu VIP'
+                          : 'Chiết khấu bán hàng Showroom'}
+                      </Text>
                     </View>
                     <View style={styles.vipNoApprovalBadge}>
-                      <Text style={styles.vipNoApprovalBadgeText}>Không cần duyệt</Text>
+                      <Text style={styles.vipNoApprovalBadgeText}>
+                        {isStoreOwner ? 'Không cần duyệt' : 'Trong hạn mức ca'}
+                      </Text>
                     </View>
                   </View>
 
@@ -1118,7 +1171,9 @@ export default function PosScreen() {
                   </View>
 
                   <Text style={styles.vipDiscountNote}>
-                    Giảm trừ trực tiếp vào lợi nhuận đơn hàng. Áp quyền Quản lý Chi nhánh Cầu Giấy.
+                    {isStoreOwner
+                      ? 'Giảm trừ trực tiếp vào lợi nhuận đơn hàng. Áp quyền Quản lý Chi nhánh Cầu Giấy.'
+                      : 'Hạn mức chiết khấu bán lẻ tại quầy. Mức chiết khấu lớn (>500.000 đ) cần Chủ quán duyệt.'}
                   </Text>
                 </View>
 
@@ -1206,7 +1261,9 @@ export default function PosScreen() {
                   {discount > 0 && (
                     <View style={styles.inlineSummaryRow}>
                       <Text style={styles.inlineSummaryLabel}>
-                        Chiết khấu Chủ quán (Trừ trực tiếp):
+                        {isStoreOwner
+                          ? 'Chiết khấu Chủ quán (Trừ trực tiếp):'
+                          : 'Chiết khấu bán lẻ (Áp dụng):'}
                       </Text>
                       <Text style={[styles.inlineSummaryVal, { color: '#16A34A' }]}>
                         -{formatMoney(discount)}
@@ -1562,11 +1619,90 @@ export default function PosScreen() {
         onScan={handleScanCode}
         title="Quét Barcode / Bắn IMEI POS"
       />
+        </>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  warehouseAccessContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#F7F9FB',
+  },
+  warehouseAccessCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Radius.xl,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    width: '100%',
+    maxWidth: 400,
+  },
+  warehouseAccessIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  warehouseAccessTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191C1E',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  warehouseAccessDesc: {
+    fontSize: 13.5,
+    color: '#58413F',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  warehouseAccessBtnGroup: {
+    width: '100%',
+    gap: 10,
+  },
+  warehousePrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#9F1239',
+    borderRadius: Radius.lg,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  warehousePrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  warehouseSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: Radius.lg,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  warehouseSecondaryBtnText: {
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   root: {
     flex: 1,
     backgroundColor: '#F7F9FB',
