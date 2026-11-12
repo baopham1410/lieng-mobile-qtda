@@ -96,6 +96,7 @@ class DashboardController extends Controller
             'month_revenue' => $monthRevenue,
             'month_profit' => (float) ($monthRevenue * 0.28),
             'imei_in_stock' => ImeiCode::where('status', 'in_stock')->count(),
+            'services_pending' => \App\Models\WarrantyRepair::count(),
             'pending_imports' => StockImport::where('status', 'draft')->count(),
             'low_stock_variants' => $lowStockVariants->count(),
             'recent_orders' => $recentOrders->map(fn ($o) => [

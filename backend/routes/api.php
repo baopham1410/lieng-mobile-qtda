@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\StoreOwnerController;
 use App\Http\Controllers\Api\TradeConversationController;
 use App\Http\Controllers\Api\QuanEntryController;
 use App\Http\Controllers\Api\QuanProductController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\WarrantyController;
 use App\Http\Controllers\Api\AssistantController;
 use Illuminate\Support\Facades\Route;
@@ -87,6 +89,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/orders/{order}/items/{item}', [OrderController::class, 'removeItem'])->middleware('permission:orders.create');
         Route::post('/orders/{order}/checkout', [OrderController::class, 'checkout'])->middleware('permission:orders.checkout');
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->middleware('permission:orders.create');
+        Route::post('/orders/{order}/approve-discount', [OrderController::class, 'approveDiscount']);
+        Route::post('/orders/{order}/cancel-and-refund', [OrderController::class, 'cancelAndRefund']);
+        Route::post('/orders/{order}/remind-payment', [OrderController::class, 'remindPayment']);
+        Route::post('/orders/{order}/print-receipt', [OrderController::class, 'printReceipt']);
 
         // POS
         Route::get('/pos/categories', [PosController::class, 'categories']);
@@ -132,9 +138,29 @@ Route::prefix('v1')->group(function () {
 
         // Warranty
         Route::get('/warranties', [WarrantyController::class, 'index']);
+        Route::get('/warranties/hub-tickets', [WarrantyController::class, 'getHubTickets']);
         Route::get('/warranties/lookup/{imei}', [WarrantyController::class, 'lookup']);
+        Route::post('/warranties/trade-in/evaluate', [WarrantyController::class, 'evaluateTradeIn']);
+        Route::post('/warranties/tickets/{ticket}/approve-special-buyback', [WarrantyController::class, 'approveSpecialBuyback']);
         Route::post('/warranties/repairs', [WarrantyController::class, 'storeRepairByImei'])->middleware('permission:warranty.repair');
         Route::post('/warranties/{warranty}/repairs', [WarrantyController::class, 'storeRepair'])->middleware('permission:warranty.repair');
+
+        // Store Owner Privileges & Showroom Management
+        Route::get('/owner/dashboard', [StoreOwnerController::class, 'dashboard']);
+        Route::post('/owner/approvals/{id}/approve', [StoreOwnerController::class, 'approve']);
+        Route::post('/owner/approvals/{id}/reject', [StoreOwnerController::class, 'reject']);
+        Route::get('/owner/vault', [StoreOwnerController::class, 'getVaultStatus']);
+        Route::post('/owner/vault/expense', [StoreOwnerController::class, 'recordExpense']);
+        Route::post('/owner/vault/audit', [StoreOwnerController::class, 'auditVault']);
+        Route::post('/owner/vault/settle', [StoreOwnerController::class, 'settleVault']);
+
+        // Warehouse Management (Nghiệp vụ Thủ kho & Nhập kho)
+        Route::get('/warehouse/dashboard', [WarehouseController::class, 'dashboard']);
+        Route::get('/warehouse/imports', [WarehouseController::class, 'imports']);
+        Route::post('/warehouse/imports', [WarehouseController::class, 'storeImport']);
+        Route::get('/warehouse/imei/{imei}', [WarehouseController::class, 'scanImei']);
+        Route::get('/warehouse/orders/{code}/verify', [WarehouseController::class, 'verifyExportOrder']);
+        Route::post('/warehouse/audit', [WarehouseController::class, 'auditStock']);
 
         // Suppliers & Stock imports
         Route::get('/suppliers', [SupplierController::class, 'index']);

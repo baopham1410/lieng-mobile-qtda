@@ -81,4 +81,14 @@ class Order extends Model
             'transferAmount' => $transferAmount,
         ];
     }
+
+    /**
+     * Resolve route binding by ID or by Order Code (e.g. HD-20261109-024)
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where('id', $value)
+            ->orWhere('code', $value)
+            ->first() ?? abort(404, "Không tìm thấy hóa đơn {$value}");
+    }
 }

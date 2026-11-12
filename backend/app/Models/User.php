@@ -52,6 +52,13 @@ class User extends Authenticatable
         return $this->role?->name === 'admin';
     }
 
+    public function isStoreOwner(): bool
+    {
+        $this->loadMissing('role');
+
+        return in_array($this->role?->name, ['admin', 'quan_manager', 'store_owner', 'manager'], true);
+    }
+
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
