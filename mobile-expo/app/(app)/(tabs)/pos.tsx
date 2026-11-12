@@ -420,15 +420,39 @@ export default function PosScreen() {
                 stock: v.stock ?? 1,
                 availableImeis: v.imei_list || (v.imei ? [v.imei] : []),
                 storageTag: v.name?.includes('GB') ? v.name.split(' ')[0] : 'VN/A',
-                imageUrl: FALLBACK_POS_UNITS[0].imageUrl,
+                imageUrl: p.image || FALLBACK_POS_UNITS[0].imageUrl,
               })
             }
+          } else {
+            // Chuẩn dữ liệu Backend /pos/available (danh sách phẳng từng IMEI sẵn hàng)
+            const unitPrice = Number(p.price) || 0
+            const unitImei = p.imei || undefined
+            const unitImeiCodeId = Number(p.imeiCodeId || p.imei_code_id || p.id)
+            const unitVariantId = Number(p.productVariantId || p.product_variant_id || p.id)
+            const unitCat = p.category || 'Điện thoại'
+            const storage = p.storage || (p.name?.includes('GB') ? p.name.split(' ').find((w: string) => w.includes('GB')) : 'VN/A')
+            const color = p.color ? ` · ${p.color}` : ''
+
+            mapped.push({
+              id: Number(p.id),
+              imeiCodeId: unitImeiCodeId,
+              imei: unitImei,
+              productVariantId: unitVariantId,
+              name: `${p.name}${color}`.trim(),
+              sku: unitImei ? `IMEI-${unitImei.slice(-6)}` : `SP-${p.id}`,
+              price: unitPrice,
+              categoryName: unitCat,
+              categoryId: p.categoryId || p.category_id,
+              hasImei: Boolean(unitImei),
+              stock: Number(p.stock) || 1,
+              availableImeis: unitImei ? [unitImei] : [],
+              storageTag: storage || 'VN/A',
+              imageUrl: p.image || (p.brand?.toLowerCase() === 'samsung' ? FALLBACK_POS_UNITS[1].imageUrl : FALLBACK_POS_UNITS[0].imageUrl),
+            })
           }
         }
         if (mapped.length > 0) {
-          const existingSkus = new Set(FALLBACK_POS_UNITS.map((f) => f.sku))
-          const nonDup = mapped.filter((m) => !existingSkus.has(m.sku))
-          setCatalog([...FALLBACK_POS_UNITS, ...nonDup])
+          setCatalog(mapped)
         } else {
           setCatalog(FALLBACK_POS_UNITS)
         }

@@ -1381,7 +1381,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     backgroundColor: 'rgba(17, 17, 24, 0.45)',
   },
   modalSheet: {

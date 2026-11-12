@@ -1,10 +1,18 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
-import { useRouter, useNavigation } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Radius } from '@/constants/config'
+
+export interface BottomTabBarProps {
+  state: any
+  descriptors: any
+  navigation?: any
+  emitter?: any
+  navigateToTab?: (key: string) => void
+  insets?: any
+}
 
 const TAB_ICONS: Record<
   string,
@@ -22,25 +30,23 @@ const TAB_ICONS: Record<
   account: { icon: 'person-circle-outline', iconOn: 'person-circle', label: 'Tôi' },
 }
 
-export function LiengTabBar({ state, descriptors, navigation: navProp }: BottomTabBarProps) {
+export function LiengTabBar(props: BottomTabBarProps) {
+  const { state, descriptors, navigation, emitter, navigateToTab } = props
   const router = useRouter()
-  const navHook = useNavigation<any>()
-  const navigation = navProp ?? navHook
-
   const insets = useSafeAreaInsets()
   const bottom = Math.max(insets.bottom, 6)
 
   // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
   const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
   const routesToRender = visibleTabs
-    .map((name) => state?.routes?.find((r) => r.name === name))
-    .filter(Boolean) as (typeof state.routes)[number][]
+    .map((name) => state?.routes?.find((r: any) => r.name === name))
+    .filter(Boolean) as any[]
 
   return (
     <View style={[styles.wrap, { paddingBottom: bottom }]}>
       <View style={styles.bar}>
-        {routesToRender.map((route) => {
-          const actualIndex = state.routes.findIndex((r) => r.key === route.key)
+        {routesToRender.map((route: any) => {
+          const actualIndex = state.routes.findIndex((r: any) => r.key === route.key)
           const focused = state.index === actualIndex
           const meta = TAB_ICONS[route.name] ?? {
             icon: 'ellipse-outline',
@@ -51,7 +57,18 @@ export function LiengTabBar({ state, descriptors, navigation: navProp }: BottomT
           const label = options.title ?? meta.label
 
           const onPress = () => {
-            if (navigation && typeof navigation.emit === 'function') {
+            if (emitter && typeof emitter.emit === 'function') {
+              try {
+                const event = emitter.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                })
+                if (event?.defaultPrevented) return
+              } catch (e) {
+                // Ignore emit error
+              }
+            } else if (navigation && typeof navigation.emit === 'function') {
               try {
                 const event = navigation.emit({
                   type: 'tabPress',
@@ -60,11 +77,17 @@ export function LiengTabBar({ state, descriptors, navigation: navProp }: BottomT
                 })
                 if (event?.defaultPrevented) return
               } catch (e) {
-                // Ignore emit error on web
+                // Ignore emit error
               }
             }
 
             if (!focused) {
+              if (typeof navigateToTab === 'function') {
+                try {
+                  navigateToTab(route.key)
+                  return
+                } catch (e) {}
+              }
               try {
                 router.replace(`/(app)/(tabs)/${route.name}` as any)
               } catch (err) {
