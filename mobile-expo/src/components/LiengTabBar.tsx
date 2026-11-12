@@ -1,9 +1,11 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Radius } from '@/constants/config'
+import { useAuth } from '@/context/AuthContext'
+import { canManageQuanStatements, getVisibleTabs } from '@/utils/permissions'
 
 export interface BottomTabBarProps {
   state: any
@@ -27,6 +29,10 @@ const TAB_ICONS: Record<
   orders: { icon: 'receipt-outline', iconOn: 'receipt', label: 'Đơn hàng' },
   pos: { iconType: 'material', icon: 'point-of-sale', iconOn: 'point-of-sale', label: 'Quầy POS' },
   services: { icon: 'shield-checkmark-outline', iconOn: 'shield-checkmark', label: 'Dịch vụ' },
+  quay: { icon: 'storefront-outline', iconOn: 'storefront', label: 'Quầy Quán' },
+  statement: { icon: 'stats-chart-outline', iconOn: 'stats-chart', label: 'Sao kê' },
+  expense: { icon: 'add-circle-outline', iconOn: 'add-circle', label: 'Chi phí' },
+  archive: { icon: 'folder-open-outline', iconOn: 'folder-open', label: 'Kho lưu' },
   account: { icon: 'person-circle-outline', iconOn: 'person-circle', label: 'Tôi' },
 }
 
@@ -34,10 +40,12 @@ export function LiengTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation, emitter, navigateToTab } = props
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { user } = useAuth()
   const bottom = Math.max(insets.bottom, 6)
+  const canArchive = canManageQuanStatements(user)
 
-  // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
-  const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
+  // Hiển thị các tab được phân quyền theo vai trò người dùng
+  const visibleTabs = getVisibleTabs(user)
   const routesToRender = visibleTabs
     .map((name) => state?.routes?.find((r: any) => r.name === name))
     .filter(Boolean) as any[]
@@ -55,8 +63,16 @@ export function LiengTabBar(props: BottomTabBarProps) {
           }
           const options = descriptors?.[route.key]?.options ?? {}
           const label = options.title ?? meta.label
+          const locked = route.name === 'archive' && !canArchive
 
           const onPress = () => {
+            if (locked && Platform.OS !== 'web') {
+              Alert.alert(
+                'Chức năng bị khóa',
+                'Chỉ Quản lý Quán hoặc Admin mới có quyền xem & chốt Kho sao kê.'
+              )
+              return
+            }
             if (emitter && typeof emitter.emit === 'function') {
               try {
                 const event = emitter.emit({
@@ -105,6 +121,7 @@ export function LiengTabBar(props: BottomTabBarProps) {
               onPress={onPress}
               style={({ pressed }) => [
                 styles.item,
+                locked && { opacity: 0.48 },
                 pressed && { opacity: 0.8 },
               ]}
             >
@@ -129,6 +146,11 @@ export function LiengTabBar(props: BottomTabBarProps) {
                     <MaterialIcons name={meta.icon as any} size={22} color="#58413F" />
                   ) : (
                     <Ionicons name={meta.icon as any} size={22} color="#58413F" />
+                  )}
+                  {locked && (
+                    <View style={styles.lockPin}>
+                      <Ionicons name="lock-closed" size={9} color="#991B1B" />
+                    </View>
                   )}
                   {options.tabBarBadge !== undefined && (
                     <View style={styles.badge}>
@@ -191,6 +213,17 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     minHeight: 52,
     gap: 3,
+  },
+  lockPin: {
+    position: 'absolute',
+    top: -3,
+    right: -6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── Khi tab được chọn (focused): có hình tròn đỏ đô bao quanh và phóng to ──

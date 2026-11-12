@@ -21,8 +21,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getErrorMessage } from '@/api/client'
 import * as posApi from '@/api/pos'
 import { ScannerModal } from '@/components/ScannerModal'
+import { AccessDeniedCard } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
+import { useAuth } from '@/context/AuthContext'
 import { formatMoney } from '@/utils/format'
+import {
+  canAccessTab,
+  canCheckoutPos,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 interface PosUnitItem {
   id: number
@@ -343,6 +351,10 @@ interface CartItem {
 export default function PosScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { user } = useAuth()
+  const canPos = canAccessTab(user, 'pos')
+  const canCheckout = canCheckoutPos(user)
+  const roleInfo = getRoleDisplayInfo(user)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -397,6 +409,11 @@ export default function PosScreen() {
 
   // Tải dữ liệu POS
   const loadData = useCallback(async () => {
+    if (!canPos) {
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
     try {
       const prodsRes = await posApi.fetchPosAvailable()
       const rawProds = prodsRes?.data ?? prodsRes
@@ -465,7 +482,7 @@ export default function PosScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [canPos])
 
   useEffect(() => {
     loadData()
@@ -590,6 +607,13 @@ export default function PosScreen() {
 
   // Xử lý thanh toán
   const handleCheckout = async () => {
+    if (!canCheckout) {
+      Alert.alert(
+        'Không đủ quyền',
+        'Vai trò hiện tại không có quyền xác nhận thanh toán POS (orders.checkout).'
+      )
+      return
+    }
     if (cart.length === 0) {
       Alert.alert('Giỏ hàng trống', 'Vui lòng chọn ít nhất 1 sản phẩm để thanh toán.')
       return
@@ -702,6 +726,19 @@ export default function PosScreen() {
     } else {
       Alert.alert('Không tìm thấy', `Không tìm thấy sản phẩm có SKU/IMEI: ${code}`)
     }
+  }
+
+  if (!canPos) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền truy cập Quầy POS"
+          roleLabel={roleInfo.title}
+          message="Chỉ Nhân viên bán hàng hoặc Admin được cấp quyền tạo & thanh toán đơn hàng POS."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
   }
 
   return (
@@ -1208,16 +1245,20 @@ export default function PosScreen() {
           {/* Footer nút chốt đơn */}
           <View style={[styles.cartModalFooter, { paddingBottom: insets.bottom + 12 }]}>
             <Pressable
-              style={[styles.checkoutBtn, checkingOut && styles.btnDisabled]}
+              style={[styles.checkoutBtn, (checkingOut || !canCheckout) && styles.btnDisabled]}
               onPress={handleCheckout}
-              disabled={checkingOut}
+              disabled={checkingOut || !canCheckout}
             >
               {checkingOut ? (
                 <ActivityIndicator color={Colors.white} />
               ) : (
                 <>
                   <Ionicons name="checkmark-circle-outline" size={20} color={Colors.white} />
-                  <Text style={styles.checkoutBtnText}>Xác nhận thanh toán ({formatMoney(totalAmount)})</Text>
+                  <Text style={styles.checkoutBtnText}>
+                    {canCheckout
+                      ? `Xác nhận thanh toán (${formatMoney(totalAmount)})`
+                      : 'Chưa được cấp quyền thanh toán POS'}
+                  </Text>
                 </>
               )}
             </Pressable>

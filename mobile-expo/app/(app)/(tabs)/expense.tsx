@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getErrorMessage } from '@/api/client'
 import * as quanApi from '@/api/quan'
 import {
+  AccessDeniedCard,
   Chip,
   Eyebrow,
   Field,
@@ -25,12 +26,22 @@ import {
   ScreenTitle,
 } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
+import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import { formatMoney, parseMoneyInput } from '@/utils/format'
+import {
+  canAccessQuay,
+  canCreateQuanEntry,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 export default function ExpenseScreen() {
   const insets = useSafeAreaInsets()
+  const { user } = useAuth()
   const { t } = useLocale()
+  const canExpense = canAccessQuay(user) && canCreateQuanEntry(user)
+  const roleInfo = getRoleDisplayInfo(user)
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
@@ -44,6 +55,13 @@ export default function ExpenseScreen() {
   const transferRemainder = method === 'mixed' ? Math.max(0, numAmount - numCash) : 0
 
   async function onSave() {
+    if (!canExpense) {
+      Alert.alert(
+        'Không đủ quyền',
+        'Vai trò hiện tại không có quyền ghi nhận chi phí Quán (quan.create).'
+      )
+      return
+    }
     const content = title.trim()
     const money = parseMoneyInput(amount)
     if (!content) {
@@ -92,6 +110,19 @@ export default function ExpenseScreen() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (!canExpense) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.canvas, paddingTop: insets.top }}>
+        <AccessDeniedCard
+          title="Không có quyền ghi Chi phí Quán"
+          roleLabel={roleInfo.title}
+          message="Chỉ Quản lý Quán, Nhân viên Quán hoặc Admin được cấp quyền ghi nhận phiếu chi Quán (quan.create)."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
   }
 
   return (

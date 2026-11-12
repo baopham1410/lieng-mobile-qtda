@@ -18,12 +18,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as warrantyApi from '@/api/warranty'
 import { ScannerModal } from '@/components/ScannerModal'
+import { AccessDeniedCard, AlertBox } from '@/components/ui'
 import { Colors, Radius } from '@/constants/config'
+import { useAuth } from '@/context/AuthContext'
 import { formatMoney } from '@/utils/format'
+import {
+  canAccessTab,
+  canCreateAppraisal,
+  canCreateWarrantyRepair,
+  canViewAppraisal,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { user } = useAuth()
+  const canServices = canAccessTab(user, 'services')
+  const canAppraisal = canViewAppraisal(user) || canCreateAppraisal(user)
+  const canAppraiseAction = canCreateAppraisal(user)
+  const canRepair = canCreateWarrantyRepair(user)
+  const roleInfo = getRoleDisplayInfo(user)
   const [imeiInput, setImeiInput] = useState('357892110482914')
   const [lookingUp, setLookingUp] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -69,6 +85,13 @@ export default function ServicesScreen() {
   }
 
   const handleCreateRepair = async () => {
+    if (!canRepair) {
+      Alert.alert(
+        'Không đủ quyền',
+        'Vai trò hiện tại không có quyền tiếp nhận phiếu sửa chữa (warranty.repair).'
+      )
+      return
+    }
     if (!repairImei.trim() || !symptom.trim()) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ số IMEI và mô tả tình trạng lỗi.')
       return
@@ -90,6 +113,19 @@ export default function ServicesScreen() {
     } finally {
       setSubmittingRepair(false)
     }
+  }
+
+  if (!canServices) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền truy cập Dịch vụ"
+          roleLabel={roleInfo.title}
+          message="Vai trò hiện tại không có quyền tra cứu bảo hành, IMEI hoặc thẩm định máy."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
   }
 
   return (
@@ -258,72 +294,85 @@ export default function ServicesScreen() {
 
         <View style={styles.coreBlocksCol}>
           {/* Block 1: Thẩm định AutoGrade */}
-          <View style={styles.coreBlockCard}>
-            <View style={styles.coreBlockTopRow}>
-              <View style={styles.coreBlockIconWrapTertiary}>
-                <Ionicons name="repeat" size={24} color="#191C1E" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.coreBlockTitleRow}>
-                  <Text style={styles.coreBlockTitle}>Thẩm định AutoGrade</Text>
-                  <View style={styles.tradeInBadge}>
-                    <Text style={styles.tradeInBadgeText}>Thu cũ đổi mới</Text>
-                  </View>
+          {canAppraisal && (
+            <View style={styles.coreBlockCard}>
+              <View style={styles.coreBlockTopRow}>
+                <View style={styles.coreBlockIconWrapTertiary}>
+                  <Ionicons name="repeat" size={24} color="#191C1E" />
                 </View>
-                <Text style={styles.coreBlockDescText}>
-                  Tự động phân loại máy Hạng S/A/B/C qua chẩn đoán ngoại quan, chu kỳ sạc pin, cảm ứng, FaceID và camera. Áp dụng bảng khấu trừ tự động, trợ giá thu mua lên đến 30%.
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.coreBlockTitleRow}>
+                    <Text style={styles.coreBlockTitle}>Thẩm định AutoGrade</Text>
+                    <View style={styles.tradeInBadge}>
+                      <Text style={styles.tradeInBadgeText}>Thu cũ đổi mới</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.coreBlockDescText}>
+                    Tự động phân loại máy Hạng S/A/B/C qua chẩn đoán ngoại quan, chu kỳ sạc pin, cảm ứng, FaceID và camera. Áp dụng bảng khấu trừ tự động, trợ giá thu mua lên đến 30%.
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.coreBlockBottomRow}>
-              <View style={styles.timeEstimateRow}>
-                <Ionicons name="speedometer-outline" size={14} color="#58413F" />
-                <Text style={styles.timeEstimateText}>Thời gian: ~3 phút / máy</Text>
+              <View style={styles.coreBlockBottomRow}>
+                <View style={styles.timeEstimateRow}>
+                  <Ionicons name="speedometer-outline" size={14} color="#58413F" />
+                  <Text style={styles.timeEstimateText}>Thời gian: ~3 phút / máy</Text>
+                </View>
+                {canAppraiseAction && (
+                  <Pressable
+                    style={styles.openFormBtnGray}
+                    onPress={() => setAppraisalModal(true)}
+                  >
+                    <Text style={styles.openFormBtnGrayText}>Mở form thẩm định</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#191C1E" />
+                  </Pressable>
+                )}
               </View>
-              <Pressable
-                style={styles.openFormBtnGray}
-                onPress={() => setAppraisalModal(true)}
-              >
-                <Text style={styles.openFormBtnGrayText}>Mở form thẩm định</Text>
-                <Ionicons name="arrow-forward" size={14} color="#191C1E" />
-              </Pressable>
             </View>
-          </View>
+          )}
 
           {/* Block 2: Tiếp nhận Sửa chữa */}
-          <View style={styles.coreBlockCard}>
-            <View style={styles.coreBlockTopRow}>
-              <View style={styles.coreBlockIconWrapPrimary}>
-                <Ionicons name="shield-checkmark" size={24} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.coreBlockTitleRow}>
-                  <Text style={styles.coreBlockTitle}>Tiếp nhận Sửa chữa</Text>
-                  <View style={styles.vipWarrantyBadge}>
-                    <Text style={styles.vipWarrantyBadgeText}>Bảo hành VIP</Text>
-                  </View>
+          {canRepair && (
+            <View style={styles.coreBlockCard}>
+              <View style={styles.coreBlockTopRow}>
+                <View style={styles.coreBlockIconWrapPrimary}>
+                  <Ionicons name="shield-checkmark" size={24} color="#FFFFFF" />
                 </View>
-                <Text style={styles.coreBlockDescText}>
-                  Lập phiếu biên nhận điện tử cho máy lỗi phần cứng, rơi vỡ, vô nước. Đồng bộ ảnh chụp hiện trạng vào hồ sơ khách hàng, in mã vạch dán thân máy và hẹn ngày bàn giao.
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.coreBlockTitleRow}>
+                    <Text style={styles.coreBlockTitle}>Tiếp nhận Sửa chữa</Text>
+                    <View style={styles.vipWarrantyBadge}>
+                      <Text style={styles.vipWarrantyBadgeText}>Bảo hành VIP</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.coreBlockDescText}>
+                    Lập phiếu biên nhận điện tử cho máy lỗi phần cứng, rơi vỡ, vô nước. Đồng bộ ảnh chụp hiện trạng vào hồ sơ khách hàng, in mã vạch dán thân máy và hẹn ngày bàn giao.
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.coreBlockBottomRow}>
-              <View style={styles.timeEstimateRow}>
-                <Ionicons name="print-outline" size={14} color="#58413F" />
-                <Text style={styles.timeEstimateText}>Hỗ trợ in phiếu tức thì</Text>
+              <View style={styles.coreBlockBottomRow}>
+                <View style={styles.timeEstimateRow}>
+                  <Ionicons name="print-outline" size={14} color="#58413F" />
+                  <Text style={styles.timeEstimateText}>Hỗ trợ in phiếu tức thì</Text>
+                </View>
+                <Pressable
+                  style={styles.openFormBtnPrimary}
+                  onPress={() => setRepairModal(true)}
+                >
+                  <Text style={styles.openFormBtnPrimaryText}>Tạo phiếu tiếp nhận</Text>
+                  <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.openFormBtnPrimary}
-                onPress={() => setRepairModal(true)}
-              >
-                <Text style={styles.openFormBtnPrimaryText}>Tạo phiếu tiếp nhận</Text>
-                <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
-              </Pressable>
             </View>
-          </View>
+          )}
+
+          {!canAppraisal && !canRepair && (
+            <AlertBox
+              tone="warn"
+              message="Vai trò hiện tại chỉ hỗ trợ tra cứu IMEI & bảo hành (chế độ chỉ xem). Không có quyền tiếp nhận sửa chữa hoặc thẩm định máy cũ."
+            />
+          )}
         </View>
 
         {/* ── Section 3: Phiếu dịch vụ gần đây ── */}

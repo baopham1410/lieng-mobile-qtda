@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getErrorMessage } from '@/api/client'
 import * as quanApi from '@/api/quan'
 import {
+  AccessDeniedCard,
   AlertBox,
   Chip,
   EntryRow,
@@ -36,7 +37,14 @@ import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import type { QuanCategory, QuanEntry, QuanProduct, QuanStats } from '@/types'
 import { formatDateTimeVi, formatMoney, parseMoneyInput } from '@/utils/format'
-import { canManageQuanStatements } from '@/utils/permissions'
+import {
+  canAccessQuay,
+  canCreateQuanEntry,
+  canDeleteQuanEntry,
+  canManageQuanStatements,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 const emptyStats: QuanStats = {
   incomeToday: 0,
@@ -105,6 +113,11 @@ export default function QuayScreen() {
   }
 
   const load = useCallback(async () => {
+    if (!canAccessQuay(user)) {
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
     setError('')
     try {
       const [prodResult, result] = await Promise.all([
@@ -121,7 +134,7 @@ export default function QuayScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     load()
@@ -459,6 +472,24 @@ export default function QuayScreen() {
     return 'TM'
   }
 
+  const canViewQuay = canAccessQuay(user)
+  const canWriteQuay = canCreateQuanEntry(user)
+  const canDeleteQuay = canDeleteQuanEntry(user)
+  const roleInfo = getRoleDisplayInfo(user)
+
+  if (!canViewQuay) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền truy cập Quầy Quán"
+          roleLabel={roleInfo.title}
+          message="Chỉ Quản lý Quán, Nhân viên Quán hoặc Admin được cấp quyền vận hành Module Quán (quan.view)."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
+  }
+
   return (
     <View style={styles.root}>
       <ScrollView
@@ -729,8 +760,8 @@ export default function QuayScreen() {
                     amount={formatMoney(e.amount)}
                     income={false}
                     paymentBadge={paymentDetailText(e)}
-                    onEdit={() => openEditEntry(e)}
-                    onDelete={() => deleteEntry(e)}
+                    onEdit={canWriteQuay ? () => openEditEntry(e) : undefined}
+                    onDelete={canDeleteQuay ? () => deleteEntry(e) : undefined}
                   />
                 ))}
               </View>
@@ -752,8 +783,8 @@ export default function QuayScreen() {
                     amount={formatMoney(e.amount)}
                     income={true}
                     paymentBadge={paymentDetailText(e)}
-                    onEdit={() => openEditEntry(e)}
-                    onDelete={() => deleteEntry(e)}
+                    onEdit={canWriteQuay ? () => openEditEntry(e) : undefined}
+                    onDelete={canDeleteQuay ? () => deleteEntry(e) : undefined}
                   />
                 ))}
               </View>
