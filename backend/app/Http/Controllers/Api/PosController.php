@@ -96,6 +96,8 @@ class PosController extends Controller
             'cash_amount' => 'nullable|numeric|min:0',
             'transfer_amount' => 'nullable|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
+            'is_owner_vip_discount' => 'nullable|boolean',
+            'require_owner_approval' => 'nullable|boolean',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.imei_code_id' => 'required|exists:imei_codes,id',
@@ -110,6 +112,10 @@ class PosController extends Controller
             unset($validated['cash_amount'], $validated['transfer_amount']);
         }
         $orderDiscount = (float) ($validated['discount'] ?? 0);
+
+        if (! empty($validated['is_owner_vip_discount'])) {
+            $validated['notes'] = trim(($validated['notes'] ?? '') . ' [Đặc quyền Chủ quán: Chiết khấu VIP ' . number_format($orderDiscount, 0, ',', '.') . ' đ - Không cần duyệt]');
+        }
 
         return DB::transaction(function () use ($validated, $paymentMethod, $orderDiscount, $request) {
             if (! empty($validated['customer']) && empty($validated['customer_id'])) {
@@ -126,6 +132,21 @@ class PosController extends Controller
                     ]);
                     $validated['customer_id'] = $customer->id;
                 }
+            }
+
+            // If staff requests owner approval for discount
+            if (! empty($validated['require_owner_approval']) && $orderDiscount > 0) {
+                $order = $this->createOrderWithItems($validated, $paymentMethod, $orderDiscount, $request, true);
+                $order->update([
+                    'status' => 'pending_discount',
+                    'payment_status' => 'pending',
+                    'notes' => trim(($order->notes ?? '') . ' [Chờ Chủ quán duyệt chiết khấu ' . number_format($orderDiscount, 0, ',', '.') . ' đ]'),
+                ]);
+
+                return response()->json([
+                    'data' => $this->buildCheckoutResponseData($order, count($validated['items'])),
+                    'message' => 'Đã gửi yêu cầu chiết khấu đến Chủ quán phê duyệt!',
+                ], 202);
             }
 
             return $this->processCheckout($validated, $paymentMethod, $orderDiscount, $request);

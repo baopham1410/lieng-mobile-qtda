@@ -20,14 +20,31 @@ import * as warrantyApi from '@/api/warranty'
 import { ScannerModal } from '@/components/ScannerModal'
 import { Colors, Radius } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
+import { useUserRole } from '@/hooks/useUserRole'
 
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const {
+    isStoreOwner,
+    isWarehouseStaff,
+    isSalesStaff,
+    roleTitle,
+    roleBadgeText,
+    roleBadgeBg,
+    roleBadgeColor,
+  } = useUserRole()
   const [imeiInput, setImeiInput] = useState('357892110482914')
   const [lookingUp, setLookingUp] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [ticketFilter, setTicketFilter] = useState<'all' | 'repairing' | 'completed' | 'waiting'>('all')
+
+  const handleApproveSpecialBuyback = () => {
+    Alert.alert(
+      'Đã duyệt giá thu mua',
+      'Đã phê duyệt định giá thu mua đặc biệt 6.500.000đ (+10% vượt khung) cho khách VIP.',
+    )
+  }
 
   // Repair Modal (Tiếp nhận sửa chữa)
   const [repairModal, setRepairModal] = useState(false)
@@ -103,13 +120,31 @@ export default function ServicesScreen() {
           <View>
             <View style={styles.brandTitleRow}>
               <Text style={styles.brandTitle}>Liêng Mobile</Text>
-              <View style={styles.posBadge}>
-                <Text style={styles.posBadgeText}>POS</Text>
+              <View
+                style={[
+                  styles.posBadge,
+                  { backgroundColor: roleBadgeBg },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.posBadgeText,
+                    { color: roleBadgeColor },
+                  ]}
+                >
+                  {roleBadgeText}
+                </Text>
               </View>
             </View>
             <View style={styles.storeSubtitleRow}>
               <Ionicons name="storefront-outline" size={11} color="#58413F" />
-              <Text style={styles.brandSubtitle}>Chi nhánh Cầu Giấy • Dich Vu</Text>
+              <Text style={styles.brandSubtitle}>
+                {isStoreOwner
+                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : isWarehouseStaff
+                  ? 'Chi nhánh Cầu Giấy • Kiểm Định Dịch Vụ'
+                  : 'Chi nhánh Cầu Giấy • Dịch Vụ'}
+              </Text>
             </View>
           </View>
         </View>
@@ -132,6 +167,16 @@ export default function ServicesScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 95 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Hub Banner */}
+        <View style={styles.hubHeaderRow}>
+          <View style={styles.hubTitleGroup}>
+            <View style={styles.hubRedDot} />
+            <Text style={styles.hubTitleText}>HUB DỊCH VỤ KỸ THUẬT & BẢO HÀNH</Text>
+          </View>
+          <View style={styles.hubOnlinePill}>
+            <Text style={styles.hubOnlineText}>Trạm #01 • Online</Text>
+          </View>
+        </View>
         {/* ── Section 1: Hero IMEI Search Card (Mẫu chuẩn Stitch) ── */}
         <View style={styles.heroSearchCard}>
           <View style={styles.heroHeaderRow}>
@@ -324,6 +369,38 @@ export default function ServicesScreen() {
               </Pressable>
             </View>
           </View>
+
+          {/* Block 3: Đặc quyền Chủ quán (VIP OWNER) */}
+          {isStoreOwner && (
+            <View style={styles.ownerVipBuybackCard}>
+              <View style={styles.ownerVipHeaderRow}>
+                <View style={styles.ownerVipMedalBox}>
+                  <Ionicons name="ribbon-outline" size={20} color="#991B1B" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.ownerVipTitleRow}>
+                    <Text style={styles.ownerVipTitle}>Đặc quyền Chủ quán</Text>
+                    <View style={styles.ownerVipBadge}>
+                      <Text style={styles.ownerVipBadgeText}>VIP OWNER</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.ownerVipDesc}>
+                    Phê duyệt định giá thu mua đặc biệt vượt khung tối đa +10% (Ví dụ: khách thân thiết cam kết mua thêm gói combo phụ kiện 2.000.000 đ).
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                style={styles.ownerVipBtn}
+                onPress={handleApproveSpecialBuyback}
+              >
+                <Ionicons name="flash" size={15} color="#FFFFFF" />
+                <Text style={styles.ownerVipBtnText}>
+                  Duyệt giá thu mua đặc biệt (6.500.000 đ)
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* ── Section 3: Phiếu dịch vụ gần đây ── */}
@@ -1419,5 +1496,119 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13.5,
     fontWeight: '700',
+  },
+
+  // Role Badges
+  staffBadgeBg: {
+    backgroundColor: '#FFECEF',
+  },
+  staffBadgeText: {
+    color: Colors.primaryContainer,
+  },
+  ownerBadgeBg: {
+    backgroundColor: '#FFD9DD',
+  },
+  ownerBadgeText: {
+    color: '#991B1B',
+  },
+
+  // Hub Header Row (Image 4)
+  hubHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  hubTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  hubRedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#DC2626',
+  },
+  hubTitleText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#191C1E',
+    letterSpacing: 0.3,
+  },
+  hubOnlinePill: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: Radius.full,
+  },
+  hubOnlineText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+
+  // Owner VIP Buyback Card (Image 4)
+  ownerVipBuybackCard: {
+    backgroundColor: '#FFF5F6',
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    gap: 10,
+  },
+  ownerVipHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  ownerVipMedalBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#FFE4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerVipTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  ownerVipTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#991B1B',
+  },
+  ownerVipBadge: {
+    backgroundColor: '#FFE4E6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  ownerVipBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#BE123C',
+  },
+  ownerVipDesc: {
+    fontSize: 11,
+    color: '#881337',
+    lineHeight: 15,
+  },
+  ownerVipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: Radius.md,
+    paddingVertical: 10,
+  },
+  ownerVipBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 })

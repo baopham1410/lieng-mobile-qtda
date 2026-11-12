@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Radius } from '@/constants/config'
 
+import { useUserRole } from '@/hooks/useUserRole'
+
 export interface BottomTabBarProps {
   state: any
   descriptors: any
@@ -34,10 +36,11 @@ export function LiengTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation, emitter, navigateToTab } = props
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { isWarehouseStaff } = useUserRole()
   const bottom = Math.max(insets.bottom, 6)
 
-  // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
-  const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
+  // 5 Tab chuẩn Stitch: Tổng quan -> Quầy POS -> Đơn hàng -> Dịch vụ -> Tôi
+  const visibleTabs = ['home', 'pos', 'orders', 'services', 'account']
   const routesToRender = visibleTabs
     .map((name) => state?.routes?.find((r: any) => r.name === name))
     .filter(Boolean) as any[]
@@ -48,13 +51,22 @@ export function LiengTabBar(props: BottomTabBarProps) {
         {routesToRender.map((route: any) => {
           const actualIndex = state.routes.findIndex((r: any) => r.key === route.key)
           const focused = state.index === actualIndex
-          const meta = TAB_ICONS[route.name] ?? {
+          let meta = TAB_ICONS[route.name] ?? {
             icon: 'ellipse-outline',
             iconOn: 'ellipse',
             label: route.name,
           }
+          if (isWarehouseStaff) {
+            if (route.name === 'pos') {
+              meta = { iconType: 'ionicons', icon: 'cube-outline', iconOn: 'cube', label: 'Nhập kho' }
+            } else if (route.name === 'orders') {
+              meta = { iconType: 'ionicons', icon: 'receipt-outline', iconOn: 'receipt', label: 'Xuất kho' }
+            }
+          }
           const options = descriptors?.[route.key]?.options ?? {}
-          const label = options.title ?? meta.label
+          const label = isWarehouseStaff
+            ? (route.name === 'pos' ? 'Nhập kho' : route.name === 'orders' ? 'Xuất kho' : (options.title ?? meta.label))
+            : (options.title ?? meta.label)
 
           const onPress = () => {
             if (emitter && typeof emitter.emit === 'function') {
