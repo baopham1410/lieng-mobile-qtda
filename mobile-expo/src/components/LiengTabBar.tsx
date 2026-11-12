@@ -1,34 +1,35 @@
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Colors, Radius } from '@/constants/config'
+import { Radius } from '@/constants/config'
 
 const TAB_ICONS: Record<
   string,
-  { icon: keyof typeof Ionicons.glyphMap; iconOn: keyof typeof Ionicons.glyphMap; label: string }
+  {
+    iconType?: 'material' | 'ionicons'
+    icon: string
+    iconOn: string
+    label: string
+  }
 > = {
-  home: { icon: 'pie-chart-outline', iconOn: 'pie-chart', label: 'Tổng quan' },
-  pos: { icon: 'cart-outline', iconOn: 'cart', label: 'Quầy POS' },
+  home: { icon: 'grid-outline', iconOn: 'grid', label: 'Tổng quan' },
   orders: { icon: 'receipt-outline', iconOn: 'receipt', label: 'Đơn hàng' },
+  pos: { iconType: 'material', icon: 'point-of-sale', iconOn: 'point-of-sale', label: 'Quầy POS' },
   services: { icon: 'shield-checkmark-outline', iconOn: 'shield-checkmark', label: 'Dịch vụ' },
-  account: { icon: 'person-outline', iconOn: 'person', label: 'Tôi' },
-
-  // Giữ fallback tạm cho route cũ nếu có
-  quay: { icon: 'storefront-outline', iconOn: 'storefront', label: 'Quầy nhỏ' },
-  statement: { icon: 'stats-chart-outline', iconOn: 'stats-chart', label: 'Sao kê' },
-  expense: { icon: 'add-circle-outline', iconOn: 'add-circle', label: 'Ghi chi' },
-  archive: { icon: 'folder-open-outline', iconOn: 'folder-open', label: 'Kho' },
+  account: { icon: 'person-circle-outline', iconOn: 'person-circle', label: 'Tôi' },
 }
 
 export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
-  const bottom = Math.max(insets.bottom, 10)
+  const bottom = Math.max(insets.bottom, 6)
 
-  // Danh sách 5 tab chính chuẩn shell Lieng Mobile
-  const visibleTabs = ['home', 'pos', 'orders', 'services', 'account']
-  const routesToRender = state.routes.filter((route) => visibleTabs.includes(route.name))
+  // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
+  const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
+  const routesToRender = visibleTabs
+    .map((name) => state.routes.find((r) => r.name === name))
+    .filter(Boolean) as (typeof state.routes)[number][]
 
   return (
     <View style={[styles.wrap, { paddingBottom: bottom }]}>
@@ -37,13 +38,12 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
           const actualIndex = state.routes.findIndex((r) => r.key === route.key)
           const focused = state.index === actualIndex
           const meta = TAB_ICONS[route.name] ?? {
-            icon: 'ellipse-outline' as const,
-            iconOn: 'ellipse' as const,
+            icon: 'ellipse-outline',
+            iconOn: 'ellipse',
             label: route.name,
           }
           const { options } = descriptors[route.key]
           const label = options.title ?? meta.label
-          const isPos = route.name === 'pos'
 
           const onPress = () => {
             const event = navigation.emit({
@@ -56,38 +56,6 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
             }
           }
 
-          // Nút Quầy POS đồng mức, không bị nhô cao
-          if (isPos) {
-            return (
-              <Pressable
-                key={route.key}
-                accessibilityRole="button"
-                accessibilityLabel={label}
-                accessibilityState={{ selected: focused }}
-                onPress={onPress}
-                style={({ pressed }) => [
-                  styles.posItem,
-                  focused && styles.posItemFocused,
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
-                ]}
-              >
-                <View style={[styles.posIconWrap, focused && styles.posIconWrapFocused]}>
-                  <Ionicons
-                    name={focused ? 'cart' : 'cart-outline'}
-                    size={18}
-                    color={focused ? Colors.white : Colors.brand}
-                  />
-                </View>
-                <Text
-                  style={[styles.posLabel, focused && styles.posLabelFocused]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            )
-          }
-
           return (
             <Pressable
               key={route.key}
@@ -97,23 +65,40 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
               onPress={onPress}
               style={({ pressed }) => [
                 styles.item,
-                focused && styles.itemFocused,
                 pressed && { opacity: 0.8 },
               ]}
             >
-              <View style={styles.iconContainer}>
-                <Ionicons
-                  name={focused ? meta.iconOn : meta.icon}
-                  size={20}
-                  color={focused ? Colors.brand : Colors.slate500}
-                />
-                {options.tabBarBadge !== undefined && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.label, focused && styles.labelOn]} numberOfLines={1}>
+              {focused ? (
+                // Khi bấm vào bất kỳ tab nào: có hình tròn đỏ đô bao quanh và phóng to
+                <View style={styles.activeCircle}>
+                  {meta.iconType === 'material' ? (
+                    <MaterialIcons name={meta.iconOn as any} size={25} color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name={meta.iconOn as any} size={24} color="#FFFFFF" />
+                  )}
+                  {options.tabBarBadge !== undefined && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                // Khi chưa chọn: nằm thẳng hàng bình thường với các mục khác
+                <View style={styles.inactiveIconBox}>
+                  {meta.iconType === 'material' ? (
+                    <MaterialIcons name={meta.icon as any} size={22} color="#58413F" />
+                  ) : (
+                    <Ionicons name={meta.icon as any} size={22} color="#58413F" />
+                  )}
+                  {options.tabBarBadge !== undefined && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{options.tabBarBadge}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              <Text style={[styles.label, focused && styles.labelFocused]} numberOfLines={1}>
                 {label}
               </Text>
             </Pressable>
@@ -133,101 +118,92 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   bar: {
-    marginHorizontal: 14,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xxl,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    minHeight: 62,
-    borderWidth: 1,
-    borderColor: '#FECACA', // viền đỏ nhạt border-red-200 chuẩn web
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    paddingBottom: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#ECEEF0',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOpacity: 0.08,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -3 },
       },
       android: { elevation: 8 },
-      default: {},
+      default: {
+        shadowColor: 'rgba(0,0,0,0.06)',
+        shadowOffset: { width: 0, height: -3 },
+        shadowRadius: 12,
+      },
     }),
   },
 
-  // ── Các tab thông thường ──
+  // ── Tab Item ──
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 2,
-    borderRadius: Radius.lg,
+    paddingVertical: 2,
+    minHeight: 52,
     gap: 3,
   },
-  itemFocused: {
-    backgroundColor: '#FEF2F2',
-  },
-  iconContainer: {
+
+  // ── Khi tab được chọn (focused): có hình tròn đỏ đô bao quanh và phóng to ──
+  activeCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#7A0C10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -10, // Nổi tròn nhẹ cân đối
     position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#7A0C10',
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 6 },
+      default: {
+        boxShadow: '0 4px 12px rgba(122, 12, 16, 0.35)',
+      },
+    }),
+  },
+
+  // ── Khi tab chưa được chọn ──
+  inactiveIconBox: {
+    width: 38,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 28,
-    height: 24,
+    position: 'relative',
   },
+
   label: {
-    fontSize: 10.5,
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#58413F',
+    textAlign: 'center',
+  },
+  labelFocused: {
+    color: '#7A0C10',
     fontWeight: '700',
-    color: Colors.slate500,
-    textAlign: 'center',
-  },
-  labelOn: {
-    color: Colors.brand,
-    fontWeight: '800',
+    fontSize: 11.5,
   },
 
-  // ── Nút Quầy POS đồng đều, không nhô cao ──
-  posItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-    borderRadius: Radius.lg,
-    gap: 3,
-  },
-  posItemFocused: {
-    backgroundColor: '#FEF2F2',
-  },
-  posIconWrap: {
-    width: 32,
-    height: 25,
-    borderRadius: Radius.full,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  posIconWrapFocused: {
-    backgroundColor: Colors.brand,
-  },
-  posLabel: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: Colors.brand,
-    textAlign: 'center',
-  },
-  posLabelFocused: {
-    color: Colors.brandDeep,
-    fontWeight: '900',
-  },
-
-  // ── Huy hiệu đếm số ──
+  // ── Badge ──
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
-    backgroundColor: Colors.brand,
+    top: -2,
+    right: -4,
+    backgroundColor: '#B32446',
     borderRadius: Radius.full,
     paddingHorizontal: 4,
     paddingVertical: 1,
@@ -236,7 +212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
   },
