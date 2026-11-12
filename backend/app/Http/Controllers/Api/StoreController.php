@@ -19,6 +19,9 @@ class StoreController extends Controller
             'tablet' => 'tablet',
             'laptop' => 'laptop',
             'phu-kien' => 'accessory',
+            'tivi' => 'tv',
+            'tu-lanh' => 'refrigerator',
+            'quat' => 'fan',
         ];
 
         $products = Product::with([
