@@ -64,6 +64,9 @@ yarn-error.log*
 assistant-service/.venv/
 assistant-service/data/vectorstore/
 
+# AutoGrade vision service
+autograde-service/.venv/
+
 __pycache__/
 *.py[cod]
 

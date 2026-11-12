@@ -1,0 +1,42 @@
+{
+  "weights": "yolov8s_baseline_best.pt",
+  "raw_names": {
+    "0": "cracked_screenrotation",
+    "1": "damagedrotation",
+    "2": "goodrotation",
+    "3": "scratch"
+  },
+  "alias_map": {
+    "cracked_screenrotation": "cracked_screen",
+    "cracked_screen": "cracked_screen",
+    "damagedrotation": "damaged_screen",
+    "damaged": "damaged_screen",
+    "damaged_screen": "damaged_screen",
+    "goodrotation": "good",
+    "good": "good",
+    "scratch": "scratch",
+    "dent": "dent"
+  },
+  "canonical_classes": {
+    "good": {
+      "label": "Không lỗi (good)",
+      "severity": 0
+    },
+    "scratch": {
+      "label": "Trầy xước nhẹ (scratch)",
+      "severity": 1
+    },
+    "dent": {
+      "label": "Cấn móp khung viền (dent)",
+      "severity": 2
+    },
+    "cracked_screen": {
+      "label": "Nứt vỡ kính ngoài (cracked_screen)",
+      "severity": 2
+    },
+    "damaged_screen": {
+      "label": "Hỏng màn hình / lỗi nặng (damaged_screen)",
+      "severity": 3
+    }
+  }
+}
