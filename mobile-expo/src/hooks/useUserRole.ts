@@ -1,13 +1,30 @@
 import { useMemo } from 'react'
-
 import { useAuth } from '@/context/AuthContext'
 
+export type UserRoleType = 'admin' | 'sales_staff' | 'warehouse_staff'
+
 export interface UserRoleInfo {
-  isStoreOwner: boolean
+  role: UserRoleType
   isAdmin: boolean
-  isStaff: boolean
+  isStoreOwner: boolean // Admin và Chủ quán dùng chung quyền quản trị cao nhất
+  isSalesStaff: boolean
+  isWarehouseStaff: boolean
+
+  // Permissions khớp docs/roles-permissions.md và frontend/src/data/adminNav.js
+  canAccessPos: boolean
+  canManageOrders: boolean
+  canApproveDiscount: boolean
+  canCancelRefund: boolean
+  canAccessVault: boolean
+  canSettleVault: boolean
+  canManageWarehouse: boolean
+  canManageWarranty: boolean
+
   roleName: string
   roleTitle: string
+  roleBadgeText: string
+  roleBadgeBg: string
+  roleBadgeColor: string
   employeeName: string
   employeeEmail: string
   employeePhone: string
@@ -19,40 +36,99 @@ export function useUserRole(): UserRoleInfo {
   const { user } = useAuth()
 
   return useMemo(() => {
-    const role = (user?.roleName || '').toLowerCase()
+    const rawRole = (user?.roleName || user?.roleDisplayName || (user as any)?.role?.name || '').toLowerCase()
     const email = (user?.email || '').toLowerCase()
 
-    // Chủ quán / Quản lý (quan_manager hoặc email quan@)
-    const isStoreOwner =
-      role === 'quan_manager' ||
-      role === 'quan_staff' ||
-      role === 'owner' ||
-      role === 'manager' ||
-      email.includes('quan') ||
-      email.includes('quanly')
+    // 1. Phân loại Role chính xác
+    let role: UserRoleType = 'sales_staff'
 
-    // Admin hệ thống
-    const isAdmin = role === 'admin' || email.includes('admin')
+    if (
+      rawRole === 'admin' ||
+      rawRole === 'quan_manager' ||
+      rawRole === 'owner' ||
+      rawRole === 'manager' ||
+      email.includes('admin') ||
+      email.includes('quanly') ||
+      email.includes('quan@')
+    ) {
+      role = 'admin'
+    } else if (
+      rawRole === 'warehouse_staff' ||
+      rawRole === 'warehouse' ||
+      rawRole === 'kho' ||
+      email.includes('kho@') ||
+      email.includes('kho')
+    ) {
+      role = 'warehouse_staff'
+    } else {
+      role = 'sales_staff'
+    }
 
-    // Nhân viên bán hàng
-    const isStaff = !isStoreOwner && !isAdmin
+    const isAdmin = role === 'admin'
+    const isStoreOwner = role === 'admin' // Chủ quán = Admin
+    const isWarehouseStaff = role === 'warehouse_staff'
+    const isSalesStaff = role === 'sales_staff'
 
-    const employeeName = isStoreOwner
-      ? (user?.name && user.name !== 'Nguyễn Văn A' ? user.name : 'Trần Quốc Bảo')
-      : (user?.name || 'Nguyễn Văn A')
+    // 2. Quyền nghiệp vụ khớp chuẩn adminNav.js
+    const canAccessPos = isAdmin || isSalesStaff
+    const canManageOrders = isAdmin || isSalesStaff
+    const canApproveDiscount = isAdmin
+    const canCancelRefund = isAdmin
+    const canAccessVault = isAdmin
+    const canSettleVault = isAdmin
+    const canManageWarehouse = isAdmin || isWarehouseStaff
+    const canManageWarranty = true
 
-    const employeeEmail = isStoreOwner
-      ? (user?.email || 'quanly@liengmobile.com')
-      : (user?.email || 'banhang@liengmobile.com')
+    // 3. Tên và thông tin hiển thị
+    let roleTitle = 'POS'
+    let roleBadgeText = 'BÁN HÀNG'
+    let roleBadgeBg = '#FEE2E2'
+    let roleBadgeColor = '#9F1239'
+    let defaultName = 'Nguyễn Văn A'
+    let defaultEmail = 'banhang@liengmobile.com'
+    let defaultPhone = '0901.111.111'
 
-    const employeePhone = isStoreOwner ? '0988.777.666' : (user?.phone || '0901.111.111')
+    if (isAdmin) {
+      roleTitle = 'CHỦ QUÁN'
+      roleBadgeText = 'CHỦ QUÁN'
+      roleBadgeBg = '#FFD9DD'
+      roleBadgeColor = '#7A0C10'
+      defaultName = 'Trần Quốc Bảo'
+      defaultEmail = 'quanly@liengmobile.com'
+      defaultPhone = '0988.777.666'
+    } else if (isWarehouseStaff) {
+      roleTitle = 'THỦ KHO'
+      roleBadgeText = 'THỦ KHO'
+      roleBadgeBg = '#FEF3C7'
+      roleBadgeColor = '#B45309'
+      defaultName = 'Trần Minh Kho'
+      defaultEmail = 'kho@liengmobile.com'
+      defaultPhone = '0902.222.222'
+    }
+
+    const employeeName = user?.name || defaultName
+    const employeeEmail = user?.email || defaultEmail
+    const employeePhone = user?.phone || defaultPhone
 
     return {
-      isStoreOwner,
+      role,
       isAdmin,
-      isStaff,
-      roleName: isStoreOwner ? 'quan_manager' : isAdmin ? 'admin' : 'sales_staff',
-      roleTitle: isStoreOwner ? 'CHỦ QUÁN' : isAdmin ? 'ADMIN' : 'POS',
+      isStoreOwner,
+      isSalesStaff,
+      isWarehouseStaff,
+      canAccessPos,
+      canManageOrders,
+      canApproveDiscount,
+      canCancelRefund,
+      canAccessVault,
+      canSettleVault,
+      canManageWarehouse,
+      canManageWarranty,
+      roleName: role,
+      roleTitle,
+      roleBadgeText,
+      roleBadgeBg,
+      roleBadgeColor,
       employeeName,
       employeeEmail,
       employeePhone,
@@ -61,4 +137,3 @@ export function useUserRole(): UserRoleInfo {
     }
   }, [user])
 }
-

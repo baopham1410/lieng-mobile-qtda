@@ -6,6 +6,7 @@ export type AppUser = {
   roleName?: string | null
   roleDisplayName?: string | null
   permissions?: string[]
+  role?: any
 }
 
 export type QuanCategory = {

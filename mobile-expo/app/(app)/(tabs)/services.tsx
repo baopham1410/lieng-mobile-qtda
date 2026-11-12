@@ -25,7 +25,15 @@ import { useUserRole } from '@/hooks/useUserRole'
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { isStoreOwner, roleTitle } = useUserRole()
+  const {
+    isStoreOwner,
+    isWarehouseStaff,
+    isSalesStaff,
+    roleTitle,
+    roleBadgeText,
+    roleBadgeBg,
+    roleBadgeColor,
+  } = useUserRole()
   const [imeiInput, setImeiInput] = useState('357892110482914')
   const [lookingUp, setLookingUp] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -115,16 +123,16 @@ export default function ServicesScreen() {
               <View
                 style={[
                   styles.posBadge,
-                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                  { backgroundColor: roleBadgeBg },
                 ]}
               >
                 <Text
                   style={[
                     styles.posBadgeText,
-                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                    { color: roleBadgeColor },
                   ]}
                 >
-                  {roleTitle}
+                  {roleBadgeText}
                 </Text>
               </View>
             </View>
@@ -133,6 +141,8 @@ export default function ServicesScreen() {
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
                   ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : isWarehouseStaff
+                  ? 'Chi nhánh Cầu Giấy • Kiểm Định Dịch Vụ'
                   : 'Chi nhánh Cầu Giấy • Dịch Vụ'}
               </Text>
             </View>

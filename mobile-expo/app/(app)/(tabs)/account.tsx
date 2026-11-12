@@ -76,11 +76,17 @@ export default function AccountScreen() {
 
   const {
     isStoreOwner,
+    isWarehouseStaff,
+    isSalesStaff,
     roleTitle,
+    roleBadgeText,
+    roleBadgeBg,
+    roleBadgeColor,
     employeeName,
     employeeEmail,
     employeePhone,
   } = useUserRole()
+  const { stats } = useStore()
   const userInitial = employeeName.trim().charAt(0).toUpperCase()
 
   const avatarUri =
@@ -100,16 +106,16 @@ export default function AccountScreen() {
               <View
                 style={[
                   styles.posBadge,
-                  isStoreOwner ? styles.ownerBadgeBg : styles.staffBadgeBg,
+                  { backgroundColor: roleBadgeBg },
                 ]}
               >
                 <Text
                   style={[
                     styles.posBadgeText,
-                    isStoreOwner ? styles.ownerBadgeText : styles.staffBadgeText,
+                    { color: roleBadgeColor },
                   ]}
                 >
-                  {roleTitle}
+                  {roleBadgeText}
                 </Text>
               </View>
             </View>
@@ -118,6 +124,8 @@ export default function AccountScreen() {
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
                   ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  : isWarehouseStaff
+                  ? 'Chi nhánh Cầu Giấy • Kho Vận'
                   : 'Chi nhánh Cầu Giấy • Tôi'}
               </Text>
             </View>
@@ -193,18 +201,24 @@ export default function AccountScreen() {
           <View style={[styles.rankBadgeBox, isStoreOwner && styles.rankBadgeBoxOwner]}>
             <View style={styles.rankIconBox}>
               <Ionicons
-                name={isStoreOwner ? 'shield-checkmark' : 'shield-checkmark-outline'}
+                name={isStoreOwner ? 'shield-checkmark' : isWarehouseStaff ? 'cube' : 'shield-checkmark-outline'}
                 size={15}
                 color="#7A0C10"
               />
             </View>
             <View style={styles.rankTextBox}>
               <Text style={styles.rankTitle}>
-                {isStoreOwner ? 'CẤP BẬC TỔNG QUẢN' : 'CẤP BẬC CHUYÊN MÔN'}
+                {isStoreOwner
+                  ? 'CẤP BẬC TỔNG QUẢN'
+                  : isWarehouseStaff
+                  ? 'CẤP BẬC QUẢN LÝ KHO'
+                  : 'CẤP BẬC CHUYÊN MÔN'}
               </Text>
               <Text style={styles.rankValue}>
                 {isStoreOwner
                   ? 'Chủ quán / Quản lý Điều hành Flagship #01 (Toàn quyền)'
+                  : isWarehouseStaff
+                  ? 'Thủ kho & Quản lý 142 thiết bị IMEI (Flagship Level 2)'
                   : 'Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)'}
               </Text>
             </View>
@@ -365,6 +379,104 @@ export default function AccountScreen() {
               </View>
             </View>
           </>
+        ) : isWarehouseStaff ? (
+          <View style={styles.shiftCard}>
+            {/* Header phiên trực kho */}
+            <View style={styles.shiftHeaderLine}>
+              <View style={styles.shiftHeaderLeft}>
+                <View style={[styles.shiftIconBox, { backgroundColor: '#B45309' }]}>
+                  <Ionicons name="cube" size={17} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.shiftTagText}>PHIÊN TRỰC KHO VẬN</Text>
+                  <Text style={styles.shiftMainTitle}>Ca chính: Quản lý Kho & Thiết bị IMEI</Text>
+                </View>
+              </View>
+              <View style={[styles.shiftStatusPill, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.pulseLiveDot, { backgroundColor: '#B45309' }]} />
+                <Text style={[styles.shiftStatusText, { color: '#B45309' }]}>Đang trực kho</Text>
+              </View>
+            </View>
+
+            {/* Khung giờ */}
+            <View style={styles.shiftTimeBox}>
+              <View style={styles.shiftTimeLeft}>
+                <Ionicons name="time-outline" size={15} color="#58413F" />
+                <Text style={styles.shiftTimeLabel}>Khung giờ:</Text>
+              </View>
+              <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
+            </View>
+
+            {/* Thiết bị quản lý */}
+            <View style={styles.targetSection}>
+              <View style={styles.targetHeaderLine}>
+                <Text style={styles.targetLabel}>THIẾT BỊ TỒN KHO QUẢN LÝ</Text>
+                <Text style={[styles.targetPercent, { color: '#16A34A' }]}>100% Khớp Barcode</Text>
+              </View>
+
+              <View style={styles.targetValueLine}>
+                <Text style={styles.targetAmountVal}>
+                  {stats.imeiInStock} <Text style={styles.targetCurrency}>máy</Text>
+                </Text>
+                <Text style={styles.targetHint}>Sẵn sàng xuất bán showroom</Text>
+              </View>
+
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: '100%', backgroundColor: '#16A34A' }]} />
+              </View>
+            </View>
+
+            <View style={styles.cardDivider} />
+
+            {/* 2 nút thao tác nhanh kho */}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+              <Pressable
+                style={[styles.ownerVaultActionBtn, { flex: 1 }]}
+                onPress={() =>
+                  Alert.alert(
+                    'Kiểm kê mã vạch',
+                    `142/142 thiết bị trong kho đã được quét mã vạch và khớp chính xác thẻ kho.`,
+                  )
+                }
+              >
+                <Ionicons name="barcode-outline" size={16} color="#7A0C10" />
+                <Text style={styles.ownerVaultActionBtnText}>Kiểm đếm Barcode</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.ownerVaultActionBtn, { flex: 1 }]}
+                onPress={() => router.push('/(app)/(tabs)/orders')}
+              >
+                <Ionicons name="receipt-outline" size={16} color="#191C1E" />
+                <Text style={styles.ownerVaultActionBtnText}>Phiếu xuất ({stats.completedCount})</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.cardDivider} />
+
+            {/* Chi tiết Flagship Store */}
+            <View style={styles.storeDetailsBox}>
+              <View style={styles.storeIconBox}>
+                <Ionicons name="storefront" size={18} color="#7A0C10" />
+              </View>
+              <View style={styles.storeInfoCol}>
+                <View style={styles.storeTitleRow}>
+                  <Text style={styles.storeCardTitle}>Liêng Mobile - Flagship #01</Text>
+                  <View style={styles.q3Badge}>
+                    <Text style={styles.q3BadgeText}>Q.3</Text>
+                  </View>
+                </View>
+                <Text style={styles.storeAddress}>
+                  123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM
+                </Text>
+                <View style={styles.managerLine}>
+                  <Ionicons name="headset" size={13} color="#7A0C10" />
+                  <Text style={styles.managerLabel}>Quản lý ca trực: </Text>
+                  <Text style={styles.managerName}>Trần Quốc Bảo</Text>
+                </View>
+              </View>
+            </View>
+          </View>
         ) : (
           <View style={styles.shiftCard}>
             {/* Header phiên trực */}
@@ -395,11 +507,11 @@ export default function AccountScreen() {
 
             {/* Doanh số đã chốt & Progress Bar */}
             {(() => {
-              const rev = profileStats?.revenueToday ?? 42500000;
-              const target = 50000000;
+              const rev = stats.revenueToday || 128450000;
+              const target = 150000000;
               const pct = Math.min(100, Math.round((rev / target) * 100));
-              const formattedRev = new Intl.NumberFormat('vi-VN').format(rev);
-              const formattedTarget = new Intl.NumberFormat('vi-VN').format(target);
+              const formattedRev = formatMoney(rev);
+              const formattedTarget = formatMoney(target);
               return (
                 <View style={styles.targetSection}>
                   <View style={styles.targetHeaderLine}>
@@ -408,13 +520,10 @@ export default function AccountScreen() {
                   </View>
 
                   <View style={styles.targetValueLine}>
-                    <Text style={styles.targetAmountVal}>
-                      {formattedRev} <Text style={styles.targetCurrency}>đ</Text>
-                    </Text>
-                    <Text style={styles.targetHint}>Mục tiêu: {formattedTarget} đ</Text>
+                    <Text style={styles.targetAmountVal}>{formattedRev}</Text>
+                    <Text style={styles.targetHint}>Mục tiêu: {formattedTarget}</Text>
                   </View>
 
-                  {/* Progress Bar Liêng Red */}
                   <View style={styles.progressBarTrack}>
                     <View style={[styles.progressBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -422,7 +531,6 @@ export default function AccountScreen() {
               );
             })()}
 
-            {/* Phân cách */}
             <View style={styles.cardDivider} />
 
             {/* Chi tiết Flagship Store */}

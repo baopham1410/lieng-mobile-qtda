@@ -9,6 +9,10 @@ export interface OwnerDashboardData {
     total_orders: number
     completion_rate: string
     pending_approvals_count: number
+    completed_orders?: number
+    pending_orders?: number
+    imei_in_stock?: number
+    services_pending?: number
   }
   pending_approvals: Array<{
     id: string

@@ -62,6 +62,7 @@ export interface StoreStats {
   ownerCashInVault: number
   ownerOrdersCount: number
   ownerPendingCount: number
+  totalOrders: number
   completedCount: number
   pendingCount: number
   revenueToday: number
@@ -223,11 +224,12 @@ const DEFAULT_STATS: StoreStats = {
   ownerCashInVault: 34200000,
   ownerOrdersCount: 24,
   ownerPendingCount: 2,
+  totalOrders: 24,
   completedCount: 22,
   pendingCount: 2,
-  revenueToday: 42500000,
-  growthPercent: '+14.2%',
-  ordersToday: 8,
+  revenueToday: 128450000,
+  growthPercent: '+18.2%',
+  ordersToday: 22,
   imeiInStock: 142,
   servicesPending: 3,
 }
@@ -312,7 +314,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ownerRevenueToday: dash.kpis.revenue_today,
           ownerCashInVault: dash.kpis.cash_in_vault,
           ownerOrdersCount: dash.kpis.total_orders,
+          totalOrders: dash.kpis.total_orders,
           ownerPendingCount: dash.kpis.pending_approvals_count,
+          completedCount: dash.kpis.completed_orders ?? prev.completedCount,
+          pendingCount: dash.kpis.pending_orders ?? prev.pendingCount,
+          revenueToday: dash.kpis.revenue_today,
+          ordersToday: dash.kpis.completed_orders ?? prev.ordersToday,
+          imeiInStock: dash.kpis.imei_in_stock ?? 142,
+          servicesPending: dash.kpis.services_pending ?? 3,
         }));
       }
 
