@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
 import {
   Pressable,
@@ -427,6 +428,55 @@ export function AlertBox({
   )
 }
 
+export function AccessDeniedCard({
+  title = 'Không có quyền truy cập',
+  message = 'Vai trò hiện tại của bạn không được cấp quyền sử dụng chức năng này.',
+  roleLabel,
+  fallbackRoute = '/(app)/(tabs)/account',
+  buttonLabel = 'Về màn hình chính',
+  onGoHome,
+}: {
+  title?: string
+  message?: string
+  roleLabel?: string | null
+  fallbackRoute?: string
+  buttonLabel?: string
+  onGoHome?: () => void
+}) {
+  const router = useRouter()
+
+  return (
+    <View style={styles.deniedWrap}>
+      <View style={styles.deniedCard}>
+        <View style={styles.deniedIconBox}>
+          <Ionicons name="lock-closed" size={26} color={Colors.redDeep} />
+        </View>
+        <Text style={styles.deniedTitle}>{title}</Text>
+        {!!roleLabel && (
+          <View style={styles.deniedRolePill}>
+            <Ionicons name="shield-outline" size={12} color={Colors.amber800} />
+            <Text style={styles.deniedRoleText}>Vai trò: {roleLabel}</Text>
+          </View>
+        )}
+        <Text style={styles.deniedMessage}>{message}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.deniedBtn, pressed && { opacity: 0.85 }]}
+          onPress={() => {
+            if (onGoHome) {
+              onGoHome()
+            } else {
+              router.replace(fallbackRoute as any)
+            }
+          }}
+        >
+          <Ionicons name="arrow-back-circle-outline" size={18} color={Colors.white} />
+          <Text style={styles.deniedBtnText}>{buttonLabel}</Text>
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   eyebrow: {
     color: Colors.amber700,
@@ -770,5 +820,77 @@ const styles = StyleSheet.create({
   alertText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  deniedWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Space.xl,
+    backgroundColor: Colors.canvas,
+  },
+  deniedCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Space.xl,
+    alignItems: 'center',
+    gap: 10,
+  },
+  deniedIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.redSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  deniedTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.ink,
+    textAlign: 'center',
+  },
+  deniedRolePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Colors.amber50,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    borderRadius: Radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  deniedRoleText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.amber800,
+  },
+  deniedMessage: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.slate600,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  deniedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.brand,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: Radius.md,
+    width: '100%',
+  },
+  deniedBtnText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
   },
 })

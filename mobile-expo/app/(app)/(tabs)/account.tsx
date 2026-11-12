@@ -17,6 +17,12 @@ import { Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import { fetchProfileSummary } from '@/api/reports'
+import {
+  canAccessQuay,
+  canViewFinanceKpis,
+  canViewOrders,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets()
@@ -70,10 +76,13 @@ export default function AccountScreen() {
     }, 600)
   }
 
-  const employeeName = user?.name || 'Nguyễn Văn A'
-  const employeeEmail = user?.email || 'banhang@liengmobile.com'
-  const employeePhone = user?.phone || '0988.777.666'
-  const userInitial = employeeName.trim().charAt(0).toUpperCase()
+  const employeeName = user?.name || 'Nhân viên'
+  const employeeEmail = user?.email || ''
+  const employeePhone = user?.phone || 'Chưa cập nhật SĐT'
+  const userInitial = employeeName.trim().charAt(0).toUpperCase() || 'U'
+  const roleInfo = getRoleDisplayInfo(user)
+  const showSalesTarget = canViewOrders(user) || canViewFinanceKpis(user)
+  const canQuay = canAccessQuay(user)
 
   const avatarUri =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBJ8pu5nndv5S-voRv7hLvPsJJGYBQ_GA01b4Z28dCOhfH9B-Gk5E5V8gNnxeC0wt22GBsmlWR1j-rMWOjpjOSHbBWOk4wXwBpCegT3VqIoYnX7XD5CVJovrO6Y1d3LHiplp42TIFpdbVlnfbnrGzJaGl8qJWB_N2bIUAUB7xF7n-zy02AYYhvkNHFkacdk9YiQ4NCQiAgE4Wac2sESx6Mtf8uPyO3TV_fRPxYMmVU'
@@ -160,16 +169,14 @@ export default function AccountScreen() {
             </View>
           </View>
 
-          {/* Cấp bậc chuyên môn Flagship Level 2 */}
+          {/* Cấp bậc chuyên môn theo vai trò */}
           <View style={styles.rankBadgeBox}>
             <View style={styles.rankIconBox}>
               <Ionicons name="shield-checkmark" size={15} color="#7A0C10" />
             </View>
             <View style={styles.rankTextBox}>
-              <Text style={styles.rankTitle}>CẤP BẬC CHUYÊN MÔN</Text>
-              <Text style={styles.rankValue}>
-                Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)
-              </Text>
+              <Text style={styles.rankTitle}>VAI TRÒ & PHÂN QUYỀN ({roleInfo.badge})</Text>
+              <Text style={styles.rankValue}>{roleInfo.title}</Text>
             </View>
           </View>
         </View>
@@ -182,14 +189,14 @@ export default function AccountScreen() {
               <View style={styles.shiftIconBox}>
                 <Ionicons name="briefcase" size={17} color="#FFFFFF" />
               </View>
-              <View>
-                <Text style={styles.shiftTagText}>PHIÊN TRỰC QUẦY</Text>
-                <Text style={styles.shiftMainTitle}>Ca chính: Bán lẻ & Quầy POS</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.shiftTagText}>PHIÊN LÀM VIỆC</Text>
+                <Text style={styles.shiftMainTitle}>{roleInfo.shiftTitle}</Text>
               </View>
             </View>
             <View style={styles.shiftStatusPill}>
               <View style={styles.pulseLiveDot} />
-              <Text style={styles.shiftStatusText}>Đang trong ca</Text>
+              <Text style={styles.shiftStatusText}>Đang hoạt động</Text>
             </View>
           </View>
 
@@ -202,8 +209,8 @@ export default function AccountScreen() {
             <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
           </View>
 
-          {/* Doanh số đã chốt & Progress Bar */}
-          {(() => {
+          {/* Doanh số đã chốt & Progress Bar (chỉ hiển thị cho vai trò bán hàng / tài chính) */}
+          {showSalesTarget && (() => {
             const rev = profileStats?.revenueToday ?? 42500000
             const target = 50000000
             const pct = Math.min(100, Math.round((rev / target) * 100))
@@ -230,6 +237,20 @@ export default function AccountScreen() {
               </View>
             )
           })()}
+
+          {/* Tóm tắt quyền hạn của vai trò */}
+          <View style={styles.permSummaryBox}>
+            <Text style={styles.permSummaryTitle}>PHẠM VI QUYỀN HẠN</Text>
+            <Text style={styles.permSummaryDesc}>{roleInfo.summary}</Text>
+            <View style={styles.permTagsWrap}>
+              {roleInfo.highlights.map((item) => (
+                <View key={item} style={styles.permTag}>
+                  <Ionicons name="checkmark-circle" size={12} color="#15803D" />
+                  <Text style={styles.permTagText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
 
           {/* Phân cách */}
           <View style={styles.cardDivider} />
@@ -311,13 +332,17 @@ export default function AccountScreen() {
 
           {/* Mục 2: Tiện ích "Quán Nhỏ" VIP Care */}
           <Pressable
-            style={styles.settingItemBox}
-            onPress={() =>
-              Alert.alert(
-                'Tiện ích Quán Nhỏ',
-                'Thực đơn trà và cà phê pha máy phục vụ khách hàng trải nghiệm tại Flagship #01.'
-              )
-            }
+            style={[styles.settingItemBox, !canQuay && { opacity: 0.65 }]}
+            onPress={() => {
+              if (canQuay) {
+                router.push('/(app)/(tabs)/quay')
+              } else {
+                Alert.alert(
+                  'Chức năng bị khóa',
+                  'Tài khoản bán lẻ / kho không có quyền truy cập Module Quán Nhỏ (quan.view).'
+                )
+              }
+            }}
           >
             <View style={styles.vipRow}>
               <View style={styles.vipLeft}>
@@ -337,8 +362,12 @@ export default function AccountScreen() {
                 </View>
               </View>
               <View style={styles.vipRight}>
-                <Text style={styles.menuLinkText}>Menu</Text>
-                <Ionicons name="chevron-forward" size={14} color="#58413F" />
+                <Text style={styles.menuLinkText}>{canQuay ? 'Mở Quán' : 'Bị khóa'}</Text>
+                <Ionicons
+                  name={canQuay ? 'chevron-forward' : 'lock-closed-outline'}
+                  size={14}
+                  color="#58413F"
+                />
               </View>
             </View>
           </Pressable>
@@ -1155,5 +1184,46 @@ const styles = StyleSheet.create({
   footerCopyrightText: {
     fontSize: 10,
     color: '#8C716E',
+  },
+  permSummaryBox: {
+    backgroundColor: '#F7F9FB',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  permSummaryTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#7A0C10',
+    letterSpacing: 0.8,
+  },
+  permSummaryDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  permTagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  permTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  permTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#065F46',
   },
 })

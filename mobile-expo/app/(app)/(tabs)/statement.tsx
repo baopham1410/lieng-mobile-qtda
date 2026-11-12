@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getErrorMessage } from '@/api/client'
 import * as quanApi from '@/api/quan'
 import {
+  AccessDeniedCard,
   AlertBox,
   Card,
   Chip,
@@ -31,7 +32,12 @@ import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import type { QuanEntry, QuanStats } from '@/types'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
-import { canManageQuanStatements } from '@/utils/permissions'
+import {
+  canAccessQuay,
+  canManageQuanStatements,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 const emptyStats: QuanStats = {
   incomeToday: 0,
@@ -48,7 +54,9 @@ export default function StatementScreen() {
   const router = useRouter()
   const { user } = useAuth()
   const { t } = useLocale()
+  const canViewStatement = canAccessQuay(user)
   const canArchive = canManageQuanStatements(user)
+  const roleInfo = getRoleDisplayInfo(user)
 
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
   const [loading, setLoading] = useState(true)
@@ -66,6 +74,11 @@ export default function StatementScreen() {
   }, [period, t])
 
   const load = useCallback(async () => {
+    if (!canViewStatement) {
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
     setError('')
     try {
       const result = await quanApi.fetchQuanEntries(period)
@@ -77,7 +90,7 @@ export default function StatementScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [period])
+  }, [canViewStatement, period])
 
   useEffect(() => {
     load()
@@ -106,6 +119,19 @@ export default function StatementScreen() {
     } finally {
       setSavingVault(false)
     }
+  }
+
+  if (!canViewStatement) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền xem Sao kê Quán"
+          roleLabel={roleInfo.title}
+          message="Chỉ Quản lý Quán, Nhân viên Quán hoặc Admin được cấp quyền xem sao kê thu chi Quán (quan.view)."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
   }
 
   return (

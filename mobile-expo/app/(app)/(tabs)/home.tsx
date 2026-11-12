@@ -15,9 +15,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
 import { fetchDashboardReport } from '@/api/reports'
+import { AccessDeniedCard } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
+import {
+  canAccessTab,
+  canCreateAppraisal,
+  canCreateWarrantyRepair,
+  canLookupWarranty,
+  canUsePos,
+  canViewDashboard,
+  canViewFinanceKpis,
+  canViewOrders,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 interface RecentOrder {
   id: number | string
@@ -96,10 +109,14 @@ export default function HomeScreen() {
   })
 
   const loadDashboard = useCallback(async () => {
+    if (!canAccessTab(user, 'home')) {
+      setRefreshing(false)
+      return
+    }
     try {
       const [res, report] = await Promise.all([
-        ordersApi.fetchOrders({ per_page: 5 }).catch(() => null),
-        fetchDashboardReport().catch(() => null),
+        canViewOrders(user) ? ordersApi.fetchOrders({ per_page: 5 }).catch(() => null) : Promise.resolve(null),
+        canViewDashboard(user) ? fetchDashboardReport().catch(() => null) : Promise.resolve(null),
       ])
 
       if (report) {
@@ -157,6 +174,28 @@ export default function HomeScreen() {
   }
 
   const employeeName = user?.name || 'Nguyễn Văn A'
+
+  const canHome = canAccessTab(user, 'home')
+  const canPos = canUsePos(user)
+  const canSeeOrders = canViewOrders(user)
+  const canFinance = canViewFinanceKpis(user)
+  const canLookup = canLookupWarranty(user)
+  const canAppraise = canCreateAppraisal(user)
+  const canRepair = canCreateWarrantyRepair(user)
+  const roleInfo = getRoleDisplayInfo(user)
+
+  if (!canHome) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền truy cập Tổng quan"
+          roleLabel={roleInfo.title}
+          message="Vai trò hiện tại không thuộc khối vận hành cửa hàng bán lẻ."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -237,11 +276,19 @@ export default function HomeScreen() {
             Hệ thống vận hành showroom chuẩn hoá tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.
           </Text>
           <Pressable
-            onPress={() => router.push('/(app)/(tabs)/pos')}
+            onPress={() =>
+              router.push((canPos ? '/(app)/(tabs)/pos' : '/(app)/(tabs)/services') as any)
+            }
             style={({ pressed }) => [styles.heroCtaBtn, pressed && { opacity: 0.9 }]}
           >
-            <Ionicons name="add-circle" size={18} color={Colors.primaryContainer} />
-            <Text style={styles.heroCtaText}>Tạo đơn bán ngay</Text>
+            <Ionicons
+              name={canPos ? 'add-circle' : 'qr-code-outline'}
+              size={18}
+              color={Colors.primaryContainer}
+            />
+            <Text style={styles.heroCtaText}>
+              {canPos ? 'Tạo đơn bán ngay' : 'Tra cứu IMEI & Bảo hành'}
+            </Text>
           </Pressable>
         </View>
 
@@ -254,35 +301,39 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.kpiGrid}>
-          {/* 1. Doanh thu hôm nay */}
-          <View style={styles.kpiCard}>
-            <View style={styles.kpiCardHeader}>
-              <Text style={styles.kpiLabel}>Doanh thu hôm nay</Text>
-              <View style={[styles.kpiIconWrap, { backgroundColor: '#FFECEF' }]}>
-                <Ionicons name="wallet-outline" size={16} color={Colors.primaryContainer} />
+          {/* 1. Doanh thu hôm nay (chỉ hiển thị nếu có finance.reports) */}
+          {canFinance && (
+            <View style={styles.kpiCard}>
+              <View style={styles.kpiCardHeader}>
+                <Text style={styles.kpiLabel}>Doanh thu hôm nay</Text>
+                <View style={[styles.kpiIconWrap, { backgroundColor: '#FFECEF' }]}>
+                  <Ionicons name="wallet-outline" size={16} color={Colors.primaryContainer} />
+                </View>
+              </View>
+              <Text style={styles.kpiValueLarge}>{formatMoney(stats.revenueToday)}</Text>
+              <View style={styles.kpiFooterTrend}>
+                <Ionicons name="trending-up" size={13} color={Colors.green} />
+                <Text style={styles.kpiTrendGreen}>{stats.growthPercent} so với hôm qua</Text>
               </View>
             </View>
-            <Text style={styles.kpiValueLarge}>{formatMoney(stats.revenueToday)}</Text>
-            <View style={styles.kpiFooterTrend}>
-              <Ionicons name="trending-up" size={13} color={Colors.green} />
-              <Text style={styles.kpiTrendGreen}>{stats.growthPercent} so với hôm qua</Text>
-            </View>
-          </View>
+          )}
 
-          {/* 2. Đơn thành công */}
-          <View style={styles.kpiCard}>
-            <View style={styles.kpiCardHeader}>
-              <Text style={styles.kpiLabel}>Đơn thành công</Text>
-              <View style={[styles.kpiIconWrap, { backgroundColor: Colors.greenSoft }]}>
-                <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
+          {/* 2. Đơn thành công (nếu có quyền xem đơn hoặc báo cáo tài chính) */}
+          {(canSeeOrders || canFinance) && (
+            <View style={styles.kpiCard}>
+              <View style={styles.kpiCardHeader}>
+                <Text style={styles.kpiLabel}>Đơn thành công</Text>
+                <View style={[styles.kpiIconWrap, { backgroundColor: Colors.greenSoft }]}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
+                </View>
+              </View>
+              <Text style={styles.kpiValueLarge}>{stats.ordersToday} đơn</Text>
+              <View style={styles.kpiFooterTrend}>
+                <Ionicons name="time-outline" size={13} color={Colors.onSurfaceVariant} />
+                <Text style={styles.kpiHintText}>100% đúng hạn ca trực</Text>
               </View>
             </View>
-            <Text style={styles.kpiValueLarge}>{stats.ordersToday} đơn</Text>
-            <View style={styles.kpiFooterTrend}>
-              <Ionicons name="time-outline" size={13} color={Colors.onSurfaceVariant} />
-              <Text style={styles.kpiHintText}>100% đúng hạn ca trực</Text>
-            </View>
-          </View>
+          )}
 
           {/* 3. Tồn kho khả dụng */}
           <View style={styles.kpiCard}>
@@ -324,120 +375,132 @@ export default function HomeScreen() {
 
         <View style={styles.quickActionRow}>
           {/* Action 1: Bán lẻ POS */}
-          <Pressable
-            onPress={() => router.push('/(app)/(tabs)/pos')}
-            style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: Colors.primaryContainer }]}>
-              <Ionicons name="cart-outline" size={24} color={Colors.white} />
-            </View>
-            <Text style={styles.actionBtnLabel}>Bán lẻ POS</Text>
-          </Pressable>
+          {canPos && (
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/pos')}
+              style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
+            >
+              <View style={[styles.actionCircle, { backgroundColor: Colors.primaryContainer }]}>
+                <Ionicons name="cart-outline" size={24} color={Colors.white} />
+              </View>
+              <Text style={styles.actionBtnLabel}>Bán lẻ POS</Text>
+            </Pressable>
+          )}
 
           {/* Action 2: Tra IMEI */}
-          <Pressable
-            onPress={() => router.push('/(app)/(tabs)/services')}
-            style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: '#0284C7' }]}>
-              <Ionicons name="qr-code-outline" size={22} color={Colors.white} />
-            </View>
-            <Text style={styles.actionBtnLabel}>Tra IMEI</Text>
-          </Pressable>
+          {canLookup && (
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/services')}
+              style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
+            >
+              <View style={[styles.actionCircle, { backgroundColor: '#0284C7' }]}>
+                <Ionicons name="qr-code-outline" size={22} color={Colors.white} />
+              </View>
+              <Text style={styles.actionBtnLabel}>Tra IMEI</Text>
+            </Pressable>
+          )}
 
           {/* Action 3: Thu cũ đổi mới */}
-          <Pressable
-            onPress={() => router.push('/(app)/(tabs)/services')}
-            style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: '#B45309' }]}>
-              <Ionicons name="repeat-outline" size={24} color={Colors.white} />
-            </View>
-            <Text style={styles.actionBtnLabel}>Thu cũ đổi mới</Text>
-          </Pressable>
+          {canAppraise && (
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/services')}
+              style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
+            >
+              <View style={[styles.actionCircle, { backgroundColor: '#B45309' }]}>
+                <Ionicons name="repeat-outline" size={24} color={Colors.white} />
+              </View>
+              <Text style={styles.actionBtnLabel}>Thu cũ đổi mới</Text>
+            </Pressable>
+          )}
 
           {/* Action 4: Tiếp nhận BH */}
-          <Pressable
-            onPress={() => router.push('/(app)/(tabs)/services')}
-            style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
-          >
-            <View style={[styles.actionCircle, { backgroundColor: '#047857' }]}>
-              <Ionicons name="shield-checkmark-outline" size={22} color={Colors.white} />
-            </View>
-            <Text style={styles.actionBtnLabel}>Tiếp nhận BH</Text>
-          </Pressable>
+          {canRepair && (
+            <Pressable
+              onPress={() => router.push('/(app)/(tabs)/services')}
+              style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.8 }]}
+            >
+              <View style={[styles.actionCircle, { backgroundColor: '#047857' }]}>
+                <Ionicons name="shield-checkmark-outline" size={22} color={Colors.white} />
+              </View>
+              <Text style={styles.actionBtnLabel}>Tiếp nhận BH</Text>
+            </Pressable>
+          )}
         </View>
 
-        {/* ── Đơn hàng gần đây trong ca (Khớp 100% Google Stitch Image 1) ── */}
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionTitleWithDot}>
-            <Text style={styles.sectionTitle}>Đơn hàng gần đây trong ca</Text>
-            <View style={styles.headerRedDot} />
-          </View>
-          <Pressable
-            onPress={() => router.push('/(app)/(tabs)/orders')}
-            style={styles.seeAllBtn}
-          >
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
-            <Ionicons name="chevron-forward" size={13} color={Colors.primaryContainer} />
-          </Pressable>
-        </View>
-
-        <View style={styles.ordersList}>
-          {recentOrders.map((order, idx) => {
-            const isCompleted = order.status === 'completed'
-            // Icon phù hợp theo loại sản phẩm như hình Image 1
-            const iconName = idx === 2 ? 'headset-outline' : idx === 3 ? 'flash-outline' : 'phone-portrait-outline'
-            const iconColor = idx === 2 ? '#B45309' : idx === 3 ? '#B91C1C' : Colors.primaryContainer
-
-            return (
+        {canSeeOrders && (
+          <>
+            {/* ── Đơn hàng gần đây trong ca (Khớp 100% Google Stitch Image 1) ── */}
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionTitleWithDot}>
+                <Text style={styles.sectionTitle}>Đơn hàng gần đây trong ca</Text>
+                <View style={styles.headerRedDot} />
+              </View>
               <Pressable
-                key={order.id}
                 onPress={() => router.push('/(app)/(tabs)/orders')}
-                style={({ pressed }) => [styles.orderItemCardExact, pressed && { opacity: 0.88 }]}
+                style={styles.seeAllBtn}
               >
-                {/* Cột trái: Khung icon bo góc xám nhạt */}
-                <View style={styles.orderDeviceIconBox}>
-                  <Ionicons name={iconName} size={22} color={iconColor} />
-                </View>
-
-                {/* Cột giữa: Mã HĐ + Tên sản phẩm + Khách hàng */}
-                <View style={styles.orderItemMiddle}>
-                  <Text style={styles.orderItemCodeText}>{order.code}</Text>
-                  <Text style={styles.orderItemDeviceText} numberOfLines={1}>
-                    {order.summary}
-                  </Text>
-                  <Text style={styles.orderItemCustomerText} numberOfLines={1}>
-                    Khách hàng: {order.customerName}
-                  </Text>
-                </View>
-
-                {/* Cột phải: Giá đỏ bold + Tag Hoàn tất / Chờ thanh toán */}
-                <View style={styles.orderItemRight}>
-                  <Text style={styles.orderItemPriceText}>{formatMoney(order.total)}</Text>
-                  <View
-                    style={[
-                      styles.orderItemStatusPill,
-                      isCompleted ? styles.pillCompleted : styles.pillPending,
-                    ]}
-                  >
-                    {isCompleted ? (
-                      <>
-                        <Ionicons name="checkmark" size={11} color={Colors.green} />
-                        <Text style={styles.pillTextCompleted}>Hoàn tất</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="time-outline" size={11} color={Colors.amber700} />
-                        <Text style={styles.pillTextPending}>Chờ thanh toán</Text>
-                      </>
-                    )}
-                  </View>
-                </View>
+                <Text style={styles.seeAllText}>Xem tất cả</Text>
+                <Ionicons name="chevron-forward" size={13} color={Colors.primaryContainer} />
               </Pressable>
-            )
-          })}
-        </View>
+            </View>
+
+            <View style={styles.ordersList}>
+              {recentOrders.map((order, idx) => {
+                const isCompleted = order.status === 'completed'
+                // Icon phù hợp theo loại sản phẩm như hình Image 1
+                const iconName = idx === 2 ? 'headset-outline' : idx === 3 ? 'flash-outline' : 'phone-portrait-outline'
+                const iconColor = idx === 2 ? '#B45309' : idx === 3 ? '#B91C1C' : Colors.primaryContainer
+
+                return (
+                  <Pressable
+                    key={order.id}
+                    onPress={() => router.push('/(app)/(tabs)/orders')}
+                    style={({ pressed }) => [styles.orderItemCardExact, pressed && { opacity: 0.88 }]}
+                  >
+                    {/* Cột trái: Khung icon bo góc xám nhạt */}
+                    <View style={styles.orderDeviceIconBox}>
+                      <Ionicons name={iconName} size={22} color={iconColor} />
+                    </View>
+
+                    {/* Cột giữa: Mã HĐ + Tên sản phẩm + Khách hàng */}
+                    <View style={styles.orderItemMiddle}>
+                      <Text style={styles.orderItemCodeText}>{order.code}</Text>
+                      <Text style={styles.orderItemDeviceText} numberOfLines={1}>
+                        {order.summary}
+                      </Text>
+                      <Text style={styles.orderItemCustomerText} numberOfLines={1}>
+                        Khách hàng: {order.customerName}
+                      </Text>
+                    </View>
+
+                    {/* Cột phải: Giá đỏ bold + Tag Hoàn tất / Chờ thanh toán */}
+                    <View style={styles.orderItemRight}>
+                      <Text style={styles.orderItemPriceText}>{formatMoney(order.total)}</Text>
+                      <View
+                        style={[
+                          styles.orderItemStatusPill,
+                          isCompleted ? styles.pillCompleted : styles.pillPending,
+                        ]}
+                      >
+                        {isCompleted ? (
+                          <>
+                            <Ionicons name="checkmark" size={11} color={Colors.green} />
+                            <Text style={styles.pillTextCompleted}>Hoàn tất</Text>
+                          </>
+                        ) : (
+                          <>
+                            <Ionicons name="time-outline" size={11} color={Colors.amber700} />
+                            <Text style={styles.pillTextPending}>Chờ thanh toán</Text>
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  </Pressable>
+                )
+              })}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   )

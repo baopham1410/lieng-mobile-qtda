@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AlertBox } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
+import { getDefaultRouteForUser } from '@/utils/permissions'
 import { useLocale } from '@/context/LocaleContext'
 import type { AppLocale } from '@/i18n/messages'
 import type { AppUser } from '@/types'
@@ -52,11 +53,19 @@ const DEMO_ACCOUNTS = [
   },
   {
     id: 'quan',
-    label: 'Quán nhỏ',
+    label: 'Quản lý Quán',
     email: 'quan@liengmobile.com',
     color: Colors.blueDeep,
     colorBg: Colors.blueSoft,
     colorBorder: Colors.blueBorder,
+  },
+  {
+    id: 'nvquan',
+    label: 'NV Quán',
+    email: 'nvquan@liengmobile.com',
+    color: Colors.amber800,
+    colorBg: Colors.amber50,
+    colorBorder: Colors.amberBorder,
   },
 ]
 
@@ -81,8 +90,14 @@ export default function LoginScreen() {
     })
   }, [])
 
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace(getDefaultRouteForUser(user) as any)
+    }
+  }, [loading, user])
+
   function getTargetRoute(u: AppUser | null): string {
-    return '/home'
+    return getDefaultRouteForUser(u)
   }
 
   async function onSubmit() {

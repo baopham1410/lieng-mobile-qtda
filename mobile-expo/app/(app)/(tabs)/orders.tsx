@@ -19,8 +19,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
+import { AccessDeniedCard } from '@/components/ui'
 import { Colors, Radius } from '@/constants/config'
+import { useAuth } from '@/context/AuthContext'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
+import {
+  canAccessTab,
+  canCancelOrder,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 interface DisplayOrder {
   id: number | string
@@ -151,6 +159,10 @@ const STITCH_ORDERS: DisplayOrder[] = [
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { user } = useAuth()
+  const canOrders = canAccessTab(user, 'orders')
+  const canCancel = canCancelOrder(user)
+  const roleInfo = getRoleDisplayInfo(user)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -162,6 +174,11 @@ export default function OrdersScreen() {
   const [selectedOrder, setSelectedOrder] = useState<DisplayOrder | null>(null)
 
   const loadOrders = useCallback(async () => {
+    if (!canOrders) {
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
     try {
       const res = await ordersApi.fetchOrders({ per_page: 20 })
       const raw = res.data ?? res
@@ -217,7 +234,7 @@ export default function OrdersScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [canOrders])
 
   useEffect(() => {
     loadOrders()
@@ -257,6 +274,19 @@ export default function OrdersScreen() {
     } catch {
       // Ignored
     }
+  }
+
+  if (!canOrders) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền xem Đơn hàng"
+          roleLabel={roleInfo.title}
+          message="Vai trò hiện tại không có quyền xem danh sách đơn hàng bán lẻ (orders.view)."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
   }
 
   return (
@@ -766,13 +796,15 @@ export default function OrdersScreen() {
                     <Ionicons name="print-outline" size={16} color="#191C1E" />
                     <Text style={styles.modalPrintBtnText}>In lại hóa đơn POS</Text>
                   </Pressable>
-                  <Pressable
-                    style={styles.modalCancelBtn}
-                    onPress={() => Alert.alert('Hủy đơn', 'Đã chuyển yêu cầu sang Quản lý ca trực.')}
-                  >
-                    <Ionicons name="warning-outline" size={16} color="#BA1A1A" />
-                    <Text style={styles.modalCancelBtnText}>Hủy / Hoàn trả</Text>
-                  </Pressable>
+                  {canCancel && (
+                    <Pressable
+                      style={styles.modalCancelBtn}
+                      onPress={() => Alert.alert('Hủy đơn', 'Đã chuyển yêu cầu sang Quản lý ca trực.')}
+                    >
+                      <Ionicons name="warning-outline" size={16} color="#BA1A1A" />
+                      <Text style={styles.modalCancelBtnText}>Hủy / Hoàn trả</Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
             </ScrollView>

@@ -15,9 +15,27 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Card, Chip, Eyebrow, Field, MoneyField, Muted, PrimaryButton, ScreenTitle, StatCard } from '@/components/ui'
+import {
+  AccessDeniedCard,
+  Card,
+  Chip,
+  Eyebrow,
+  Field,
+  MoneyField,
+  Muted,
+  PrimaryButton,
+  ScreenTitle,
+  StatCard,
+} from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
+import { useAuth } from '@/context/AuthContext'
 import { formatMoney, parseMoneyInput } from '@/utils/format'
+import {
+  canCreateAppraisal,
+  canViewAppraisal,
+  getDefaultRouteForUser,
+  getRoleDisplayInfo,
+} from '@/utils/permissions'
 
 interface AppraisalRecord {
   id: string
@@ -59,6 +77,10 @@ const DEMO_RECORDS: AppraisalRecord[] = [
 export default function AppraisalScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { user } = useAuth()
+  const canView = canViewAppraisal(user)
+  const canCreate = canCreateAppraisal(user)
+  const roleInfo = getRoleDisplayInfo(user)
 
   const [records, setRecords] = useState<AppraisalRecord[]>(DEMO_RECORDS)
   const [modalVisible, setModalVisible] = useState(false)
@@ -91,6 +113,13 @@ export default function AppraisalScreen() {
   const autoEstimatedPrice = Math.round((numBase * gradeFactor * screenPenalty * batteryPenalty * faceIdPenalty * cameraPenalty * speakerPenalty) / 50000) * 50000
 
   const handleCreateRecord = () => {
+    if (!canCreate) {
+      Alert.alert(
+        'Không đủ quyền',
+        'Vai trò hiện tại không có quyền tạo phiếu thẩm định máy (appraisal.create).'
+      )
+      return
+    }
     if (!model.trim()) {
       Alert.alert('Lỗi', 'Vui lòng nhập tên dòng máy (Model).')
       return
@@ -123,6 +152,19 @@ export default function AppraisalScreen() {
     if (recordFilter === 'all') return true
     return r.status === recordFilter
   })
+
+  if (!canView) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AccessDeniedCard
+          title="Không có quyền Thẩm định máy cũ"
+          roleLabel={roleInfo.title}
+          message="Chỉ Nhân viên bán hàng hoặc Admin được cấp quyền truy cập phân hệ AutoGrade (appraisal.view)."
+          fallbackRoute={getDefaultRouteForUser(user)}
+        />
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -185,12 +227,14 @@ export default function AppraisalScreen() {
         </View>
 
         {/* CTA tạo phiếu */}
-        <PrimaryButton
-          label="+ Tạo phiếu thẩm định máy mới"
-          tone="amber"
-          icon="add-circle-outline"
-          onPress={() => setModalVisible(true)}
-        />
+        {canCreate && (
+          <PrimaryButton
+            label="+ Tạo phiếu thẩm định máy mới"
+            tone="amber"
+            icon="add-circle-outline"
+            onPress={() => setModalVisible(true)}
+          />
+        )}
 
         {/* Danh sách phiếu đã tạo */}
         <View style={styles.sectionHeader}>
