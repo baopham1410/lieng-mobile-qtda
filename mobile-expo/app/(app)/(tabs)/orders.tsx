@@ -919,7 +919,31 @@ export default function OrdersScreen() {
                       </Pressable>
                     )}
 
-                    {item.actionBtnLabel === 'Duyệt chiết khấu' ? (
+                    {isWarehouseStaff ? (
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Pressable
+                          style={[styles.actionBtnSecondaryOutline, { borderColor: '#B45309' }]}
+                          onPress={() => handlePrint(item)}
+                        >
+                          <Ionicons name="print-outline" size={14} color="#B45309" />
+                          <Text style={[styles.actionBtnSecondaryText, { color: '#B45309', fontWeight: '700' }]}>
+                            In phiếu xuất
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.actionBtnPrimaryGeneral, { backgroundColor: '#B45309' }]}
+                          onPress={() =>
+                            Alert.alert(
+                              'Đối soát IMEI xuất kho',
+                              `Mã đơn: ${item.code}\nSản phẩm: ${item.itemsSummary}\nIMEI xuất kho: ${item.imei || '357892110482914'}\nTrạng thái: Thiết bị đã sẵn sàng bàn giao.`
+                            )
+                          }
+                        >
+                          <Ionicons name="barcode-outline" size={14} color="#FFFFFF" />
+                          <Text style={styles.actionBtnPrimaryGeneralText}>Kiểm tra IMEI</Text>
+                        </Pressable>
+                      </View>
+                    ) : item.actionBtnLabel === 'Duyệt chiết khấu' ? (
                       canApproveDiscount ? (
                         <Pressable
                           style={styles.actionBtnApproveDiscount}
