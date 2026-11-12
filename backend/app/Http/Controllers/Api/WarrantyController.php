@@ -113,6 +113,15 @@ class WarrantyController extends Controller
 
     public function storeRepairByImei(Request $request): JsonResponse
     {
+        // Support both 'description' (web) and 'symptom' (mobile)
+        if (! $request->filled('description') && $request->filled('symptom')) {
+            $desc = trim((string) $request->input('symptom'));
+            if ($request->filled('notes')) {
+                $desc .= ' (Ghi chú: '.$request->input('notes').')';
+            }
+            $request->merge(['description' => $desc]);
+        }
+
         $validated = $request->validate([
             'imei' => 'required|string',
             'description' => 'required|string',

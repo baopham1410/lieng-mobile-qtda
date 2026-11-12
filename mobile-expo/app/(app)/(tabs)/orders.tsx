@@ -180,17 +180,17 @@ export default function OrdersScreen() {
           return {
             id: o.id,
             code: o.code || `HD-${o.id}`,
-            customerName: o.customer_name || 'Khách lẻ tại quầy',
-            customerPhone: o.customer_phone,
-            total: Number(o.total_amount) || 29490000,
-            itemCount: items.length || 1,
-            itemsSummary: summary,
+            customerName: o.customer_name || o.customerName || 'Khách lẻ tại quầy',
+            customerPhone: o.customer_phone || o.customerPhone,
+            total: Number(o.total_amount ?? o.total ?? 0),
+            itemCount: items.length || o.itemCount || 1,
+            itemsSummary: o.itemsSummary || summary,
             productSubtitle: meta.subtitle,
             imageUrl: meta.image,
-            paymentMethod: o.payment_method || 'transfer',
+            paymentMethod: o.payment_method || o.paymentMethod || 'transfer',
             status: o.status === 'completed' || o.status === 'paid' ? 'completed' : o.status || 'completed',
-            createdAt: o.created_at ? formatDateTimeVi(o.created_at) : '14:30 Hôm nay',
-            cashier: o.cashier_name || 'Nguyen Van A',
+            createdAt: (o.created_at || o.createdAt) ? formatDateTimeVi(o.created_at || o.createdAt) : 'Hôm nay',
+            cashier: o.staffName || o.cashier_name || 'Nguyễn Văn A',
             imei: imeiStr,
             actionBtnLabel: 'Xem hóa đơn',
             items: items.map((i: any) => ({
@@ -202,10 +202,12 @@ export default function OrdersScreen() {
           }
         })
 
-        // Ưu tiên các hóa đơn chuẩn Stitch lên đầu
-        const existingCodes = new Set(STITCH_ORDERS.map((s) => s.code))
-        const nonDuplicateApi = mapped.filter((m) => !existingCodes.has(m.code))
-        setOrders([...STITCH_ORDERS, ...nonDuplicateApi])
+        // Nạp đơn hàng thật từ Backend, nếu chưa có đơn nào mới dùng mẫu Stitch
+        if (mapped.length > 0) {
+          setOrders(mapped)
+        } else {
+          setOrders(STITCH_ORDERS)
+        }
       } else {
         setOrders(STITCH_ORDERS)
       }
