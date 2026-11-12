@@ -347,7 +347,7 @@ export default function PosScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { isStoreOwner, roleTitle, employeeName } = useUserRole()
-  const { addPosOrder } = useStore()
+  const { addPosOrder, refreshStoreData } = useStore()
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -636,6 +636,7 @@ export default function PosScreen() {
         imeis: i.imei ? [i.imei] : [],
       })),
     })
+    await refreshStoreData()
   }
 
   // Xử lý thanh toán
@@ -677,7 +678,7 @@ export default function PosScreen() {
 
       const res = await posApi.submitPosCheckout(payload)
       const data = res.data ?? res
-      const orderCode = data?.code || `HD-${Date.now().toString().slice(-6)}`
+      const orderCode = data?.orderCode || data?.code || `HD-${Date.now().toString().slice(-6)}`
 
       if (paymentMethod === 'transfer' || paymentMethod === 'mixed') {
         const qrAmount = paymentMethod === 'mixed' ? remainingTransfer : totalAmount

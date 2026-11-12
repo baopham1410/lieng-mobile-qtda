@@ -298,6 +298,93 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Active unapproved pending requests
   const pendingApprovals = approvals.filter((a) => !a.approved && !a.rejected)
 
+    // 0. Sync from backend
+  const refreshStoreData = useCallback(async () => {
+    try {
+      const [dash, v] = await Promise.all([
+        ownerApi.getOwnerDashboard().catch(() => null),
+        ownerApi.getVaultStatus().catch(() => null),
+      ]);
+
+      if (dash?.kpis) {
+        setStats((prev) => ({
+          ...prev,
+          ownerRevenueToday: dash.kpis.revenue_today,
+          ownerCashInVault: dash.kpis.cash_in_vault,
+          ownerOrdersCount: dash.kpis.total_orders,
+          ownerPendingCount: dash.kpis.pending_approvals_count,
+        }));
+      }
+
+      if (dash?.pending_approvals) {
+        setApprovals(
+          dash.pending_approvals.map((p: any) => ({
+            id: p.id,
+            type: p.type,
+            badge: p.badge,
+            time: p.time,
+            amountText: p.amount_formatted || `${p.amount} đ`,
+            amountSub: p.subtext || 'Giảm trừ bill',
+            device: p.title || p.device,
+            staffText: p.info || p.staffText,
+            approved: false,
+            rejected: false,
+            order_code: p.order_code,
+            ticket_code: p.ticket_code,
+          }))
+        );
+      }
+
+      if (dash?.recent_orders && Array.isArray(dash.recent_orders) && dash.recent_orders.length > 0) {
+        setOrders((prev) => {
+          const dbOrders: StoreOrder[] = dash.recent_orders.map((o: any) => ({
+            id: o.id,
+            code: o.code,
+            customerName: o.customer,
+            customerPhone: o.customer_phone || '0988.xxx.456',
+            total: o.total,
+            itemCount: 1,
+            itemsSummary: o.device,
+            productSubtitle: `${o.payment_label} • Vừa cập nhật từ hệ thống`,
+            paymentMethod: o.payment_method,
+            status: o.status,
+            createdAt: o.time || 'Hôm nay',
+            cashier: o.cashier,
+            imageUrl:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU',
+            actionBtnLabel:
+              o.status === 'completed'
+                ? 'In lại hóa đơn'
+                : o.status === 'pending_discount'
+                ? 'Duyệt chiết khấu'
+                : 'Xem hóa đơn',
+            secondaryBtnLabel: o.status === 'completed' ? 'Chia sẻ HĐ' : undefined,
+          }));
+
+          const dbCodes = new Set(dbOrders.map((d) => d.code));
+          const clientNewOnly = prev.filter((p) => !dbCodes.has(p.code));
+          return [...clientNewOnly, ...dbOrders];
+        });
+      }
+
+      if (v) {
+        setVault((prev) => ({
+          ...prev,
+          cashSales: v.cash_sales,
+          operationalExpenses: v.operational_expenses,
+          actualCashInVault: v.actual_cash_in_vault,
+          targetProgress: v.target_achieved_pct,
+        }));
+      }
+    } catch {
+      // Keep persistent local store
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshStoreData();
+  }, [refreshStoreData]);
+
   // 1. Add new order from POS
   const addPosOrder = useCallback(
     async (orderInput: Partial<StoreOrder> & { total: number; paymentMethod: string }) => {
@@ -428,6 +515,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // Background sync to backend
     try {
       await ownerApi.approveOwnerRequest(id, { order_code: targetOrderCode })
+      await refreshStoreData()
     } catch {
       // Offline fallback already updated in local state
     }
@@ -481,6 +569,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await ownerApi.approveOrderDiscount(orderCode)
+        await refreshStoreData()
       } catch {}
     },
     [],
@@ -532,6 +621,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await ownerApi.cancelAndRefundOrder(orderCode)
+        await refreshStoreData()
       } catch {}
     },
     [],
@@ -565,6 +655,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await ownerApi.recordVaultExpense({ amount, title, recipient, note })
+        await refreshStoreData()
       } catch {}
     },
     [],
@@ -581,32 +672,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return res
   }, [])
 
-  // 9. Sync from backend
-  const refreshStoreData = useCallback(async () => {
-    try {
-      const [dash, v] = await Promise.all([ownerApi.getOwnerDashboard(), ownerApi.getVaultStatus()])
-      if (dash?.kpis) {
-        setStats((prev) => ({
-          ...prev,
-          ownerRevenueToday: dash.kpis.revenue_today,
-          ownerCashInVault: dash.kpis.cash_in_vault,
-          ownerOrdersCount: dash.kpis.total_orders,
-          ownerPendingCount: dash.kpis.pending_approvals_count,
-        }))
-      }
-      if (v) {
-        setVault((prev) => ({
-          ...prev,
-          cashSales: v.cash_sales,
-          operationalExpenses: v.operational_expenses,
-          actualCashInVault: v.actual_cash_in_vault,
-          targetProgress: v.target_achieved_pct,
-        }))
-      }
-    } catch {
-      // Keep persistent local store
-    }
-  }, [])
+  // 9. Synced via refreshStoreData
 
   // Reset demo
   const resetDemoData = useCallback(async () => {
