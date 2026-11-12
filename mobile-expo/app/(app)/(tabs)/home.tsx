@@ -15,10 +15,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
+import { fetchDashboardReport } from '@/api/reports'
 import { Colors, Radius, Space } from '@/constants/config'
-import { useUserRole } from '@/hooks/useUserRole'
+import { useAuth } from '@/context/AuthContext'
 import { useStore } from '@/context/StoreContext'
-import { formatMoney } from '@/utils/format'
+import { useUserRole } from '@/hooks/useUserRole'
+import { formatDateTimeVi, formatMoney } from '@/utils/format'
 
 interface RecentOrder {
   id: number | string
@@ -131,6 +133,7 @@ const OWNER_RECENT_ORDERS: RecentOrder[] = [
 export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { user } = useAuth()
   const { isStoreOwner, employeeName, roleTitle } = useUserRole()
   const {
     stats,
@@ -141,15 +144,70 @@ export default function HomeScreen() {
     refreshStoreData,
   } = useStore()
   const [refreshing, setRefreshing] = useState(false)
+  const [staffStats, setStaffStats] = useState({
+    revenueToday: 42500000,
+    growthPercent: '+18.2%',
+    ordersToday: 8,
+    imeiInStock: 142,
+    servicesPending: 3,
+  })
+  const [staffRecentOrders, setRecentOrders] = useState<RecentOrder[]>(STAFF_RECENT_ORDERS)
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      await refreshStoreData()
+      if (isStoreOwner) {
+        await refreshStoreData()
+      } else {
+        const [res, report] = await Promise.all([
+          ordersApi.fetchOrders({ per_page: 5 }).catch(() => null),
+          fetchDashboardReport().catch(() => null),
+        ])
+
+        if (report) {
+          setStaffStats((prev) => ({
+            ...prev,
+            revenueToday: Number(report.today_revenue) || prev.revenueToday,
+            ordersToday: Number(report.today_orders) || prev.ordersToday,
+            imeiInStock: Number(report.imei_in_stock) ?? prev.imeiInStock,
+            growthPercent: report.revenue_cost_chart?.monthly?.summary?.growth
+              ? `+${report.revenue_cost_chart.monthly.summary.growth}%`
+              : prev.growthPercent,
+          }))
+        }
+
+        const raw = res?.data ?? res
+        if (Array.isArray(raw) && raw.length > 0) {
+          const mapped: RecentOrder[] = raw.slice(0, 4).map((o: any) => ({
+            id: o.id,
+            code: o.code || `HD-${o.id}`,
+            customerName: o.customer_name || o.customerName || 'Khách lẻ tại quầy',
+            total: Number(o.total_amount ?? o.total ?? 0),
+            itemCount: o.items ? o.items.length : (o.itemCount || 1),
+            summary: o.itemsSummary || (o.items
+              ? o.items.map((i: any) => i.product_name || i.name).join(', ')
+              : 'Đơn bán lẻ showroom'),
+            createdAt: (o.created_at || o.createdAt) ? formatDateTimeVi(o.created_at || o.createdAt) : 'Hôm nay',
+            status: o.status === 'completed' || o.status === 'paid' ? 'completed' : 'pending',
+            cashier: o.staffName || user?.name || 'Nguyễn Văn A',
+          }))
+          setRecentOrders(mapped)
+          if (!report) {
+            const totalRev = mapped.reduce((sum, it) => sum + it.total, 0)
+            setStaffStats((prev) => ({
+              ...prev,
+              revenueToday: totalRev > 0 ? totalRev : 42500000,
+              ordersToday: mapped.length > 0 ? mapped.length : 8,
+            }))
+          }
+        }
+      }
+    } catch {
+      // Fallback Stitch dữ liệu chuẩn showroom
     } finally {
       setRefreshing(false)
     }
-  }, [refreshStoreData])
+  }, [isStoreOwner, refreshStoreData, user?.name])
 
   const handleApproveDiscount = async (id: string) => {
     await approveOwnerRequest(id)
