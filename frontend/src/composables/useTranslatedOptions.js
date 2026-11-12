@@ -25,6 +25,7 @@ export function useTranslatedOptions() {
 
   const customerTierOptions = computed(() => [
     { value: 'all', label: locale.t('tier.all') },
+    { value: 'walkin', label: locale.t('tier.walkin') },
     { value: 'regular', label: locale.t('tier.regular') },
     { value: 'silver', label: locale.t('tier.silver') },
     { value: 'gold', label: locale.t('tier.gold') },
