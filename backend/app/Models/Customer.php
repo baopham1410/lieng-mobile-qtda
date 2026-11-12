@@ -10,12 +10,17 @@ class Customer extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name', 'phone', 'email', 'address', 'loyalty_points'];
+    protected $fillable = ['name', 'phone', 'email', 'address', 'loyalty_points', 'notes'];
 
     protected $casts = ['loyalty_points' => 'integer'];
 
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function warranties(): HasMany
+    {
+        return $this->hasMany(Warranty::class);
     }
 }
