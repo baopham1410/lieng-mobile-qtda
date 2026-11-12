@@ -1,0 +1,514 @@
+[
+  {
+    "id": "iphone-15",
+    "name": "Apple iPhone 15",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-15.jpg",
+    "specs_short": [
+      "iOS 17",
+      "A16 Bionic",
+      "6.1\"",
+      "48MP"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-15.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "iphone-15-pro",
+    "name": "Apple iPhone 15 Pro",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-15-pro.jpg",
+    "specs_short": [
+      "iOS 17",
+      "A17 Pro",
+      "6.1\"",
+      "Titanium"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-15-pro.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "iphone-15-pro-max",
+    "name": "Apple iPhone 15 Pro Max",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-15-pro-max.jpg",
+    "specs_short": [
+      "iOS 17",
+      "A17 Pro",
+      "6.7\"",
+      "Titanium"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-15-pro-max.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "iphone-14",
+    "name": "Apple iPhone 14",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14.jpg",
+    "specs_short": [
+      "iOS 16",
+      "A15 Bionic",
+      "6.1\"",
+      "12MP dual"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-14.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "iphone-14-pro",
+    "name": "Apple iPhone 14 Pro",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-14-pro.jpg",
+    "specs_short": [
+      "iOS 16",
+      "A16 Bionic",
+      "6.1\"",
+      "48MP"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-14-pro.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "iphone-13",
+    "name": "Apple iPhone 13",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-13.jpg",
+    "specs_short": [
+      "iOS 15",
+      "A15 Bionic",
+      "6.1\"",
+      "12MP dual"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-13.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "iphone-se-2022",
+    "name": "Apple iPhone SE (2022)",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/apple-iphone-se-2022.jpg",
+    "specs_short": [
+      "iOS 15",
+      "A15 Bionic",
+      "4.7\"",
+      "12MP"
+    ],
+    "brand": "Apple",
+    "brand_key": "apple",
+    "image_file": "images/apple/iphone-se-2022.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "p60-pro",
+    "name": "Huawei P60 Pro",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/huawei-p60-pro.jpg",
+    "specs_short": [
+      "HarmonyOS 3",
+      "SD 8+ Gen 1",
+      "6.67\"",
+      "48MP variable"
+    ],
+    "brand": "Huawei",
+    "brand_key": "huawei",
+    "image_file": "images/huawei/p60-pro.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "g42-5g",
+    "name": "Nokia G42 5G",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/nokia-g42-5g.jpg",
+    "specs_short": [
+      "Android 13",
+      "SD 480+",
+      "6.56\"",
+      "50MP"
+    ],
+    "brand": "Nokia",
+    "brand_key": "nokia",
+    "image_file": "images/nokia/g42-5g.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "oneplus-12",
+    "name": "OnePlus 12",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/oneplus-12.jpg",
+    "specs_short": [
+      "OxygenOS 14",
+      "SD 8 Gen 3",
+      "6.82\"",
+      "Hasselblad 50MP"
+    ],
+    "brand": "OnePlus",
+    "brand_key": "oneplus",
+    "image_file": "images/oneplus/oneplus-12.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "reno11-5g",
+    "name": "OPPO Reno11 5G",
+    "image_url": "local:../../frontend/public/products/oppo-reno11.jpg",
+    "specs_short": [
+      "ColorOS 14",
+      "Dimensity 8200",
+      "6.7\"",
+      "50MP"
+    ],
+    "brand": "OPPO",
+    "brand_key": "oppo",
+    "image_file": "images/oppo/reno11-5g.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "reno12",
+    "name": "OPPO Reno12",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/oppo-reno12.jpg",
+    "specs_short": [
+      "ColorOS 14",
+      "Dimensity 7300",
+      "6.7\"",
+      "50MP"
+    ],
+    "brand": "OPPO",
+    "brand_key": "oppo",
+    "image_file": "images/oppo/reno12.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "find-x7-ultra",
+    "name": "OPPO Find X7 Ultra",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/oppo-find-x7-ultra.jpg",
+    "specs_short": [
+      "ColorOS 14",
+      "SD 8 Gen 3",
+      "6.82\"",
+      "Hasselblad"
+    ],
+    "brand": "OPPO",
+    "brand_key": "oppo",
+    "image_file": "images/oppo/find-x7-ultra.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "a79-5g",
+    "name": "OPPO A79 5G",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/oppo-a79-5g.jpg",
+    "specs_short": [
+      "ColorOS 13",
+      "Dimensity 6020",
+      "6.72\"",
+      "50MP"
+    ],
+    "brand": "OPPO",
+    "brand_key": "oppo",
+    "image_file": "images/oppo/a79-5g.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "12-pro-plus",
+    "name": "realme 12 Pro+",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/realme-12-pro-plus.jpg",
+    "specs_short": [
+      "Realme UI 5",
+      "SD 7s Gen 2",
+      "6.7\"",
+      "50MP periscope"
+    ],
+    "brand": "realme",
+    "brand_key": "realme",
+    "image_file": "images/realme/12-pro-plus.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "c67-5g",
+    "name": "realme C67 5G",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/realme-c67-5g.jpg",
+    "specs_short": [
+      "Realme UI 4",
+      "Dimensity 6100+",
+      "6.72\"",
+      "50MP"
+    ],
+    "brand": "realme",
+    "brand_key": "realme",
+    "image_file": "images/realme/c67-5g.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-s24",
+    "name": "Samsung Galaxy S24",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s24-5g-sm-s921.jpg",
+    "specs_short": [
+      "Android 14",
+      "Exynos 2400",
+      "6.2\"",
+      "Galaxy AI"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-s24.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-s24-plus",
+    "name": "Samsung Galaxy S24+",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s24-plus-5g-sm-s926.jpg",
+    "specs_short": [
+      "Android 14",
+      "Exynos 2400",
+      "6.7\"",
+      "Galaxy AI"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-s24-plus.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-s24-ultra",
+    "name": "Samsung Galaxy S24 Ultra",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s24-ultra-5g-sm-s928.jpg",
+    "specs_short": [
+      "Android 14",
+      "SD 8 Gen 3",
+      "6.8\"",
+      "200MP"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-s24-ultra.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-z-flip6",
+    "name": "Samsung Galaxy Z Flip6",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-z-flip6.jpg",
+    "specs_short": [
+      "Android 14",
+      "SD 8 Gen 3",
+      "6.7\" fold",
+      "50MP"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-z-flip6.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-z-fold6",
+    "name": "Samsung Galaxy Z Fold6",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-z-fold6.jpg",
+    "specs_short": [
+      "Android 14",
+      "SD 8 Gen 3",
+      "7.6\" fold",
+      "50MP"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-z-fold6.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-a55",
+    "name": "Samsung Galaxy A55",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a55.jpg",
+    "specs_short": [
+      "Android 14",
+      "Exynos 1480",
+      "6.6\"",
+      "IP67"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-a55.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-a35",
+    "name": "Samsung Galaxy A35",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a35.jpg",
+    "specs_short": [
+      "Android 14",
+      "Exynos 1380",
+      "6.6\"",
+      "IP67"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-a35.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "galaxy-a15",
+    "name": "Samsung Galaxy A15",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-a15-5g.jpg",
+    "specs_short": [
+      "Android 14",
+      "Dimensity 6100+",
+      "6.5\"",
+      "50MP"
+    ],
+    "brand": "Samsung",
+    "brand_key": "samsung",
+    "image_file": "images/samsung/galaxy-a15.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "v30",
+    "name": "vivo V30",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/vivo-v30-lite.jpg",
+    "specs_short": [
+      "Funtouch 14",
+      "SD 7 Gen 3",
+      "6.78\"",
+      "50MP OIS"
+    ],
+    "brand": "vivo",
+    "brand_key": "vivo",
+    "image_file": "images/vivo/v30.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "x100-pro",
+    "name": "vivo X100 Pro",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/vivo-x100-pro.jpg",
+    "specs_short": [
+      "OriginOS 4",
+      "Dimensity 9300",
+      "6.78\"",
+      "Zeiss 50MP"
+    ],
+    "brand": "vivo",
+    "brand_key": "vivo",
+    "image_file": "images/vivo/x100-pro.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "y100",
+    "name": "vivo Y100",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/vivo-y100.jpg",
+    "specs_short": [
+      "Funtouch 13",
+      "SD 685",
+      "6.67\"",
+      "50MP"
+    ],
+    "brand": "vivo",
+    "brand_key": "vivo",
+    "image_file": "images/vivo/y100.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "xiaomi-14",
+    "name": "Xiaomi 14",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-14.jpg",
+    "specs_short": [
+      "HyperOS",
+      "SD 8 Gen 3",
+      "6.36\"",
+      "Leica 50MP"
+    ],
+    "brand": "Xiaomi",
+    "brand_key": "xiaomi",
+    "image_file": "images/xiaomi/xiaomi-14.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "xiaomi-14t",
+    "name": "Xiaomi 14T",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-14t.jpg",
+    "specs_short": [
+      "HyperOS",
+      "Dimensity 8300-Ultra",
+      "6.67\"",
+      "50MP"
+    ],
+    "brand": "Xiaomi",
+    "brand_key": "xiaomi",
+    "image_file": "images/xiaomi/xiaomi-14t.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "xiaomi-14t-pro",
+    "name": "Xiaomi 14T Pro",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-14t-pro.jpg",
+    "specs_short": [
+      "HyperOS",
+      "Dimensity 9300+",
+      "6.67\"",
+      "Leica 50MP"
+    ],
+    "brand": "Xiaomi",
+    "brand_key": "xiaomi",
+    "image_file": "images/xiaomi/xiaomi-14t-pro.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "redmi-note-13",
+    "name": "Xiaomi Redmi Note 13",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-redmi-note-13-4g.jpg",
+    "specs_short": [
+      "MIUI 14",
+      "Helio G99",
+      "6.67\"",
+      "108MP"
+    ],
+    "brand": "Xiaomi",
+    "brand_key": "xiaomi",
+    "image_file": "images/xiaomi/redmi-note-13.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  },
+  {
+    "id": "redmi-note-13-pro-plus",
+    "name": "Redmi Note 13 Pro+",
+    "image_url": "https://fdn2.gsmarena.com/vv/bigpic/xiaomi-redmi-note-13-pro-plus.jpg",
+    "specs_short": [
+      "MIUI 14",
+      "Dimensity 7200-Ultra",
+      "6.67\"",
+      "200MP"
+    ],
+    "brand": "Xiaomi",
+    "brand_key": "xiaomi",
+    "image_file": "images/xiaomi/redmi-note-13-pro-plus.jpg",
+    "price": null,
+    "note": "Nhap gia cua hang khi them vao he thong"
+  }
+]
