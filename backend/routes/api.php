@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WarrantyController;
 use App\Http\Controllers\Api\AssistantController;
+use App\Http\Controllers\Api\AppraisalController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -40,6 +41,11 @@ Route::prefix('v1')->group(function () {
     // Chatbot RAG (public bot khách)
     Route::get('/assistant/health', [AssistantController::class, 'health']);
     Route::post('/assistant/public-chat', [AssistantController::class, 'publicChat']);
+
+    // AutoGrade photo streaming (signed URL)
+    Route::get('/appraisals/{appraisal}/photos/{slot}/file', [AppraisalController::class, 'servePhoto'])
+        ->middleware('signed')
+        ->name('api.appraisals.photos.file');
 
     Route::middleware('auth:sanctum')->group(function () {
         // Chatbot RAG (bot nội bộ NV)
@@ -135,6 +141,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/warranties/lookup/{imei}', [WarrantyController::class, 'lookup']);
         Route::post('/warranties/repairs', [WarrantyController::class, 'storeRepairByImei'])->middleware('permission:warranty.repair');
         Route::post('/warranties/{warranty}/repairs', [WarrantyController::class, 'storeRepair'])->middleware('permission:warranty.repair');
+
+        // AutoGrade Appraisals
+        Route::get('/appraisals/health', [AppraisalController::class, 'health']);
+        Route::get('/appraisals/pricing', [AppraisalController::class, 'pricing']);
+        Route::get('/appraisals', [AppraisalController::class, 'index'])->middleware('permission:appraisal.view');
+        Route::post('/appraisals', [AppraisalController::class, 'store'])->middleware('permission:appraisal.create');
+        Route::get('/appraisals/{appraisal}', [AppraisalController::class, 'show'])->middleware('permission:appraisal.view');
+        Route::put('/appraisals/{appraisal}', [AppraisalController::class, 'update'])->middleware('permission:appraisal.update');
+        Route::delete('/appraisals/{appraisal}', [AppraisalController::class, 'destroy'])->middleware('permission:appraisal.delete');
+        Route::post('/appraisals/{appraisal}/photos/{slot}', [AppraisalController::class, 'uploadPhoto'])->middleware('permission:appraisal.update');
+        Route::delete('/appraisals/{appraisal}/photos/{slot}', [AppraisalController::class, 'removePhoto'])->middleware('permission:appraisal.update');
+        Route::post('/appraisals/{appraisal}/appraise', [AppraisalController::class, 'appraise'])->middleware('permission:appraisal.appraise');
+        Route::post('/appraisals/{appraisal}/confirm-detections', [AppraisalController::class, 'confirmDetections'])->middleware('permission:appraisal.appraise');
 
         // Suppliers & Stock imports
         Route::get('/suppliers', [SupplierController::class, 'index']);
