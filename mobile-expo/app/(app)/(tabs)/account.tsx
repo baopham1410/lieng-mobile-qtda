@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Alert,
   Image,
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
+import { fetchProfileSummary } from '@/api/reports'
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets()
@@ -23,6 +24,17 @@ export default function AccountScreen() {
   const { locale, setLocale, t } = useLocale()
   const [syncing, setSyncing] = useState(false)
   const [avatarErr, setAvatarErr] = useState(false)
+  const [profileStats, setProfileStats] = useState<any>(null)
+
+  useEffect(() => {
+    fetchProfileSummary()
+      .then((res) => {
+        if (res && res.stats) {
+          setProfileStats(res.stats)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleLogout = async () => {
     const doLogout = async () => {
@@ -191,24 +203,33 @@ export default function AccountScreen() {
           </View>
 
           {/* Doanh số đã chốt & Progress Bar */}
-          <View style={styles.targetSection}>
-            <View style={styles.targetHeaderLine}>
-              <Text style={styles.targetLabel}>DOANH SỐ ĐÃ CHỐT</Text>
-              <Text style={styles.targetPercent}>85% chỉ tiêu</Text>
-            </View>
+          {(() => {
+            const rev = profileStats?.revenueToday ?? 42500000
+            const target = 50000000
+            const pct = Math.min(100, Math.round((rev / target) * 100))
+            const formattedRev = new Intl.NumberFormat('vi-VN').format(rev)
+            const formattedTarget = new Intl.NumberFormat('vi-VN').format(target)
+            return (
+              <View style={styles.targetSection}>
+                <View style={styles.targetHeaderLine}>
+                  <Text style={styles.targetLabel}>DOANH SỐ ĐÃ CHỐT</Text>
+                  <Text style={styles.targetPercent}>{pct}% chỉ tiêu</Text>
+                </View>
 
-            <View style={styles.targetValueLine}>
-              <Text style={styles.targetAmountVal}>
-                42.500.000 <Text style={styles.targetCurrency}>đ</Text>
-              </Text>
-              <Text style={styles.targetHint}>Mục tiêu: 50.000.000 đ</Text>
-            </View>
+                <View style={styles.targetValueLine}>
+                  <Text style={styles.targetAmountVal}>
+                    {formattedRev} <Text style={styles.targetCurrency}>đ</Text>
+                  </Text>
+                  <Text style={styles.targetHint}>Mục tiêu: {formattedTarget} đ</Text>
+                </View>
 
-            {/* Progress Bar Liêng Red */}
-            <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: '85%' }]} />
-            </View>
-          </View>
+                {/* Progress Bar Liêng Red */}
+                <View style={styles.progressBarTrack}>
+                  <View style={[styles.progressBarFill, { width: `${pct}%` }]} />
+                </View>
+              </View>
+            )
+          })()}
 
           {/* Phân cách */}
           <View style={styles.cardDivider} />
