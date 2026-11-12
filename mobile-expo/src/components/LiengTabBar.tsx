@@ -25,8 +25,8 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
   const insets = useSafeAreaInsets()
   const bottom = Math.max(insets.bottom, 6)
 
-  // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
-  const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
+  // 5 Tab chuẩn Stitch: Tổng quan -> Quầy POS -> Đơn hàng -> Dịch vụ -> Tôi
+  const visibleTabs = ['home', 'pos', 'orders', 'services', 'account']
   const routesToRender = visibleTabs
     .map((name) => state.routes.find((r) => r.name === name))
     .filter(Boolean) as (typeof state.routes)[number][]

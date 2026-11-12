@@ -52,7 +52,7 @@ const DEMO_ACCOUNTS = [
   },
   {
     id: 'quan',
-    label: 'Quán nhỏ',
+    label: 'Chủ quán (Quản lý)',
     email: 'quan@liengmobile.com',
     color: Colors.blueDeep,
     colorBg: Colors.blueSoft,

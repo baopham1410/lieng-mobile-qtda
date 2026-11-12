@@ -4,12 +4,15 @@ import { StatusBar } from 'expo-status-bar'
 
 import { AuthProvider } from '@/context/AuthContext'
 import { LocaleProvider } from '@/context/LocaleContext'
+import { StoreProvider } from '@/context/StoreContext'
 import { Colors } from '@/constants/config'
 
 function Providers({ children }: { children: ReactNode }) {
   return (
     <LocaleProvider>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <StoreProvider>{children}</StoreProvider>
+      </AuthProvider>
     </LocaleProvider>
   )
 }

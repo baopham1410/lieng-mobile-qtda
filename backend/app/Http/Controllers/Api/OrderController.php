@@ -261,12 +261,20 @@ class OrderController extends Controller
 
     public function cancel(Request $request, Order $order): JsonResponse
     {
-        if (! in_array($order->status, ['completed', 'draft', 'pending_payment'], true)) {
+        if (! in_array($order->status, ['completed', 'draft', 'pending_payment', 'pending_discount'], true)) {
             return response()->json(['message' => 'Không thể hủy đơn ở trạng thái này.'], 422);
         }
 
         if ($order->status === 'pending_payment') {
             $this->finalizeOrderPaymentService->release($order, 'failed', $order->payment_payload);
+        }
+
+        // Release IMEIs back to stock
+        foreach ($order->items as $item) {
+            $item->imeiCode?->update([
+                'status' => 'in_stock',
+                'order_item_id' => null,
+            ]);
         }
 
         $order->update([
@@ -288,6 +296,239 @@ class OrderController extends Controller
         return response()->json([
             'data' => new OrderResource($order->fresh(['customer', 'user', 'items.productVariant.product', 'items.imeiCode'])),
             'message' => 'Đã hủy đơn hàng',
+        ]);
+    }
+
+    /**
+     * Store Owner: Approve VIP Discount for Order
+     */
+    public function approveDiscount(Request $request, Order $order): JsonResponse
+    {
+        $user = $request->user();
+
+        return DB::transaction(function () use ($request, $order, $user) {
+            $order->update([
+                'status' => 'completed',
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+                'notes' => trim(($order->notes ?? '') . ' [Chủ quán đã duyệt chiết khấu VIP lúc ' . now()->format('H:i d/m/Y') . ']'),
+            ]);
+
+            foreach ($order->items as $item) {
+                $imei = $item->imeiCode;
+                if ($imei) {
+                    $imei->update(['status' => 'sold', 'order_item_id' => $item->id]);
+
+                    if ($order->customer_id) {
+                        $months = $item->productVariant?->resolvedWarrantyMonths() ?? 12;
+                        if ($months > 0) {
+                            Warranty::updateOrCreate(
+                                ['imei_code_id' => $imei->id, 'order_id' => $order->id],
+                                [
+                                    'customer_id' => $order->customer_id,
+                                    'start_date' => now()->toDateString(),
+                                    'end_date' => now()->addMonths($months)->toDateString(),
+                                    'warranty_months' => $months,
+                                    'status' => 'active',
+                                ]
+                            );
+                        }
+                    }
+                }
+            }
+
+            Transaction::create([
+                'code' => 'TC-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4)),
+                'type' => 'income',
+                'amount' => (float) $order->total,
+                'payment_method' => $order->payment_method ?? 'cash',
+                'reference_type' => 'Order',
+                'reference_id' => $order->id,
+                'user_id' => $user->id,
+                'description' => 'Bán hàng POS ' . $order->code . ' (Duyệt chiết khấu VIP)',
+                'transacted_at' => now(),
+            ]);
+
+            ActivityLogger::record($user, [
+                'action' => 'approve_discount',
+                'module' => 'orders',
+                'title' => 'Duyệt chiết khấu đơn ' . $order->code,
+                'description' => ActivityLogger::formatMoney((float) $order->total),
+                'link' => '/orders',
+            ]);
+
+            ReportCacheService::bustAll();
+
+            return response()->json([
+                'data' => new OrderResource($order->fresh(['customer', 'user', 'items.productVariant.product', 'items.imeiCode'])),
+                'message' => 'Đã duyệt chiết khấu và hoàn tất đơn hàng thành công!',
+            ]);
+        });
+    }
+
+    /**
+     * Store Owner: Cancel Order and Refund to Customer (Hủy & Hoàn tiền)
+     */
+    public function cancelAndRefund(Request $request, Order $order): JsonResponse
+    {
+        $user = $request->user();
+
+        return DB::transaction(function () use ($request, $order, $user) {
+            $totalAmount = (float) $order->total;
+            $wasPaid = in_array($order->status, ['completed']) || $order->payment_status === 'paid';
+
+            // 1. Return all IMEIs back to in_stock
+            foreach ($order->items as $item) {
+                $item->imeiCode?->update([
+                    'status' => 'in_stock',
+                    'order_item_id' => null,
+                ]);
+            }
+
+            // 2. Void warranties
+            Warranty::where('order_id', $order->id)->update(['status' => 'cancelled']);
+
+            // 3. Create Refund Transaction
+            if ($wasPaid && $totalAmount > 0) {
+                Transaction::create([
+                    'code' => 'RF-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4)),
+                    'type' => 'expense',
+                    'amount' => $totalAmount,
+                    'payment_method' => $order->payment_method ?? 'cash',
+                    'reference_type' => 'OrderRefund',
+                    'reference_id' => $order->id,
+                    'user_id' => $user->id,
+                    'description' => 'Hoàn tiền hủy đơn hàng ' . $order->code . ' (' . ($order->customer?->name ?? 'Khách lẻ') . ')',
+                    'transacted_at' => now(),
+                ]);
+
+                // Also record in showroom register if paid by cash
+                if ($order->payment_method === 'cash') {
+                    QuanEntry::create([
+                        'code' => 'HT-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4)),
+                        'type' => 'expense',
+                        'title' => 'Hoàn tiền mặt đơn ' . $order->code,
+                        'qty' => 1,
+                        'amount' => $totalAmount,
+                        'unit_cost' => $totalAmount,
+                        'payment_method' => 'cash',
+                        'cash_amount' => $totalAmount,
+                        'user_id' => $user->id,
+                        'note' => 'Hoàn tiền hủy đơn tại quầy POS',
+                        'occurred_at' => now(),
+                    ]);
+                }
+            }
+
+            // 4. Update Order status
+            $order->update([
+                'status' => 'cancelled',
+                'payment_status' => 'refunded',
+                'notes' => trim(($order->notes ?? '') . ' [Chủ quán đã Hủy & Hoàn tiền ' . number_format($totalAmount, 0, ',', '.') . ' đ lúc ' . now()->format('H:i d/m/Y') . ']'),
+            ]);
+
+            ActivityLogger::record($user, [
+                'action' => 'cancel_and_refund',
+                'module' => 'orders',
+                'title' => 'Chủ quán Hủy & Hoàn tiền đơn ' . $order->code,
+                'description' => 'Số tiền hoàn lại: ' . ActivityLogger::formatMoney($totalAmount),
+                'link' => '/orders',
+            ]);
+
+            ReportCacheService::bustAll();
+
+            return response()->json([
+                'data' => new OrderResource($order->fresh(['customer', 'user', 'items.productVariant.product', 'items.imeiCode'])),
+                'message' => 'Đã hủy đơn hàng, hoàn trả thiết bị về kho và hoàn tiền ' . number_format($totalAmount, 0, ',', '.') . ' đ thành công!',
+            ]);
+        });
+    }
+
+    /**
+     * Remind Customer Payment (Nhắc thanh toán)
+     */
+    public function remindPayment(Request $request, Order $order): JsonResponse
+    {
+        $user = $request->user();
+        $customer = $order->customer;
+
+        $reminderMessage = 'Liêng Mobile kính gửi Quý khách ' . ($customer?->name ?? 'hàng') . ': Đơn hàng ' . $order->code . ' trị giá ' . number_format((float) $order->total, 0, ',', '.') . ' đ đang chờ thanh toán. Vui lòng hoàn tất để giữ máy!';
+
+        $order->update([
+            'notes' => trim(($order->notes ?? '') . ' [Đã gửi nhắc thanh toán lúc ' . now()->format('H:i d/m/Y') . ']'),
+        ]);
+
+        ActivityLogger::record($user, [
+            'action' => 'remind_payment',
+            'module' => 'orders',
+            'title' => 'Nhắc thanh toán đơn ' . $order->code,
+            'description' => 'Khách hàng: ' . ($customer?->name ?? 'Khách lẻ') . ' (' . ($customer?->phone ?? 'N/A') . ')',
+            'link' => '/orders',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã gửi thông báo nhắc thanh toán đến số điện thoại ' . ($customer?->phone ?? 'của khách hàng') . '!',
+            'data' => [
+                'order_code' => $order->code,
+                'customer_phone' => $customer?->phone,
+                'message_preview' => $reminderMessage,
+                'sent_at' => now()->format('d/m/Y H:i'),
+            ],
+        ]);
+    }
+
+    /**
+     * Thermal Receipt Print Payload (In lại hóa đơn)
+     */
+    public function printReceipt(Request $request, Order $order): JsonResponse
+    {
+        $order->load(['customer', 'user', 'items.productVariant.product', 'items.imeiCode']);
+
+        $receiptItems = $order->items->map(function ($item) {
+            $variant = $item->productVariant;
+            $product = $variant?->product;
+            $name = $product?->name ?? 'Sản phẩm';
+            $variantText = trim(implode(' ', array_filter([$variant?->storage, $variant?->color])));
+            
+            return [
+                'name' => trim($name . ' ' . $variantText),
+                'imei' => $item->imeiCode?->imei ?? 'N/A',
+                'qty' => $item->quantity ?? 1,
+                'price' => (float) $item->unit_price,
+                'total' => (float) $item->total,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã tạo lệnh in hóa đơn đến máy in Epson TM-T82!',
+            'data' => [
+                'store' => [
+                    'brand' => 'LIÊNG MOBILE RETAIL POS',
+                    'branch' => 'Chi nhánh Flagship #01 - 123 Điện Biên Phủ, Q.3, TP.HCM',
+                    'hotline' => '1900.8888 - 0988.777.666',
+                ],
+                'order_code' => $order->code,
+                'printed_at' => now()->format('d/m/Y H:i:s'),
+                'cashier' => $order->user?->name ?? 'Thu ngân',
+                'customer' => [
+                    'name' => $order->customer?->name ?? 'Khách lẻ',
+                    'phone' => $order->customer?->phone ?? 'N/A',
+                ],
+                'items' => $receiptItems,
+                'subtotal' => (float) $order->subtotal,
+                'discount' => (float) $order->discount,
+                'total' => (float) $order->total,
+                'payment_method' => match ($order->payment_method) {
+                    'cash' => 'Tiền mặt tại quầy',
+                    'transfer' => 'Chuyển khoản VietQR',
+                    'mixed' => 'Kết hợp TM + Chuyển khoản',
+                    default => 'Quẹt thẻ POS',
+                },
+                'qr_check' => 'https://liengmobile.com/check/' . $order->code,
+                'printer' => 'Epson TM-T82 (Cổng LAN/Bluetooth 192.168.1.200)',
+            ],
         ]);
     }
 }
