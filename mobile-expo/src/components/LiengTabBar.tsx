@@ -1,5 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import { useRouter, useNavigation } from 'expo-router'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -21,14 +22,18 @@ const TAB_ICONS: Record<
   account: { icon: 'person-circle-outline', iconOn: 'person-circle', label: 'Tôi' },
 }
 
-export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function LiengTabBar({ state, descriptors, navigation: navProp }: BottomTabBarProps) {
+  const router = useRouter()
+  const navHook = useNavigation<any>()
+  const navigation = navProp ?? navHook
+
   const insets = useSafeAreaInsets()
   const bottom = Math.max(insets.bottom, 6)
 
   // 5 Tab chuẩn: Tổng quan -> Đơn hàng -> Quầy POS -> Dịch vụ -> Tôi
   const visibleTabs = ['home', 'orders', 'pos', 'services', 'account']
   const routesToRender = visibleTabs
-    .map((name) => state.routes.find((r) => r.name === name))
+    .map((name) => state?.routes?.find((r) => r.name === name))
     .filter(Boolean) as (typeof state.routes)[number][]
 
   return (
@@ -42,17 +47,29 @@ export function LiengTabBar({ state, descriptors, navigation }: BottomTabBarProp
             iconOn: 'ellipse',
             label: route.name,
           }
-          const { options } = descriptors[route.key]
+          const options = descriptors?.[route.key]?.options ?? {}
           const label = options.title ?? meta.label
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            })
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params)
+            if (navigation && typeof navigation.emit === 'function') {
+              try {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                })
+                if (event?.defaultPrevented) return
+              } catch (e) {
+                // Ignore emit error on web
+              }
+            }
+
+            if (!focused) {
+              try {
+                router.replace(`/(app)/(tabs)/${route.name}` as any)
+              } catch (err) {
+                router.push(`/(app)/(tabs)/${route.name}` as any)
+              }
             }
           }
 
