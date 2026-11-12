@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import { useRouter } from 'expo-router'
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -21,6 +22,7 @@ const TAB_ICONS: Record<
 }
 
 export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const { t } = useLocale()
   const { user } = useAuth()
@@ -46,13 +48,27 @@ export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps
               Alert.alert(t('perm.lockedTitle'), t('perm.lockedArchive'))
               return
             }
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            })
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params)
+            let defaultPrevented = false
+            if (navigation && typeof navigation.emit === 'function') {
+              try {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                })
+                defaultPrevented = !!event?.defaultPrevented
+              } catch (e) {
+                // Ignore emit error on web
+              }
+            }
+            if (!focused && !defaultPrevented) {
+              try {
+                router.replace(`/(app)/(tabs)/${route.name}` as any)
+              } catch (e) {
+                if (navigation && typeof navigation.navigate === 'function') {
+                  navigation.navigate(route.name, route.params)
+                }
+              }
             }
           }
 
