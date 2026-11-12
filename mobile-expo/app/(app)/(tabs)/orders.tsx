@@ -254,6 +254,73 @@ export default function OrdersScreen() {
   // Order detail modal
   const [selectedOrder, setSelectedOrder] = useState<DisplayOrder | null>(null)
 
+  const [orders, setOrders] = useState<DisplayOrder[]>(storeOrders)
+
+  useEffect(() => {
+    if (storeOrders && storeOrders.length > 0) {
+      setOrders(storeOrders)
+    }
+  }, [storeOrders])
+
+  const loadOrders = useCallback(async () => {
+    try {
+      const res = await ordersApi.fetchOrders({ per_page: 20 })
+      const raw = res.data ?? res
+      if (Array.isArray(raw) && raw.length > 0) {
+        const mapped: DisplayOrder[] = raw.map((o: any) => {
+          const items = Array.isArray(o.items) ? o.items : []
+          const summary =
+            items.length > 0
+              ? items.map((i: any) => i.product_name || i.name || 'Sản phẩm').join(', ')
+              : 'iPhone 15 Pro Max 256GB'
+
+          const firstImei = items.find((i: any) => i.imei_code || (i.imeis && i.imeis[0]))
+          const imeiStr = firstImei?.imei_code || firstImei?.imeis?.[0]
+          const meta = getProductMeta(summary)
+
+          return {
+            id: o.id,
+            code: o.code || `HD-${o.id}`,
+            customerName: o.customer_name || o.customerName || 'Khách lẻ tại quầy',
+            customerPhone: o.customer_phone || o.customerPhone,
+            total: Number(o.total_amount ?? o.total ?? 0),
+            itemCount: items.length || o.itemCount || 1,
+            itemsSummary: o.itemsSummary || summary,
+            productSubtitle: meta.subtitle,
+            imageUrl: meta.image,
+            paymentMethod: o.payment_method || o.paymentMethod || 'transfer',
+            status: o.status === 'completed' || o.status === 'paid' ? 'completed' : o.status || 'completed',
+            createdAt: (o.created_at || o.createdAt) ? formatDateTimeVi(o.created_at || o.createdAt) : 'Hôm nay',
+            cashier: o.staffName || o.cashier_name || 'Nguyễn Văn A',
+            imei: imeiStr,
+            actionBtnLabel: 'Xem hóa đơn',
+            items: items.map((i: any) => ({
+              name: i.product_name || i.name || 'Món',
+              qty: i.quantity || 1,
+              price: Number(i.price) || 0,
+              imeis: i.imei_code ? [i.imei_code] : i.imeis,
+            })),
+          }
+        })
+
+        if (mapped.length > 0) {
+          // Merge with any newly created store orders
+          const existingCodes = new Set(mapped.map((m) => m.code))
+          const uncommitted = storeOrders.filter((s) => !existingCodes.has(s.code))
+          setOrders([...uncommitted, ...mapped])
+        }
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [storeOrders])
+
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
   const copyOrderCode = (code: string) => {
     Alert.alert('Sao chép mã', `Mã đơn: ${code}\nĐã lưu vào bộ nhớ tạm.`)
   }
@@ -311,7 +378,7 @@ export default function OrdersScreen() {
   }
 
   // Filtered list
-  const filtered = storeOrders.filter((o) => {
+  const filtered = orders.filter((o) => {
     if (filterStatus !== 'all' && o.status !== filterStatus) return false
     if (filterPayment !== 'all' && o.paymentMethod !== filterPayment) return false
     if (search.trim()) {

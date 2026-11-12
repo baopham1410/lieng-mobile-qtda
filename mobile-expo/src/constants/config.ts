@@ -1,19 +1,26 @@
-/**
- * Theme đồng bộ AdminLayout web Lieng (#fdf2f2 + đỏ thương hiệu #7A0C10 + emerald + amber).
- */
+import Constants from 'expo-constants'
+
 function resolveApiBaseUrl(): string {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl
+  }
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const host = window.location.hostname
     if (host !== 'localhost' && host !== '127.0.0.1' && !host.includes('exp.direct')) {
       return `http://${host}:8080/api/v1`
     }
-    if (host === 'localhost' || host === '127.0.0.1') {
-      return 'http://localhost:8080/api/v1'
-    }
   }
-  return process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.30.101:8080/api/v1'
+  const host = Constants.expoConfig?.hostUri?.split(':')[0]
+  if (host) {
+    return `http://${host}:8080/api/v1`
+  }
+  return envUrl || 'http://localhost:8080/api/v1'
 }
 
+/**
+ * Theme đồng bộ AdminLayout web Lieng (#fdf2f2 + đỏ thương hiệu #7A0C10 + emerald + amber).
+ */
 export const API_BASE_URL = resolveApiBaseUrl()
 
 export const APP_NAME = 'Quán Lieng'

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import { useRouter } from 'expo-router'
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -7,6 +7,12 @@ import { Colors, Radius } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import { canManageQuanStatements } from '@/utils/permissions'
+
+export interface QuanTabBarProps {
+  state: any
+  descriptors: any
+  navigation: any
+}
 
 const TAB_ICONS: Record<
   string,
@@ -20,7 +26,8 @@ const TAB_ICONS: Record<
   account: { icon: 'person-outline', iconOn: 'person', labelKey: 'tab.account' },
 }
 
-export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function QuanTabBar({ state, descriptors, navigation }: QuanTabBarProps) {
+  const router = useRouter()
   const insets = useSafeAreaInsets()
   const { t } = useLocale()
   const { user } = useAuth()
@@ -30,7 +37,7 @@ export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps
   return (
     <View style={[styles.wrap, { paddingBottom: bottom }]}>
       <View style={styles.bar}>
-        {state.routes.map((route, index) => {
+        {state.routes.map((route: any, index: number) => {
           const focused = state.index === index
           const meta = TAB_ICONS[route.name] ?? {
             icon: 'ellipse-outline' as const,
@@ -46,13 +53,27 @@ export function QuanTabBar({ state, descriptors, navigation }: BottomTabBarProps
               Alert.alert(t('perm.lockedTitle'), t('perm.lockedArchive'))
               return
             }
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            })
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params)
+            let defaultPrevented = false
+            if (navigation && typeof navigation.emit === 'function') {
+              try {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                })
+                defaultPrevented = !!event?.defaultPrevented
+              } catch (e) {
+                // Ignore emit error on web
+              }
+            }
+            if (!focused && !defaultPrevented) {
+              try {
+                router.replace(`/(app)/(tabs)/${route.name}` as any)
+              } catch (e) {
+                if (navigation && typeof navigation.navigate === 'function') {
+                  navigation.navigate(route.name, route.params)
+                }
+              }
             }
           }
 
