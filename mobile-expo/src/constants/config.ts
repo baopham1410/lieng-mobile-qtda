@@ -3,12 +3,10 @@ import Constants from 'expo-constants'
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const host = window.location.hostname
-    if (host.includes('trycloudflare.com')) {
+    if (host.includes('trycloudflare.com') || host.includes('on.expo.app') || host.includes('exp.direct')) {
       return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
     }
-    if (!host.includes('exp.direct')) {
-      return `http://${host}:8080/api/v1`
-    }
+    return `http://${host}:8080/api/v1`
   }
   const envUrl = process.env.EXPO_PUBLIC_API_URL
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
@@ -16,9 +14,12 @@ function resolveApiBaseUrl(): string {
   }
   const host = Constants.expoConfig?.hostUri?.split(':')[0]
   if (host) {
+    if (host.includes('on.expo.app') || host.includes('exp.direct') || host.includes('trycloudflare.com')) {
+      return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
+    }
     return `http://${host}:8080/api/v1`
   }
-  return envUrl || 'http://localhost:8080/api/v1'
+  return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
 }
 
 /**
