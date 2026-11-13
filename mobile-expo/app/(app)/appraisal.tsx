@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Card, Chip, Eyebrow, Field, MoneyField, Muted, PrimaryButton, ScreenTitle, StatCard } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney, parseMoneyInput } from '@/utils/format'
+import { getProductImageSource } from '@/utils/productImages'
 
 interface AppraisalRecord {
   id: string
@@ -210,6 +212,11 @@ export default function AppraisalScreen() {
             <Card key={r.id} style={styles.recordCard}>
               <Pressable onPress={() => setSelectedRecord(r)}>
                 <View style={styles.recordTop}>
+                  <Image
+                    source={getProductImageSource(undefined, r.device)}
+                    style={{ width: 44, height: 44, borderRadius: 8, marginRight: 10, backgroundColor: '#F3F4F6' }}
+                    resizeMode="contain"
+                  />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.recordDevice}>{r.device} ({r.capacity})</Text>
                     <Text style={styles.recordCust}>Khách: {r.customerName} · {r.createdAt}</Text>
