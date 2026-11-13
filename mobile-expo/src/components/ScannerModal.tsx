@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   photoProcessingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   photoSuccessOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
