@@ -6,7 +6,6 @@ import { useAppStore } from '@/stores/app'
 import { usePageTransitionStore } from '@/stores/pageTransition'
 import { storeInfo } from '@/data/storeIntro'
 import { loginCopy } from '@/mocks/auth'
-import { demoLoginAccounts, DEMO_PASSWORD } from '@/data/demoAccounts'
 import { resolvePostLoginRoute } from '@/utils/roleRedirect'
 
 const REMEMBER_KEY = 'lieng_login_email'
@@ -65,23 +64,11 @@ async function handleSubmit() {
     if (msg?.toLowerCase().includes('inactive') || msg?.toLowerCase().includes('khóa')) {
       error.value = loginCopy.inactiveAccount
     } else if (msg?.includes('Network Error') || err.code === 'ERR_NETWORK') {
-      error.value = 'Không thể kết nối đến máy chủ. Vui lòng sử dụng tài khoản demo bên dưới.'
+      error.value = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng.'
     } else {
       error.value = msg || 'Email hoặc mật khẩu không đúng. Vui lòng thử lại.'
     }
   }
-}
-
-function fillAccount(account) {
-  email.value = account.email
-  password.value = DEMO_PASSWORD
-  error.value = ''
-}
-
-async function quickLogin(account) {
-  if (isBusy.value) return
-  fillAccount(account)
-  await handleSubmit()
 }
 </script>
 
@@ -199,50 +186,8 @@ async function quickLogin(account) {
         </button>
       </form>
 
-      <!-- Phân cách -->
-      <div class="my-5 flex w-full max-w-sm items-center gap-3">
-        <span class="h-px flex-1 bg-slate-200" />
-        <span class="text-xs font-semibold text-slate-400">Đăng nhập nhanh vai trò</span>
-        <span class="h-px flex-1 bg-slate-200" />
-      </div>
-
-      <!-- Đăng nhập nhanh theo vai trò -->
-      <div class="grid w-full max-w-sm grid-cols-3 gap-2.5">
-        <button
-          v-for="acc in demoLoginAccounts.slice(0, 3)"
-          :key="acc.id"
-          type="button"
-          class="rounded-2xl border py-2.5 px-2 text-center transition duration-200 hover:shadow-md"
-          :class="acc.id === 'admin'
-            ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
-            : acc.id === 'sales'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-              : 'border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100'"
-          @click="quickLogin(acc)"
-        >
-          <p class="text-xs sm:text-sm font-bold">{{ acc.label }}</p>
-          <p class="text-[11px] opacity-75 truncate">{{ acc.name }}</p>
-        </button>
-      </div>
-
-      <div class="mt-2.5 flex w-full max-w-sm justify-center gap-2.5">
-        <button
-          v-for="acc in demoLoginAccounts.slice(3)"
-          :key="acc.id"
-          type="button"
-          class="flex-1 rounded-xl border border-amber-200 bg-amber-50/70 py-2 px-3 text-center text-amber-900 transition duration-200 hover:bg-amber-100/90"
-          @click="quickLogin(acc)"
-        >
-          <span class="text-xs font-bold">{{ acc.label }}</span>
-          <span class="text-[11px] opacity-75"> ({{ acc.name }})</span>
-        </button>
-      </div>
-      <p class="mt-3 text-xs text-slate-400">
-        Mật khẩu thử nghiệm: <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-600">{{ DEMO_PASSWORD }}</code>
-      </p>
-
       <!-- Quay lại trang chủ -->
-      <p class="mt-6 text-center">
+      <p class="mt-8 text-center">
         <RouterLink
           to="/"
           class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 transition duration-200 hover:text-red-600"

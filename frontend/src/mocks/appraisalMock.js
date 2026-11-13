@@ -6,7 +6,33 @@ const STORAGE_KEY = 'lieng_appraisal_autograde_v2'
 export const APPRAISAL_BRANDS = ['Apple', 'Samsung', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'Khác']
 
 export const APPRAISAL_MODELS = {
-  Apple: ['iPhone 15 Pro Max', 'iPhone 15 Pro', 'iPhone 15', 'iPhone 14 Pro', 'iPhone 13', 'iPhone 12'],
+  Apple: [
+    'iPhone 15 Pro Max',
+    'iPhone 15 Pro',
+    'iPhone 15 Plus',
+    'iPhone 15',
+    'iPhone 14 Pro Max',
+    'iPhone 14 Pro',
+    'iPhone 14 Plus',
+    'iPhone 14',
+    'iPhone 13 Pro Max',
+    'iPhone 13 Pro',
+    'iPhone 13',
+    'iPhone 13 mini',
+    'iPhone 12 Pro Max',
+    'iPhone 12 Pro',
+    'iPhone 12',
+    'iPhone 12 mini',
+    'iPhone 11 Pro Max',
+    'iPhone 11 Pro',
+    'iPhone 11',
+    'iPhone XS Max',
+    'iPhone XS',
+    'iPhone XR',
+    'iPhone X',
+    'iPhone SE (Gen 3 - 2022)',
+    'iPhone SE (Gen 2 - 2020)',
+  ],
   Samsung: ['Galaxy S24 Ultra', 'Galaxy S24', 'Galaxy S23', 'Galaxy A55', 'Galaxy Z Flip5'],
   Xiaomi: ['Xiaomi 14', 'Redmi Note 13', 'POCO X6'],
   Oppo: ['Find X7', 'Reno 11', 'A78'],
@@ -17,12 +43,13 @@ export const APPRAISAL_MODELS = {
 
 export const APPRAISAL_STORAGES = ['64GB', '128GB', '256GB', '512GB', '1TB']
 
-/** 4 hạng máy — Grading Matrix AutoGrade */
+/** 4 hạng máy + Từ chối — Grading Matrix AutoGrade */
 export const APPRAISAL_GRADES = [
-  { key: 'A', label: 'Hạng A — Như mới', hint: '0–1 lỗi nhẹ' },
-  { key: 'B', label: 'Hạng B — Đẹp', hint: 'Xước / cấn nhẹ' },
-  { key: 'C', label: 'Hạng C — Trung bình', hint: 'Nhiều xước / móp' },
-  { key: 'D', label: 'Hạng D — Kém', hint: 'Nứt / hỏng nền / lỗi nặng' },
+  { key: 'A', label: 'Loại 1 — Like New 99%', hint: 'Không lỗi, pin ≥ 90%' },
+  { key: 'B', label: 'Loại 2 — 95%–98%', hint: 'Xước dăm nhẹ ≤ 5 vết' },
+  { key: 'C', label: 'Loại 3 — Cấn / Vỡ kính', hint: 'Nứt kính ngoài hoặc cấn ≤ 3 vết' },
+  { key: 'D', label: 'Loại 4 — Hỏng nặng', hint: 'Hỏng màn / lỗi nặng' },
+  { key: 'reject', label: 'Từ chối thu mua', hint: 'Dính iCloud / không lên nguồn' },
 ]
 
 /** YOLO defect classes (đề tài) */
@@ -34,10 +61,55 @@ export const YOLO_DEFECT_CLASSES = [
 ]
 
 export const PHOTO_SLOTS = [
-  { key: 'front', label: 'Mặt trước', hint: 'Góc 1 — màn + khung' },
-  { key: 'back', label: 'Mặt sau', hint: 'Góc 2 — lưng máy' },
-  { key: 'side', label: 'Cạnh / khung', hint: 'Góc 3 — viền cấn móp' },
-  { key: 'battery', label: 'Màn Pin / Giới thiệu', hint: 'OCR: model, ROM, % pin' },
+  { key: 'front', group: 'main', label: 'Mặt trước', hint: 'Màn hình & viền mặt trước' },
+  { key: 'back', group: 'main', label: 'Mặt sau', hint: 'Mặt lưng & cụm camera sau' },
+  { key: 'corner_tl', group: 'corner', label: 'Góc cạnh trên trái', hint: 'Bo góc & cạnh viền trên trái' },
+  { key: 'corner_tr', group: 'corner', label: 'Góc cạnh trên phải', hint: 'Bo góc & cạnh viền trên phải' },
+  { key: 'corner_bl', group: 'corner', label: 'Góc cạnh dưới trái', hint: 'Bo góc & cạnh viền dưới trái' },
+  { key: 'corner_br', group: 'corner', label: 'Góc cạnh dưới phải', hint: 'Bo góc, loa & cổng sạc' },
+  { key: 'battery', group: 'ocr', label: 'Màn Pin / Giới thiệu', hint: 'OCR: model, ROM, % pin' },
+]
+
+export const EXTERIOR_PHOTO_SLOTS = PHOTO_SLOTS.filter((s) => s.group !== 'ocr')
+
+/** 14 hạng mục test nội vi tự động từ App Mobile khách -> NV tích vào Web */
+export const MOBILE_DIAGNOSTIC_TESTS = [
+  { key: 'wifi', label: 'Wifi', hint: 'Bắt sóng Wi-Fi 2.4/5GHz' },
+  { key: 'bluetooth', label: 'Bluetooth', hint: 'Quét & ghép nối thiết bị' },
+  { key: 'backCamera', label: 'Camera sau', hint: 'Lấy nét, góc rộng, tele' },
+  { key: 'frontCamera', label: 'Camera trước', hint: 'Selfie & chân dung' },
+  { key: 'touch', label: 'Cảm ứng màn hình', hint: 'Vuốt lưới toàn màn hình' },
+  { key: 'volumeDown', label: 'Nút giảm âm lượng', hint: 'Độ nẩy & phản hồi' },
+  { key: 'volumeUp', label: 'Nút tăng âm lượng', hint: 'Độ nẩy & phản hồi' },
+  { key: 'earpiece', label: 'Loa trong', hint: 'Âm thoại tai nghe' },
+  { key: 'speaker', label: 'Loa ngoài', hint: 'Âm lượng lớn, không rè' },
+  { key: 'faceId', label: 'Kiểm tra Face ID', hint: 'Sinh trắc / TrueDepth' },
+  { key: 'vibrate', label: 'Rung', hint: 'Taptic / Haptic Engine' },
+  { key: 'callMic', label: 'Mic thoại', hint: 'Thu âm cuộc gọi' },
+  { key: 'videoMic', label: 'Mic video', hint: 'Thu âm quay video' },
+  { key: 'simSignal', label: 'Sim / sóng', hint: 'Nhận SIM & cột sóng' },
+]
+
+export const SCREEN_DISPLAY_OPTIONS = [
+  { value: 'good', label: 'Màn hình hiển thị tốt', badge: 'Đạt' },
+  { value: 'tint_flicker', label: 'Màn hình bị âm ảnh, ám màn hoặc chớp nháy', badge: 'Loại 3' },
+  { value: 'spots_lines_ink', label: 'Xuất hiện đốm đen, đốm sáng, sọc màn, chảy mực', badge: 'Loại 4' },
+  { value: 'partial_dead', label: 'Màn hình hỏng 1 phần hoặc cả màn hình', badge: 'Loại 4' },
+]
+
+export const SCREEN_AUTHENTICITY_OPTIONS = [
+  { value: 'original', label: 'Màn chính hãng. Chưa thay hoặc sửa màn hình lần nào' },
+  { value: 'history_unknown', label: 'Lịch sử linh kiện ghi nhận màn hình là "Không xác định"' },
+  { value: 'history_used_repaired', label: 'Lịch sử linh kiện ghi nhận "Đã sử dụng" hoặc "Hoàn tất sửa chữa"' },
+  { value: 'history_genuine_replaced', label: 'Đã thay màn hình và lịch sử linh kiện ghi nhận "Chính hãng"' },
+  { value: 'abnormal_bezel', label: 'Độ dày mép viền màn hình không đều nhau hoặc bất thường' },
+  { value: 'dynamic_island_issue', label: 'Bo viền Dynamic Island có răng cưa, không cân xứng / Camera lệch tâm' },
+]
+
+export const GLASS_CONDITION_OPTIONS = [
+  { value: 'good', label: 'Kính màn hình lành lặn' },
+  { value: 'cracked', label: 'Nứt, vỡ hoặc mẻ' },
+  { value: 'glue_bubbles', label: 'Kính hở keo, nổi bọt' },
 ]
 
 export const HARDWARE_TESTS = [
@@ -51,6 +123,7 @@ export const APPRAISAL_STATUSES = [
   { key: 'draft', label: 'Nháp' },
   { key: 'quoted', label: 'Đã báo giá' },
   { key: 'accepted', label: 'Khách đồng ý' },
+  { key: 'rejected', label: 'Từ chối thu' },
   { key: 'cancelled', label: 'Hủy' },
 ]
 
@@ -58,6 +131,7 @@ export const appraisalStatusClass = {
   draft: 'bg-slate-100 text-slate-600 ring-slate-200',
   quoted: 'bg-amber-50 text-amber-700 ring-amber-200',
   accepted: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  rejected: 'bg-rose-100 text-rose-800 ring-rose-300',
   cancelled: 'bg-rose-50 text-rose-600 ring-rose-200',
 }
 
@@ -66,6 +140,7 @@ export const gradeClass = {
   B: 'bg-sky-50 text-sky-700 ring-sky-200',
   C: 'bg-amber-50 text-amber-700 ring-amber-200',
   D: 'bg-rose-50 text-rose-700 ring-rose-200',
+  reject: 'bg-slate-900 text-white ring-slate-900',
 }
 
 /** BasePrice demo theo model+ROM (giống iphone_pricing.json) */
@@ -88,7 +163,18 @@ function emptyPhotos() {
 }
 
 function emptyHardware() {
-  return Object.fromEntries(HARDWARE_TESTS.map((t) => [t.key, 'pass']))
+  return {
+    ...Object.fromEntries(HARDWARE_TESTS.map((t) => [t.key, 'pass'])),
+    ...Object.fromEntries(MOBILE_DIAGNOSTIC_TESTS.map((t) => [t.key, 'pass'])),
+    icloudClean: true,
+    powerOn: true,
+    screenDisplay: 'good',
+    screenAuthenticity: 'original',
+    glassCondition: 'good',
+    powerButton: 'good',
+    trueTone: 'yes',
+    charging: 'good',
+  }
 }
 
 function emptyAiResult() {
@@ -347,29 +433,33 @@ export function mockAutoGradeSuggest(form) {
 
   /** Giả lập YOLO theo slot ảnh có/không */
   const defects = []
-  if (form.photos?.front || form.photos?.back) {
+  if (form.photos?.front) {
     defects.push({
+      id: 'mock-det-1',
       class: 'scratch',
-      label: 'Xước bề mặt',
-      confidence: 0.88 + Math.random() * 0.1,
+      label: 'Xước bề mặt (scratch)',
+      confidence: 0.91,
+      bbox_norm: [22, 28, 34, 18],
+      image: 'front',
+      is_defect: true,
+      confirmed: true,
       cost: 300000,
     })
   }
-  if (form.photos?.side) {
+  const cornerKey = ['corner_tl', 'corner_tr', 'corner_bl', 'corner_br', 'side'].find(
+    (k) => form.photos?.[k],
+  )
+  if (cornerKey) {
     defects.push({
+      id: 'mock-det-2',
       class: 'dent',
-      label: 'Cấn khung',
-      confidence: 0.8 + Math.random() * 0.15,
+      label: 'Cấn / móp khung viền (dent)',
+      confidence: 0.85,
+      bbox_norm: [45, 36, 26, 22],
+      image: cornerKey,
+      is_defect: true,
+      confirmed: true,
       cost: 500000,
-    })
-  }
-  // Đôi khi giả lập nứt nếu thiếu ảnh cạnh (demo đa dạng)
-  if (!form.photos?.side && photoCount >= 3 && Math.random() > 0.55) {
-    defects.push({
-      class: 'cracked_screen',
-      label: 'Nứt kính',
-      confidence: 0.9,
-      cost: 2500000,
     })
   }
 
