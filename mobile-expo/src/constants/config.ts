@@ -1,15 +1,15 @@
 import Constants from 'expo-constants'
 
 function resolveApiBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname
+    if (!host.includes('exp.direct')) {
+      return `http://${host}:8080/api/v1`
+    }
+  }
   const envUrl = process.env.EXPO_PUBLIC_API_URL
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
     return envUrl
-  }
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname
-    if (host !== 'localhost' && host !== '127.0.0.1' && !host.includes('exp.direct')) {
-      return `http://${host}:8080/api/v1`
-    }
   }
   const host = Constants.expoConfig?.hostUri?.split(':')[0]
   if (host) {
