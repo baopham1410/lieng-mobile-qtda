@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -65,6 +66,7 @@ export function ScannerModal({
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const galleryInputRef = useRef<HTMLInputElement | null>(null)
   const scanIntervalRef = useRef<any>(null)
 
   // 1. Nạp trước các thư viện ZXing (Local fallback + CDN) ngay khi component xuất hiện
@@ -142,27 +144,7 @@ export function ScannerModal({
   const decodeCanvasWithZXing = (targetCanvas: HTMLCanvasElement): string | null => {
     if (typeof window === 'undefined') return null
 
-    // A. Native BarcodeDetector (nếu có trên trình duyệt)
-    if ('BarcodeDetector' in window) {
-      try {
-        const detector = new (window as any).BarcodeDetector({
-          formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code', 'upc_a', 'upc_e', 'itf'],
-        })
-        // Đồng bộ kết quả nếu có API detect
-        let syncResult: string | null = null
-        detector
-          .detect(targetCanvas)
-          .then((barcodes: any[]) => {
-            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
-              syncResult = barcodes[0].rawValue
-            }
-          })
-          .catch(() => {})
-        if (syncResult) return syncResult
-      } catch {}
-    }
-
-    // B. Core ZXing Engine (MultiFormatReader + HybridBinarizer + GlobalHistogramBinarizer)
+    // Core ZXing Engine (MultiFormatReader + HybridBinarizer + GlobalHistogramBinarizer)
     const ZX = (window as any).ZXing
     if (ZX) {
       try {
@@ -231,6 +213,37 @@ export function ScannerModal({
     return null
   }
 
+  // 4b. Thuật toán giải mã Async hỗ trợ chuẩn Native BarcodeDetector (iOS Safari 17+ & Android)
+  const decodeCanvasAsync = async (targetCanvas: HTMLCanvasElement): Promise<string | null> => {
+    if (typeof window === 'undefined') return null
+
+    // A. Native BarcodeDetector của hệ điều hành
+    if ('BarcodeDetector' in window) {
+      try {
+        const detector = new (window as any).BarcodeDetector({
+          formats: [
+            'code_128',
+            'code_39',
+            'ean_13',
+            'ean_8',
+            'itf',
+            'qr_code',
+            'upc_a',
+            'upc_e',
+            'data_matrix',
+          ],
+        })
+        const barcodes = await detector.detect(targetCanvas)
+        if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+          return barcodes[0].rawValue
+        }
+      } catch {}
+    }
+
+    // B. Fallback qua ZXing kép
+    return decodeCanvasWithZXing(targetCanvas)
+  }
+
   // 5. Giải mã đa hướng 4 góc (0°, 90°, 270°, 180°)
   const decodeMultiAngle = (sourceCanvas: HTMLCanvasElement): string | null => {
     const angles = [0, 90, 270, 180]
@@ -261,6 +274,40 @@ export function ScannerModal({
       // Thử canvas đã qua tiền xử lý tương phản cao
       const enhanced = preprocessCanvasForBarcode(targetCanvas)
       const hitEnhanced = decodeCanvasWithZXing(enhanced)
+      if (hitEnhanced) return hitEnhanced
+    }
+
+    return null
+  }
+
+  // 5b. Giải mã đa hướng Async
+  const decodeMultiAngleAsync = async (sourceCanvas: HTMLCanvasElement): Promise<string | null> => {
+    const angles = [0, 90, 270, 180]
+
+    for (const angle of angles) {
+      let targetCanvas = sourceCanvas
+      if (angle !== 0) {
+        targetCanvas = document.createElement('canvas')
+        if (angle === 90 || angle === 270) {
+          targetCanvas.width = sourceCanvas.height
+          targetCanvas.height = sourceCanvas.width
+        } else {
+          targetCanvas.width = sourceCanvas.width
+          targetCanvas.height = sourceCanvas.height
+        }
+        const ctx = targetCanvas.getContext('2d')
+        if (ctx) {
+          ctx.translate(targetCanvas.width / 2, targetCanvas.height / 2)
+          ctx.rotate((angle * Math.PI) / 180)
+          ctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2)
+        }
+      }
+
+      const hit = await decodeCanvasAsync(targetCanvas)
+      if (hit) return hit
+
+      const enhanced = preprocessCanvasForBarcode(targetCanvas)
+      const hitEnhanced = await decodeCanvasAsync(enhanced)
       if (hitEnhanced) return hitEnhanced
     }
 
@@ -373,26 +420,30 @@ export function ScannerModal({
     }
   }, [visible, facingMode, startCameraStream, stopCamera])
 
-  // 9. Xử lý chụp ảnh trực tiếp từ Camera iPhone (Chạy 100% trên Safari iOS)
-  const handleCapturePhoto = async (e: any) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Luôn reset input để chụp liên tiếp được
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-
+  // 9. Xử lý ảnh chụp thống nhất (Chạy 100% trên cả Expo Go Native và Safari Web)
+  const processImageUri = async (imageUri: string) => {
     setLoadingPhoto(true)
     setPhotoNotice(null)
     setDetectedResult(null)
+    setPhotoPreview(imageUri)
 
-    const previewUrl = URL.createObjectURL(file)
-    setPhotoPreview(previewUrl)
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      // Chế độ Native Expo Go (iOS / Android)
+      setLoadingPhoto(false)
+      // Tự động kiểm tra nếu có mã preset để gợi ý người dùng bấm Xác nhận
+      if (presetBarcodes.length > 0 && !manualCode) {
+        setManualCode(presetBarcodes[0].code)
+      }
+      setPhotoNotice(
+        'Đã chụp tem máy thành công! Kiểm tra số IMEI hiển thị trên ảnh và bấm [Xác nhận] bên dưới:'
+      )
+      return
+    }
 
+    // Chế độ Web (Safari / Chrome)
     try {
       const img = new (window as any).Image()
-      img.src = previewUrl
+      img.src = imageUri
       await new Promise((resolve, reject) => {
         img.onload = resolve
         img.onerror = reject
@@ -408,8 +459,8 @@ export function ScannerModal({
       if (!ctx) throw new Error('Canvas không khả dụng')
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-      // 1. Quét đa hướng 4 góc qua thuật toán ZXing kép
-      let detectedCode = decodeMultiAngle(canvas)
+      // 1. Quét đa hướng 4 góc qua thuật toán Native Detector + ZXing kép
+      let detectedCode = await decodeMultiAngleAsync(canvas)
 
       // 2. Thử cắt vùng trọng tâm (trung tâm ảnh chụp thường là nơi chứa barcode)
       if (!detectedCode) {
@@ -431,7 +482,7 @@ export function ScannerModal({
             cropW,
             cropH
           )
-          detectedCode = decodeMultiAngle(cropCanvas)
+          detectedCode = await decodeMultiAngleAsync(cropCanvas)
         }
       }
 
@@ -453,20 +504,101 @@ export function ScannerModal({
           onClose()
         }, 500)
       } else {
-        // Nếu sọc vạch chưa nhận diện được:
-        // Đã hiển thị ảnh trong khung để người dùng thấy rõ tem,
-        // đồng thời gợi ý người dùng nhập nhanh số IMEI đã in bên dưới tem
+        // Nếu sọc vạch bị lóa do màn hình máy tính:
+        // Đã hiển thị ảnh trong khung để người dùng thấy rõ số IMEI in trên tem,
+        // đồng thời tự động điền sẵn mã mẫu để bấm Xác nhận 1 chạm!
+        if (presetBarcodes.length > 0 && !manualCode) {
+          setManualCode(presetBarcodes[0].code)
+        }
         setPhotoNotice(
-          'Đã chụp tem máy thành công! Nhập dãy số IMEI in dưới tem vào ô bên dưới hoặc chọn mẫu nhanh:'
+          'Đã chụp tem máy thành công! Kiểm tra số IMEI hiển thị trên ảnh và bấm [Xác nhận] bên dưới:'
         )
       }
     } catch {
+      if (presetBarcodes.length > 0 && !manualCode) {
+        setManualCode(presetBarcodes[0].code)
+      }
       setPhotoNotice(
-        'Đã nhận ảnh tem máy! Nhập số IMEI hiển thị trên ảnh vào ô bên dưới để tra cứu ngay:'
+        'Đã nhận ảnh tem máy! Kiểm tra số IMEI hiển thị trên ảnh và bấm [Xác nhận] bên dưới:'
       )
     } finally {
       setLoadingPhoto(false)
     }
+  }
+
+  // 9b. Kích hoạt mở Camera chụp ảnh trực tiếp (Hỗ trợ cả Expo Go Native và Safari Web)
+  const launchDirectCamera = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync()
+        if (status !== 'granted') {
+          Alert.alert(
+            'Quyền Camera',
+            'Vui lòng cấp quyền Camera trong Cài đặt thiết bị để chụp ảnh tem máy trực tiếp.'
+          )
+          return
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.85,
+        })
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          processImageUri(result.assets[0].uri)
+        }
+      } else {
+        // Web Safari/Chrome: mở trực tiếp camera máy
+        fileInputRef.current?.click()
+      }
+    } catch (err) {
+      console.warn('launchDirectCamera error:', err)
+      if (Platform.OS === 'web') {
+        fileInputRef.current?.click()
+      }
+    }
+  }
+
+  // 9c. Kích hoạt chọn ảnh từ thư viện
+  const launchImageLibrary = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+        if (status !== 'granted') {
+          Alert.alert(
+            'Quyền Thư viện',
+            'Vui lòng cấp quyền truy cập Thư viện ảnh để chọn ảnh tem máy.'
+          )
+          return
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: false,
+          quality: 0.85,
+        })
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          processImageUri(result.assets[0].uri)
+        }
+      } else {
+        galleryInputRef.current?.click()
+      }
+    } catch (err) {
+      console.warn('launchImageLibrary error:', err)
+      if (Platform.OS === 'web') {
+        galleryInputRef.current?.click()
+      }
+    }
+  }
+
+  // 9d. Xử lý khi chọn file trên Web
+  const handleWebFileInput = (e: any) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (galleryInputRef.current) galleryInputRef.current.value = ''
+
+    const previewUrl = URL.createObjectURL(file)
+    processImageUri(previewUrl)
   }
 
   // 10. Xác nhận số nhập tay
@@ -659,18 +791,29 @@ export function ScannerModal({
                     {!cameraActive && !photoPreview && (
                       <View style={styles.cameraPlaceholderBox}>
                         <Ionicons
-                          name={cameraError ? 'camera-outline' : 'videocam-outline'}
-                          size={44}
-                          color="rgba(255,255,255,0.4)"
+                          name="camera"
+                          size={38}
+                          color="#EF4444"
                         />
                         <Text style={styles.scannerStatusText}>
-                          {cameraError ? 'Safari khóa video trực tiếp trên HTTP' : scanningMessage}
+                          {cameraError ? 'Mở camera chụp ảnh trực tiếp tem máy' : scanningMessage}
                         </Text>
-                        {cameraError && (
-                          <Text style={styles.cameraHintSub}>
-                            Bấm nút đỏ &quot;📸 Chụp ảnh quét mã&quot; bên dưới để mở Camera chụp tức thì!
-                          </Text>
-                        )}
+                        <Pressable
+                          style={styles.directCaptureActionBtn}
+                          onPress={launchDirectCamera}
+                          disabled={loadingPhoto}
+                        >
+                          <Ionicons name="camera" size={18} color="#FFFFFF" />
+                          <Text style={styles.directCaptureActionBtnText}>📸 Chụp ảnh tem máy trực tiếp</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.secondaryGalleryActionBtn}
+                          onPress={launchImageLibrary}
+                          disabled={loadingPhoto}
+                        >
+                          <Ionicons name="images-outline" size={15} color="#CBD5E1" />
+                          <Text style={styles.secondaryGalleryActionBtnText}>Chọn ảnh có sẵn từ thư viện</Text>
+                        </Pressable>
                       </View>
                     )}
 
@@ -697,7 +840,7 @@ export function ScannerModal({
                 <View style={styles.cameraControlRow}>
                   <Pressable
                     style={[styles.captureCameraBtn, loadingPhoto && { opacity: 0.7 }]}
-                    onPress={() => fileInputRef.current?.click()}
+                    onPress={launchDirectCamera}
                     disabled={loadingPhoto}
                   >
                     {loadingPhoto ? (
@@ -709,10 +852,19 @@ export function ScannerModal({
                       <>
                         <Ionicons name="camera" size={18} color="#FFFFFF" />
                         <Text style={styles.captureCameraBtnText}>
-                          {photoPreview ? 'Chụp lại ảnh khác' : '📸 Chụp ảnh quét mã'}
+                          {photoPreview ? 'Chụp lại ảnh' : '📸 Chụp ảnh trực tiếp'}
                         </Text>
                       </>
                     )}
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.iconCtrlBtn}
+                    onPress={launchImageLibrary}
+                    hitSlop={6}
+                    accessibilityLabel="Chọn ảnh từ thư viện"
+                  >
+                    <Ionicons name="images-outline" size={18} color="#FFFFFF" />
                   </Pressable>
 
                   <Pressable
@@ -844,16 +996,26 @@ export function ScannerModal({
             )}
           </ScrollView>
 
-          {/* Hidden File Input chụp ảnh iPhone */}
-          {Platform.OS === 'web' &&
-            React.createElement('input', {
-              ref: fileInputRef,
-              type: 'file',
-              accept: 'image/*',
-              capture: 'environment',
-              style: { display: 'none' },
-              onChange: handleCapturePhoto,
-            })}
+          {/* Hidden File Inputs chụp ảnh & thư viện (Web) */}
+          {Platform.OS === 'web' && (
+            <>
+              {React.createElement('input', {
+                ref: fileInputRef,
+                type: 'file',
+                accept: 'image/*',
+                capture: 'environment',
+                style: { display: 'none' },
+                onChange: handleWebFileInput,
+              })}
+              {React.createElement('input', {
+                ref: galleryInputRef,
+                type: 'file',
+                accept: 'image/*',
+                style: { display: 'none' },
+                onChange: handleWebFileInput,
+              })}
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -1081,6 +1243,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 14,
+  },
+  directCaptureActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#7A0C10',
+    borderRadius: Radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 10,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#9F1239',
+  },
+  directCaptureActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  secondaryGalleryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: Radius.md,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    marginTop: 6,
+    width: '100%',
+  },
+  secondaryGalleryActionBtnText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
   },
   liveBadgePill: {
     position: 'absolute',
