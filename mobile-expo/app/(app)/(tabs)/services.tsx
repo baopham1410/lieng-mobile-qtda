@@ -21,10 +21,15 @@ import { ScannerModal } from '@/components/ScannerModal'
 import { Colors, Radius } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
+import { useLocale } from '@/context/LocaleContext'
 
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { locale } = useLocale()
+  const isLao = locale === 'lo'
+  const tr = (vi: string, lo: string) => (isLao ? lo : vi)
+
   const {
     isStoreOwner,
     isWarehouseStaff,
@@ -140,10 +145,10 @@ export default function ServicesScreen() {
               <Ionicons name="storefront-outline" size={11} color="#58413F" />
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
-                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  ? tr('Chi nhánh Cầu Giấy • Quản lý', 'ສາຂາ Cầu Giấy • ຈັດການ')
                   : isWarehouseStaff
-                  ? 'Chi nhánh Cầu Giấy • Kiểm Định Dịch Vụ'
-                  : 'Chi nhánh Cầu Giấy • Dịch Vụ'}
+                  ? tr('Chi nhánh Cầu Giấy • Kiểm Định Dịch Vụ', 'ສາຂາ Cầu Giấy • ກວດສອບບໍລິການ')
+                  : tr('Chi nhánh Cầu Giấy • Dịch Vụ', 'ສາຂາ Cầu Giấy • ບໍລິການ')}
               </Text>
             </View>
           </View>
@@ -171,10 +176,10 @@ export default function ServicesScreen() {
         <View style={styles.hubHeaderRow}>
           <View style={styles.hubTitleGroup}>
             <View style={styles.hubRedDot} />
-            <Text style={styles.hubTitleText}>HUB DỊCH VỤ KỸ THUẬT & BẢO HÀNH</Text>
+            <Text style={styles.hubTitleText}>{tr('HUB DỊCH VỤ KỸ THUẬT & BẢO HÀNH', 'ສູນບໍລິການເຕັກນິກ & ປະກັນໄພ')}</Text>
           </View>
           <View style={styles.hubOnlinePill}>
-            <Text style={styles.hubOnlineText}>Trạm #01 • Online</Text>
+            <Text style={styles.hubOnlineText}>{tr('Trạm #01 • Online', 'ສະຖານີ #01 • ອອນລາຍ')}</Text>
           </View>
         </View>
         {/* ── Section 1: Hero IMEI Search Card (Mẫu chuẩn Stitch) ── */}
@@ -184,8 +189,10 @@ export default function ServicesScreen() {
               <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.heroHeaderTitle}>Tra cứu bảo hành & IMEI</Text>
-              <Text style={styles.heroHeaderSubtitle}>Truy xuất lịch sử sửa chữa và tình trạng kích hoạt</Text>
+              <Text style={styles.heroHeaderTitle}>{tr('Tra cứu bảo hành & IMEI', 'ກວດສອບປະກັນໄພ & IMEI')}</Text>
+              <Text style={styles.heroHeaderSubtitle}>
+                {tr('Truy xuất lịch sử sửa chữa và tình trạng kích hoạt', 'ຄົ້ນຫາປະຫວັດການສ້ອມແປງ ແລະ ສະຖານະເປີດໃຊ້')}
+              </Text>
             </View>
           </View>
 
@@ -195,7 +202,7 @@ export default function ServicesScreen() {
               <Ionicons name="hardware-chip-outline" size={18} color="#8C716E" />
               <TextInput
                 style={styles.imeiTextInput}
-                placeholder="Nhập 15 số IMEI hoặc Serial thiết bị..."
+                placeholder={tr('Nhập 15 số IMEI hoặc Serial thiết bị...', 'ປ້ອນ 15 ຕົວເລກ IMEI ຫຼື Serial...')}
                 placeholderTextColor="#8C716E"
                 value={imeiInput}
                 onChangeText={setImeiInput}
@@ -221,7 +228,7 @@ export default function ServicesScreen() {
                 ) : (
                   <>
                     <Ionicons name="search" size={18} color="#FFFFFF" />
-                    <Text style={styles.searchSubmitText}>Kiểm tra ngay</Text>
+                    <Text style={styles.searchSubmitText}>{tr('Kiểm tra ngay', 'ກວດສອບທັນທີ')}</Text>
                   </>
                 )}
               </Pressable>
@@ -257,27 +264,27 @@ export default function ServicesScreen() {
                   <Text style={styles.vnText}>VN/A</Text>
                 </View>
                 <Text style={styles.deviceNameText}>iPhone 14 Pro Max 128GB</Text>
-                <Text style={styles.deviceColorText}>Deep Purple (Tím thạch anh)</Text>
+                <Text style={styles.deviceColorText}>Deep Purple {tr('(Tím thạch anh)', '(ສີມ່ວງ)')}</Text>
               </View>
             </View>
 
             {/* Strip tình trạng bảo hành */}
             <View style={styles.warrantyStatusStrip}>
-              <Text style={styles.statusStripLabel}>Tình trạng máy:</Text>
+              <Text style={styles.statusStripLabel}>{tr('Tình trạng máy:', 'ສະພາບເຄື່ອງ:')}</Text>
               <View style={styles.statusStripBadge}>
                 <View style={styles.statusStripRedDot} />
-                <Text style={styles.statusStripBadgeText}>Còn bảo hành (142 ngày)</Text>
+                <Text style={styles.statusStripBadgeText}>{tr('Còn bảo hành (142 ngày)', 'ຍັງມີປະກັນ (142 ວັນ)')}</Text>
               </View>
             </View>
 
             {/* Grid 2 cột: Ngày kích hoạt & Điểm xuất bán */}
             <View style={styles.infoGridRow}>
               <View style={styles.infoGridCol}>
-                <Text style={styles.infoGridLabel}>Ngày kích hoạt</Text>
+                <Text style={styles.infoGridLabel}>{tr('Ngày kích hoạt', 'ວັນທີເປີດໃຊ້')}</Text>
                 <Text style={styles.infoGridVal}>20/09/2023</Text>
               </View>
               <View style={styles.infoGridCol}>
-                <Text style={styles.infoGridLabel}>Điểm xuất bán</Text>
+                <Text style={styles.infoGridLabel}>{tr('Điểm xuất bán', 'ຈຸດຂາຍ')}</Text>
                 <Text style={styles.infoGridVal}>Flagship Cầu Giấy #01</Text>
               </View>
             </View>
@@ -286,9 +293,12 @@ export default function ServicesScreen() {
             <View style={styles.serviceHistoryRow}>
               <Ionicons name="time-outline" size={16} color="#B32446" style={{ marginTop: 1 }} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.historyTitleText}>Lịch sử dịch vụ tại hệ thống</Text>
+                <Text style={styles.historyTitleText}>{tr('Lịch sử dịch vụ tại hệ thống', 'ປະຫວັດບໍລິການໃນລະບົບ')}</Text>
                 <Text style={styles.historyDescText}>
-                  Đã dán cường lực VIP KingKong (01 lần), chưa từng bung máy hoặc thay thế linh kiện bên trong.
+                  {tr(
+                    'Đã dán cường lực VIP KingKong (01 lần), chưa từng bung máy hoặc thay thế linh kiện bên trong.',
+                    'ໄດ້ຕິດແວ່ນກັນກະທົບ VIP KingKong (01 ຄັ້ງ), ບໍ່ເຄີຍແກະເຄື່ອງ ຫຼື ປ່ຽນອາໄຫຼ່.',
+                  )}
                 </Text>
               </View>
             </View>
@@ -297,8 +307,8 @@ export default function ServicesScreen() {
 
         {/* ── Section 2: Dịch vụ trọng tâm (2 Block lớn chuẩn Stitch) ── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderTitle}>Dịch vụ trọng tâm</Text>
-          <Text style={styles.sectionHeaderSub}>Quy trình chuẩn hóa POS</Text>
+          <Text style={styles.sectionHeaderTitle}>{tr('Dịch vụ trọng tâm', 'ບໍລິການຫຼັກ')}</Text>
+          <Text style={styles.sectionHeaderSub}>{tr('Quy trình chuẩn hóa POS', 'ຂັ້ນຕອນມາດຕະຖານ POS')}</Text>
         </View>
 
         <View style={styles.coreBlocksCol}>
@@ -310,13 +320,16 @@ export default function ServicesScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.coreBlockTitleRow}>
-                  <Text style={styles.coreBlockTitle}>Thẩm định AutoGrade</Text>
+                  <Text style={styles.coreBlockTitle}>{tr('Thẩm định AutoGrade', 'ປະເມີນ AutoGrade')}</Text>
                   <View style={styles.tradeInBadge}>
-                    <Text style={styles.tradeInBadgeText}>Thu cũ đổi mới</Text>
+                    <Text style={styles.tradeInBadgeText}>{tr('Thu cũ đổi mới', 'ຮັບຊື້ເກົ່າປ່ຽນໃໝ່')}</Text>
                   </View>
                 </View>
                 <Text style={styles.coreBlockDescText}>
-                  Tự động phân loại máy Hạng S/A/B/C qua chẩn đoán ngoại quan, chu kỳ sạc pin, cảm ứng, FaceID và camera. Áp dụng bảng khấu trừ tự động, trợ giá thu mua lên đến 30%.
+                  {tr(
+                    'Tự động phân loại máy Hạng S/A/B/C qua chẩn đoán ngoại quan, chu kỳ sạc pin, cảm ứng, FaceID và camera. Áp dụng bảng khấu trừ tự động, trợ giá thu mua lên đến 30%.',
+                    'ຈັດເກຣດ S/A/B/C ອັດຕະໂນມັດຜ່ານການກວດສະພາບ, ຮອບສາກແບັດ, ໜ້າຈໍ, FaceID ແລະ ກ້ອງ. ຫຼຸດລາຄາຕາມມາດຕະຖານ, ຊ່ວຍລາຄາສູງເຖິງ 30%.',
+                  )}
                 </Text>
               </View>
             </View>
@@ -324,13 +337,13 @@ export default function ServicesScreen() {
             <View style={styles.coreBlockBottomRow}>
               <View style={styles.timeEstimateRow}>
                 <Ionicons name="speedometer-outline" size={14} color="#58413F" />
-                <Text style={styles.timeEstimateText}>Thời gian: ~3 phút / máy</Text>
+                <Text style={styles.timeEstimateText}>{tr('Thời gian: ~3 phút / máy', 'ເວລາ: ~3 ນາທີ / ເຄື່ອງ')}</Text>
               </View>
               <Pressable
                 style={styles.openFormBtnGray}
                 onPress={() => setAppraisalModal(true)}
               >
-                <Text style={styles.openFormBtnGrayText}>Mở form thẩm định</Text>
+                <Text style={styles.openFormBtnGrayText}>{tr('Mở form thẩm định', 'ເປີດຟອມປະເມີນ')}</Text>
                 <Ionicons name="arrow-forward" size={14} color="#191C1E" />
               </Pressable>
             </View>
@@ -344,13 +357,16 @@ export default function ServicesScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.coreBlockTitleRow}>
-                  <Text style={styles.coreBlockTitle}>Tiếp nhận Sửa chữa</Text>
+                  <Text style={styles.coreBlockTitle}>{tr('Tiếp nhận Sửa chữa', 'ຮັບສ້ອມແປງ')}</Text>
                   <View style={styles.vipWarrantyBadge}>
-                    <Text style={styles.vipWarrantyBadgeText}>Bảo hành VIP</Text>
+                    <Text style={styles.vipWarrantyBadgeText}>{tr('Bảo hành VIP', 'ປະກັນ VIP')}</Text>
                   </View>
                 </View>
                 <Text style={styles.coreBlockDescText}>
-                  Lập phiếu biên nhận điện tử cho máy lỗi phần cứng, rơi vỡ, vô nước. Đồng bộ ảnh chụp hiện trạng vào hồ sơ khách hàng, in mã vạch dán thân máy và hẹn ngày bàn giao.
+                  {tr(
+                    'Lập phiếu biên nhận điện tử cho máy lỗi phần cứng, rơi vỡ, vô nước. Đồng bộ ảnh chụp hiện trạng vào hồ sơ khách hàng, in mã vạch dán thân máy và hẹn ngày bàn giao.',
+                    'ສ້າງໃບຮັບເອເລັກໂຕຣນິກສຳລັບເຄື່ອງເສຍຮາດແວ, ຕົກແຕກ, ນ້ຳເຂົ້າ. ຊິງຄ໌ຮູບສະພາບເຂົ້າລະບົບ, ພິມບາໂຄ້ດຕິດເຄື່ອງ ແລະ ນັດມື້ມອບຮັບ.',
+                  )}
                 </Text>
               </View>
             </View>
@@ -358,13 +374,13 @@ export default function ServicesScreen() {
             <View style={styles.coreBlockBottomRow}>
               <View style={styles.timeEstimateRow}>
                 <Ionicons name="print-outline" size={14} color="#58413F" />
-                <Text style={styles.timeEstimateText}>Hỗ trợ in phiếu tức thì</Text>
+                <Text style={styles.timeEstimateText}>{tr('Hỗ trợ in phiếu tức thì', 'ຮອງຮັບພິມໃບຮັບທັນທີ')}</Text>
               </View>
               <Pressable
                 style={styles.openFormBtnPrimary}
                 onPress={() => setRepairModal(true)}
               >
-                <Text style={styles.openFormBtnPrimaryText}>Tạo phiếu tiếp nhận</Text>
+                <Text style={styles.openFormBtnPrimaryText}>{tr('Tạo phiếu tiếp nhận', 'ສ້າງໃບຮັບສ້ອມ')}</Text>
                 <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
               </Pressable>
             </View>
@@ -405,8 +421,8 @@ export default function ServicesScreen() {
 
         {/* ── Section 3: Phiếu dịch vụ gần đây ── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderTitle}>Phiếu dịch vụ gần đây</Text>
-          <Text style={styles.viewAllRedText}>Xem tất cả (18)</Text>
+          <Text style={styles.sectionHeaderTitle}>{tr('Phiếu dịch vụ gần đây', 'ໃບບໍລິການຫຼ້າສຸດ')}</Text>
+          <Text style={styles.viewAllRedText}>{tr('Xem tất cả (18)', 'ເບິ່ງທັງໝົດ (18)')}</Text>
         </View>
 
         {/* Filter Chips trượt ngang */}
@@ -416,7 +432,7 @@ export default function ServicesScreen() {
             onPress={() => setTicketFilter('all')}
           >
             <Text style={[styles.filterPillText, ticketFilter === 'all' && styles.filterPillTextActive]}>
-              Tất cả
+              {tr('Tất cả', 'ທັງໝົດ')}
             </Text>
           </Pressable>
           <Pressable
@@ -424,7 +440,7 @@ export default function ServicesScreen() {
             onPress={() => setTicketFilter('repairing')}
           >
             <Text style={[styles.filterPillText, ticketFilter === 'repairing' && styles.filterPillTextActive]}>
-              Đang xử lý (3)
+              {tr('Đang xử lý (3)', 'ກຳລັງດຳເນີນການ (3)')}
             </Text>
           </Pressable>
           <Pressable
@@ -432,7 +448,7 @@ export default function ServicesScreen() {
             onPress={() => setTicketFilter('completed')}
           >
             <Text style={[styles.filterPillText, ticketFilter === 'completed' && styles.filterPillTextActive]}>
-              Đã hoàn tất (12)
+              {tr('Đã hoàn tất (12)', 'ສຳເລັດແລ້ວ (12)')}
             </Text>
           </Pressable>
           <Pressable
@@ -440,7 +456,7 @@ export default function ServicesScreen() {
             onPress={() => setTicketFilter('waiting')}
           >
             <Text style={[styles.filterPillText, ticketFilter === 'waiting' && styles.filterPillTextActive]}>
-              Chờ phụ tùng (3)
+              {tr('Chờ phụ tùng (3)', 'ລໍຖ້າອາໄຫຼ່ (3)')}
             </Text>
           </Pressable>
         </ScrollView>
@@ -455,10 +471,10 @@ export default function ServicesScreen() {
                   <Text style={styles.ticketCodeCrimson}>BH-2026-089</Text>
                   <Text style={styles.ticketDotSep}>•</Text>
                   <Ionicons name="time-outline" size={13} color="#58413F" />
-                  <Text style={styles.ticketScheduleText}>Hẹn trả: 17:00 Ngày mai</Text>
+                  <Text style={styles.ticketScheduleText}>{tr('Hẹn trả: 17:00 Ngày mai', 'ນັດຮັບ: 17:00 ມື້ອື່ນ')}</Text>
                 </View>
                 <View style={styles.techBadge}>
-                  <Text style={styles.techBadgeText}>Kỹ thuật viên #04</Text>
+                  <Text style={styles.techBadgeText}>{tr('Kỹ thuật viên #04', 'ຊ່າງເຕັກນິກ #04')}</Text>
                 </View>
               </View>
 
@@ -466,7 +482,7 @@ export default function ServicesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.ticketDeviceTitle}>iPhone 13 Pro 128GB</Text>
                   <Text style={styles.ticketCustomerText}>
-                    Khách hàng: <Text style={{ fontWeight: '700', color: '#191C1E' }}>Chị Hà Phương</Text> (0912.***.888)
+                    {tr('Khách hàng:', 'ລູກຄ້າ:')} <Text style={{ fontWeight: '700', color: '#191C1E' }}>Chị Hà Phương</Text> (0912.***.888)
                   </Text>
                 </View>
                 <View style={styles.ticketSquareIconBox}>
@@ -475,20 +491,23 @@ export default function ServicesScreen() {
               </View>
 
               <View style={styles.ticketProblemBox}>
-                <Text style={styles.ticketProblemLabel}>Tình trạng lỗi ghi nhận:</Text>
+                <Text style={styles.ticketProblemLabel}>{tr('Tình trạng lỗi ghi nhận:', 'ອາການເສຍທີ່ບັນທຶກ:')}</Text>
                 <Text style={styles.ticketProblemDesc}>
-                  "Màn hình chớp nháy trắng xanh, sọc nhẹ góc trái sau khi rơi nhẹ, camera sau hoạt động bình thường."
+                  {tr(
+                    '"Màn hình chớp nháy trắng xanh, sọc nhẹ góc trái sau khi rơi nhẹ, camera sau hoạt động bình thường."',
+                    '"ໜ້າຈໍກະພິບຂາວຂຽວ, ມີເສັ້ນລາຍມຸມຊ້າຍຫຼັງຈາກຕົກເບົາໆ, ກ້ອງຫຼັງໃຊ້ໄດ້ປົກກະຕິ."',
+                  )}
                 </Text>
               </View>
 
               <View style={styles.ticketFooterRow}>
                 <View style={styles.statusProcessingPill}>
                   <View style={styles.redPulseDot} />
-                  <Text style={styles.statusProcessingText}>Đang xử lý tại phòng Kỹ thuật</Text>
+                  <Text style={styles.statusProcessingText}>{tr('Đang xử lý tại phòng Kỹ thuật', 'ກຳລັງກວດສອບຢູ່ຫ້ອງຊ່າງ')}</Text>
                 </View>
                 <Pressable
                   style={styles.chevronCircleBtn}
-                  onPress={() => Alert.alert('Phiếu BH-2026-089', 'Kỹ thuật viên #04 đang kiểm tra socket màn hình.')}
+                  onPress={() => Alert.alert('Phiếu BH-2026-089', tr('Kỹ thuật viên #04 đang kiểm tra socket màn hình.', 'ຊ່າງເຕັກນິກ #04 ກຳລັງກວດສອບສາຍແພຈໍ.'))}
                 >
                   <Ionicons name="chevron-forward" size={16} color="#58413F" />
                 </Pressable>
@@ -504,17 +523,17 @@ export default function ServicesScreen() {
                   <Text style={styles.ticketCodeSecondary}>TC-2026-044</Text>
                   <Text style={styles.ticketDotSep}>•</Text>
                   <View style={styles.tradeInMiniTag}>
-                    <Text style={styles.tradeInMiniTagText}>Thu cũ đổi mới</Text>
+                    <Text style={styles.tradeInMiniTagText}>{tr('Thu cũ đổi mới', 'ຮັບຊື້ເກົ່າປ່ຽນໃໝ່')}</Text>
                   </View>
                 </View>
-                <Text style={styles.ticketTimeText}>Hôm nay, 10:24</Text>
+                <Text style={styles.ticketTimeText}>{tr('Hôm nay, 10:24', 'ມື້ນີ້, 10:24')}</Text>
               </View>
 
               <View style={styles.ticketDeviceRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.ticketDeviceTitle}>iPhone 12 64GB Blue</Text>
                   <Text style={styles.ticketCustomerText}>
-                    Khách: <Text style={{ fontWeight: '700', color: '#191C1E' }}>Anh Tuấn Minh</Text> (Lên đời 15 Plus)
+                    {tr('Khách:', 'ລູກຄ້າ:')} <Text style={{ fontWeight: '700', color: '#191C1E' }}>Anh Tuấn Minh</Text> ({tr('Lên đời 15 Plus', 'ປ່ຽນຂຶ້ນ 15 Plus')})
                   </Text>
                 </View>
                 <View style={styles.ticketSquareIconBox}>
@@ -524,11 +543,11 @@ export default function ServicesScreen() {
 
               <View style={styles.appraisalSummaryGrid}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.appraisalGridLabel}>Đánh giá ngoại quan</Text>
-                  <Text style={styles.appraisalGridVal}>Hạng B (Pin 78%, trầy viền nhẹ)</Text>
+                  <Text style={styles.appraisalGridLabel}>{tr('Đánh giá ngoại quan', 'ປະເມີນສະພາບພາຍນອກ')}</Text>
+                  <Text style={styles.appraisalGridVal}>{tr('Hạng B (Pin 78%, trầy viền nhẹ)', 'ເກຣດ B (ແບັດ 78%, ຮອຍຂີດຂອບເລັກນ້ອຍ)')}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.appraisalGridLabel}>Đề xuất thu mua</Text>
+                  <Text style={styles.appraisalGridLabel}>{tr('Đề xuất thu mua', 'ລາຄາສະເໜີຮັບຊື້')}</Text>
                   <Text style={styles.appraisalPriceRed}>6.200.000 đ</Text>
                 </View>
               </View>
@@ -536,11 +555,11 @@ export default function ServicesScreen() {
               <View style={styles.ticketFooterRow}>
                 <View style={styles.statusAgreedPill}>
                   <Ionicons name="checkmark-circle" size={14} color="#B32446" />
-                  <Text style={styles.statusAgreedText}>Khách đã đồng ý lên đời máy</Text>
+                  <Text style={styles.statusAgreedText}>{tr('Khách đã đồng ý lên đời máy', 'ລູກຄ້າຕົກລົງປ່ຽນເຄື່ອງໃໝ່')}</Text>
                 </View>
                 <Pressable
                   style={styles.chevronCircleBtn}
-                  onPress={() => Alert.alert('Phiếu TC-2026-044', 'Khách hàng đã nhận Voucher trợ giá 6.200.000 đ để mua iPhone 15 Plus.')}
+                  onPress={() => Alert.alert('Phiếu TC-2026-044', tr('Khách hàng đã nhận Voucher trợ giá 6.200.000 đ để mua iPhone 15 Plus.', 'ລູກຄ້າໄດ້ຮັບ Voucher ຊ່ວຍລາຄາ 6.200.000 đ ເພື່ອຊື້ iPhone 15 Plus.'))}
                 >
                   <Ionicons name="chevron-forward" size={16} color="#58413F" />
                 </Pressable>
@@ -553,7 +572,10 @@ export default function ServicesScreen() {
         <View style={styles.bottomHelperNoteBox}>
           <Ionicons name="headset-outline" size={16} color="#B32446" />
           <Text style={styles.bottomHelperNoteText}>
-            Cần duyệt bù tiền thẩm định đặc biệt? Liên hệ Quản lý ca trực (Ext: 102).
+            {tr(
+              'Cần duyệt bù tiền thẩm định đặc biệt? Liên hệ Quản lý ca trực (Ext: 102).',
+              'ຕ້ອງການອະນຸມັດລາຄາພິເສດ? ຕິດຕໍ່ຜູ້ຈັດການກະ (Ext: 102).',
+            )}
           </Text>
         </View>
       </ScrollView>
@@ -563,21 +585,21 @@ export default function ServicesScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheetCard}>
             <View style={styles.modalSheetHeader}>
-              <Text style={styles.modalSheetTitle}>Thẩm định AutoGrade (Thu cũ)</Text>
+              <Text style={styles.modalSheetTitle}>{tr('Thẩm định AutoGrade (Thu cũ)', 'ປະເມີນ AutoGrade (ເຄື່ອງເກົ່າ)')}</Text>
               <Pressable onPress={() => setAppraisalModal(false)} hitSlop={10}>
                 <Ionicons name="close" size={22} color="#191C1E" />
               </Pressable>
             </View>
 
             <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalInputLabel}>Tên máy cần thẩm định:</Text>
+              <Text style={styles.modalInputLabel}>{tr('Tên máy cần thẩm định:', 'ຊື່ເຄື່ອງທີ່ຕ້ອງການປະເມີນ:')}</Text>
               <TextInput
                 style={styles.modalTextInput}
                 value={appraisalDevice}
                 onChangeText={setAppraisalDevice}
               />
 
-              <Text style={styles.modalInputLabel}>Tình trạng pin (%):</Text>
+              <Text style={styles.modalInputLabel}>{tr('Tình trạng pin (%):', 'ສຸຂະພາບແບັດ (%):')}</Text>
               <TextInput
                 style={styles.modalTextInput}
                 value={appraisalBattery}
@@ -585,7 +607,7 @@ export default function ServicesScreen() {
                 keyboardType="numeric"
               />
 
-              <Text style={styles.modalInputLabel}>Phân hạng thiết bị:</Text>
+              <Text style={styles.modalInputLabel}>{tr('Phân hạng thiết bị:', 'ເກຣດອຸປະກອນ:')}</Text>
               <View style={styles.gradeChoiceRow}>
                 {(['A', 'B', 'C'] as const).map((g) => (
                   <Pressable
@@ -597,16 +619,21 @@ export default function ServicesScreen() {
                     }}
                   >
                     <Text style={[styles.gradeBtnText, appraisalGrade === g && styles.gradeBtnTextActive]}>
-                      Hạng {g}
+                      {tr('Hạng', 'ເກຣດ')} {g}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
               <View style={styles.modalEstimateBox}>
-                <Text style={styles.modalEstimateLabel}>Đề xuất giá thu mua dự kiến:</Text>
+                <Text style={styles.modalEstimateLabel}>{tr('Đề xuất giá thu mua dự kiến:', 'ລາຄາສະເໜີຮັບຊື້ຄາດຄະເນ:')}</Text>
                 <Text style={styles.modalEstimatePrice}>{formatMoney(appraisalOffer)}</Text>
-                <Text style={styles.modalEstimateHint}>Đã bao gồm 10% trợ giá chương trình Thu Cũ Đổi Mới</Text>
+                <Text style={styles.modalEstimateHint}>
+                  {tr(
+                    'Đã bao gồm 10% trợ giá chương trình Thu Cũ Đổi Mới',
+                    'ລວມເງິນສະໜັບສະໜູນ 10% ຈາກໂຄງການເກົ່າແລກໃໝ່ແລ້ວ',
+                  )}
+                </Text>
               </View>
             </ScrollView>
 
@@ -614,10 +641,16 @@ export default function ServicesScreen() {
               style={styles.modalSubmitBtn}
               onPress={() => {
                 setAppraisalModal(false)
-                Alert.alert('Thẩm định thành công 🎉', `Đã xuất phiếu thẩm định cho ${appraisalDevice} giá ${formatMoney(appraisalOffer)}.`)
+                Alert.alert(
+                  tr('Thẩm định thành công 🎉', 'ປະເມີນສຳເລັດ 🎉'),
+                  tr(
+                    `Đã xuất phiếu thẩm định cho ${appraisalDevice} giá ${formatMoney(appraisalOffer)}.`,
+                    `ໄດ້ສ້າງໃບປະເມີນສຳລັບ ${appraisalDevice} ລາຄາ ${formatMoney(appraisalOffer)}.`,
+                  ),
+                )
               }}
             >
-              <Text style={styles.modalSubmitBtnText}>Xuất biên bản định giá</Text>
+              <Text style={styles.modalSubmitBtnText}>{tr('Xuất biên bản định giá', 'ພິມບົດບັນທຶກປະເມີນລາຄາ')}</Text>
             </Pressable>
           </View>
         </View>
@@ -628,31 +661,31 @@ export default function ServicesScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheetCard}>
             <View style={styles.modalSheetHeader}>
-              <Text style={styles.modalSheetTitle}>Lập phiếu tiếp nhận sửa chữa</Text>
+              <Text style={styles.modalSheetTitle}>{tr('Lập phiếu tiếp nhận sửa chữa', 'ສ້າງໃບຮັບສ້ອມແປງ')}</Text>
               <Pressable onPress={() => setRepairModal(false)} hitSlop={10}>
                 <Ionicons name="close" size={22} color="#191C1E" />
               </Pressable>
             </View>
 
             <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalInputLabel}>Số IMEI thiết bị:</Text>
+              <Text style={styles.modalInputLabel}>{tr('Số IMEI thiết bị:', 'ເລກ IMEI ອຸປະກອນ:')}</Text>
               <TextInput
                 style={styles.modalTextInput}
-                placeholder="Nhập 15 số IMEI..."
+                placeholder={tr('Nhập 15 số IMEI...', 'ປ້ອນ 15 ຕົວເລກ IMEI...')}
                 value={repairImei}
                 onChangeText={setRepairImei}
                 keyboardType="numeric"
               />
 
-              <Text style={styles.modalInputLabel}>Họ tên khách hàng:</Text>
+              <Text style={styles.modalInputLabel}>{tr('Họ tên khách hàng:', 'ຊື່ລູກຄ້າ:')}</Text>
               <TextInput
                 style={styles.modalTextInput}
-                placeholder="VD: Chị Hà Phương"
+                placeholder={tr('VD: Chị Hà Phương', 'ຕົວຢ່າງ: ນາງ ມາລີ')}
                 value={custName}
                 onChangeText={setCustName}
               />
 
-              <Text style={styles.modalInputLabel}>Số điện thoại:</Text>
+              <Text style={styles.modalInputLabel}>{tr('Số điện thoại:', 'ເບີໂທລະສັບ:')}</Text>
               <TextInput
                 style={styles.modalTextInput}
                 placeholder="0912 xxx xxx"
@@ -661,10 +694,10 @@ export default function ServicesScreen() {
                 keyboardType="phone-pad"
               />
 
-              <Text style={styles.modalInputLabel}>Mô tả lỗi / Hiện trạng:</Text>
+              <Text style={styles.modalInputLabel}>{tr('Mô tả lỗi / Hiện trạng:', 'ລາຍລະອຽດອາການເສຍ / ສະພາບ:')}</Text>
               <TextInput
                 style={[styles.modalTextInput, { height: 70, textAlignVertical: 'top' }]}
-                placeholder="Màn hình nứt vỡ, mất FaceID, vô nước..."
+                placeholder={tr('Màn hình nứt vỡ, mất FaceID, vô nước...', 'ໜ້າຈໍແຕກ, ເສຍ FaceID, ນ້ຳເຂົ້າ...')}
                 multiline
                 value={symptom}
                 onChangeText={setSymptom}
@@ -679,7 +712,7 @@ export default function ServicesScreen() {
               {submittingRepair ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.modalSubmitBtnText}>Tạo phiếu & In mã vạch máy</Text>
+                <Text style={styles.modalSubmitBtnText}>{tr('Tạo phiếu & In mã vạch máy', 'ສ້າງໃບຮັບ & ພິມບາໂຄ້ດຕິດເຄື່ອງ')}</Text>
               )}
             </Pressable>
           </View>
@@ -693,9 +726,9 @@ export default function ServicesScreen() {
         onScan={(code) => {
           setScannerOpen(false)
           setImeiInput(code)
-          Alert.alert('Đã nhận diện IMEI', `Số IMEI: ${code}`)
+          Alert.alert(tr('Đã nhận diện IMEI', 'ກວດພົບ IMEI ແລ້ວ'), `${tr('Số IMEI', 'ລະຫັດ IMEI')}: ${code}`)
         }}
-        title="Quét Barcode / Bắn IMEI thiết bị"
+        title={tr('Quét Barcode / Bắn IMEI thiết bị', 'ສະແກນ Barcode / IMEI ອຸປະກອນ')}
       />
     </View>
   )
