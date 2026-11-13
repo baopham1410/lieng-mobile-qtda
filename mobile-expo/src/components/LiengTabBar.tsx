@@ -4,8 +4,8 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Radius } from '@/constants/config'
-
 import { useUserRole } from '@/hooks/useUserRole'
+import { useLocale } from '@/context/LocaleContext'
 
 export interface BottomTabBarProps {
   state: any
@@ -37,6 +37,8 @@ export function LiengTabBar(props: BottomTabBarProps) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { isWarehouseStaff } = useUserRole()
+  const { locale } = useLocale()
+  const isLao = locale === 'lo'
   const bottom = Math.max(insets.bottom, 6)
 
   // 5 Tab chuẩn Stitch: Tổng quan -> Quầy POS -> Đơn hàng -> Dịch vụ -> Tôi
@@ -64,9 +66,23 @@ export function LiengTabBar(props: BottomTabBarProps) {
             }
           }
           const options = descriptors?.[route.key]?.options ?? {}
-          const label = isWarehouseStaff
+          const rawLabel = isWarehouseStaff
             ? (route.name === 'pos' ? 'Nhập kho' : route.name === 'orders' ? 'Xuất kho' : (options.title ?? meta.label))
             : (options.title ?? meta.label)
+
+          let label = rawLabel
+          if (isLao) {
+            const LAO_LABELS: Record<string, string> = {
+              'Tổng quan': 'ພາບລວມ',
+              'Nhập kho': 'ນຳເຂົ້າສາງ',
+              'Xuất kho': 'ເບີກຈ່າຍສາງ',
+              'Đơn hàng': 'ໃບບິນ',
+              'Quầy POS': 'ເຄົາເຕີ້ POS',
+              'Dịch vụ': 'ບໍລິການ',
+              'Tôi': 'ໂປຣໄຟລ໌',
+            }
+            label = LAO_LABELS[rawLabel] ?? rawLabel
+          }
 
           const onPress = () => {
             if (emitter && typeof emitter.emit === 'function') {
