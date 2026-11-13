@@ -24,6 +24,7 @@ import { Colors, Radius } from '@/constants/config'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
 import { useStore } from '@/context/StoreContext'
+import { getProductImageSource } from '@/utils/productImages'
 
 interface DisplayOrder {
   id: number | string
@@ -405,10 +406,25 @@ export default function OrdersScreen() {
     return true
   })
 
-  // Shift Stats
-  const totalRevenue = 42500000
-  const completedCount = 8
-  const pendingCount = 1
+  // Shift Stats - Tính toán thống kê trực tiếp đồng bộ 100% giữa danh sách đơn và thẻ chỉ số
+  const activeOrdersList = orders.length > 0 ? orders : storeOrders
+  const completedOrdersList = activeOrdersList.filter(
+    (o) => o.status === 'completed' || o.status === 'paid'
+  )
+  const pendingOrdersList = activeOrdersList.filter(
+    (o) => o.status === 'pending' || o.status === 'pending_discount' || o.status === 'pending_payment'
+  )
+  const displayCompletedCount = Math.max(stats.completedCount, completedOrdersList.length)
+  const displayPendingCount = Math.max(stats.pendingCount, pendingOrdersList.length)
+  const displayRevenue = Math.max(
+    stats.revenueToday,
+    completedOrdersList.reduce((sum, o) => sum + Number(o.total || 0), 0)
+  )
+  const displayOwnerRevenue = Math.max(
+    stats.ownerRevenueToday,
+    completedOrdersList.reduce((sum, o) => sum + Number(o.total || 0), 0)
+  )
+  const displayTotalOrders = Math.max(stats.totalOrders || 0, activeOrdersList.length)
 
   const handleShare = async (order: DisplayOrder) => {
     try {
@@ -569,7 +585,7 @@ export default function OrdersScreen() {
                         <Text style={styles.ownerTodayPillText}>HÔM NAY</Text>
                       </View>
                     </View>
-                    <Text style={styles.ownerBigAmount}>{formatMoney(stats.ownerRevenueToday)}</Text>
+                    <Text style={styles.ownerBigAmount}>{formatMoney(displayOwnerRevenue)}</Text>
                   </View>
                 </View>
                 <View style={styles.ownerShiftTargetBox}>
@@ -586,7 +602,7 @@ export default function OrdersScreen() {
                   <Text style={styles.ownerSubCardLabel}>Hoàn tất</Text>
                   <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
                 </View>
-                <Text style={styles.ownerSubCardVal}>{stats.completedCount} đơn</Text>
+                <Text style={styles.ownerSubCardVal}>{displayCompletedCount} đơn</Text>
                 <View style={styles.ownerTrendRow}>
                   <Ionicons name="trending-up" size={12} color="#16A34A" />
                   <Text style={styles.ownerTrendText}>Tỷ lệ 92%</Text>
@@ -598,7 +614,7 @@ export default function OrdersScreen() {
                   <Text style={styles.ownerSubCardLabel}>Chờ xử lý</Text>
                   <Ionicons name="clipboard-outline" size={15} color="#D97706" />
                 </View>
-                <Text style={[styles.ownerSubCardVal, { color: '#DC2626' }]}>{stats.pendingCount} đơn</Text>
+                <Text style={[styles.ownerSubCardVal, { color: '#DC2626' }]}>{displayPendingCount} đơn</Text>
                 <Text style={styles.ownerSubCardHint}>Cần duyệt / thu tiền</Text>
               </View>
             </View>
@@ -619,7 +635,7 @@ export default function OrdersScreen() {
                         <Text style={[styles.ownerTodayPillText, { color: '#B45309' }]}>HÔM NAY</Text>
                       </View>
                     </View>
-                    <Text style={styles.ownerBigAmount}>{stats.totalOrders} đơn hàng</Text>
+                    <Text style={styles.ownerBigAmount}>{displayTotalOrders} đơn hàng</Text>
                   </View>
                 </View>
                 <View style={styles.ownerShiftTargetBox}>
@@ -636,7 +652,7 @@ export default function OrdersScreen() {
                   <Text style={styles.ownerSubCardLabel}>Đã xuất giao</Text>
                   <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
                 </View>
-                <Text style={styles.ownerSubCardVal}>{stats.completedCount} đơn</Text>
+                <Text style={styles.ownerSubCardVal}>{displayCompletedCount} đơn</Text>
                 <View style={styles.ownerTrendRow}>
                   <Ionicons name="barcode-outline" size={12} color="#16A34A" />
                   <Text style={styles.ownerTrendText}>Đã kích hoạt IMEI</Text>
@@ -648,7 +664,7 @@ export default function OrdersScreen() {
                   <Text style={styles.ownerSubCardLabel}>Chờ xuất kho</Text>
                   <Ionicons name="clipboard-outline" size={15} color="#D97706" />
                 </View>
-                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{stats.pendingCount} đơn</Text>
+                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{displayPendingCount} đơn</Text>
                 <Text style={styles.ownerSubCardHint}>Cần kiểm IMEI</Text>
               </View>
             </View>
@@ -663,7 +679,7 @@ export default function OrdersScreen() {
                   <Ionicons name="wallet-outline" size={12} color={Colors.primaryContainer} />
                 </View>
               </View>
-              <Text style={styles.statValRed}>{formatMoney(stats.revenueToday)}</Text>
+              <Text style={styles.statValRed}>{formatMoney(displayRevenue)}</Text>
               <Text style={styles.statSub}>Hôm nay</Text>
             </View>
 
@@ -676,7 +692,7 @@ export default function OrdersScreen() {
                 </View>
               </View>
               <Text style={styles.statValGreen}>
-                {stats.completedCount} <Text style={styles.statUnitText}>đơn</Text>
+                {displayCompletedCount} <Text style={styles.statUnitText}>đơn</Text>
               </Text>
               <Text style={styles.statSubGreen}>Tỷ lệ 92%</Text>
             </View>
@@ -690,7 +706,7 @@ export default function OrdersScreen() {
                 </View>
               </View>
               <Text style={styles.statValAmber}>
-                {stats.pendingCount} <Text style={styles.statUnitText}>đơn</Text>
+                {displayPendingCount} <Text style={styles.statUnitText}>đơn</Text>
               </Text>
               <Text style={styles.statSubAmber}>Cần thu tiền</Text>
             </View>
@@ -711,7 +727,7 @@ export default function OrdersScreen() {
               </Text>
               <View style={[styles.countBadge, filterStatus === 'all' && styles.countBadgeActive]}>
                 <Text style={[styles.countBadgeText, filterStatus === 'all' && styles.countBadgeTextActive]}>
-                  {storeOrders.length}
+                  {activeOrdersList.length}
                 </Text>
               </View>
             </Pressable>
@@ -723,7 +739,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.greenFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'completed' && styles.statusChipTextActive]}>
-                Hoàn tất ({storeOrders.filter((o) => o.status === 'completed').length})
+                Hoàn tất ({displayCompletedCount})
               </Text>
             </Pressable>
 
@@ -734,7 +750,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.amberFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'pending' && styles.statusChipTextActive]}>
-                Chờ xử lý ({storeOrders.filter((o) => o.status === 'pending' || o.status === 'pending_discount').length})
+                Chờ xử lý ({displayPendingCount})
               </Text>
             </Pressable>
 
@@ -745,7 +761,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.redFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'cancelled' && styles.statusChipTextActive]}>
-                Đã hủy ({storeOrders.filter((o) => o.status === 'cancelled').length})
+                Đã hủy ({activeOrdersList.filter((o) => o.status === 'cancelled').length})
               </Text>
             </Pressable>
           </ScrollView>
@@ -879,7 +895,7 @@ export default function OrdersScreen() {
                   <View style={styles.orderProductInnerBox}>
                     <View style={styles.orderProductThumbWrap}>
                       <Image
-                        source={{ uri: item.imageUrl || getProductMeta(item.itemsSummary).image }}
+                        source={getProductImageSource(item.imageUrl, item.itemsSummary)}
                         style={styles.orderProductThumbImg}
                         resizeMode="contain"
                       />
