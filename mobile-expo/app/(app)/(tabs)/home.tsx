@@ -22,6 +22,7 @@ import { useStore } from '@/context/StoreContext'
 import { useLocale } from '@/context/LocaleContext'
 import { useUserRole } from '@/hooks/useUserRole'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
+import { getProductImageSource } from '@/utils/productImages'
 
 interface RecentOrder {
   id: number | string
@@ -150,6 +151,7 @@ export default function HomeScreen() {
     canApproveDiscount,
   } = useUserRole()
   const {
+    orders: storeOrders,
     stats,
     pendingApprovals,
     recentOrders: storeRecentOrders,
@@ -157,38 +159,36 @@ export default function HomeScreen() {
     rejectOwnerRequest,
     refreshStoreData,
   } = useStore()
+
+  // Dynamic metrics derived directly from the unified store to guarantee 100% KPI consistency
+  const completedOrdersCount = Math.max(
+    stats.completedCount,
+    (storeOrders || []).filter((o) => o.status === 'completed' || o.status === 'paid').length
+  )
+  const revenueTodayAmount = Math.max(
+    stats.revenueToday,
+    (storeOrders || [])
+      .filter((o) => o.status === 'completed' || o.status === 'paid')
+      .reduce((sum, o) => sum + Number(o.total || 0), 0)
+  )
+  const ownerRevenueAmount = Math.max(
+    stats.ownerRevenueToday,
+    (storeOrders || [])
+      .filter((o) => o.status === 'completed' || o.status === 'paid')
+      .reduce((sum, o) => sum + Number(o.total || 0), 0)
+  )
+  const ownerOrdersTotal = Math.max(
+    stats.ownerOrdersCount,
+    (storeOrders || []).length
+  )
   const [refreshing, setRefreshing] = useState(false)
-  const [staffStats, setStaffStats] = useState({
-    revenueToday: 128450000,
-    growthPercent: '+18.2%',
-    ordersToday: 22,
-    imeiInStock: 142,
-    servicesPending: 3,
-  })
   const [staffRecentOrders, setRecentOrders] = useState<RecentOrder[]>(STAFF_RECENT_ORDERS)
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
       await refreshStoreData()
-      const [res, report] = await Promise.all([
-        ordersApi.fetchOrders({ per_page: 5 }).catch(() => null),
-        fetchDashboardReport().catch(() => null),
-      ])
-
-      if (report) {
-        setStaffStats((prev) => ({
-          ...prev,
-          revenueToday: Number(report.today_revenue) || prev.revenueToday,
-          ordersToday: Number(report.today_orders) || prev.ordersToday,
-          imeiInStock: Number(report.imei_in_stock) ?? prev.imeiInStock,
-          servicesPending: Number(report.services_pending) ?? prev.servicesPending,
-          growthPercent: report.revenue_cost_chart?.monthly?.summary?.growth
-            ? `+${report.revenue_cost_chart.monthly.summary.growth}%`
-            : prev.growthPercent,
-        }))
-      }
-
+      const res = await ordersApi.fetchOrders({ per_page: 5 }).catch(() => null)
       const raw = res?.data ?? res
       if (Array.isArray(raw) && raw.length > 0) {
         const mapped: RecentOrder[] = raw.slice(0, 4).map((o: any) => ({
@@ -207,7 +207,7 @@ export default function HomeScreen() {
         setRecentOrders(mapped)
       }
     } catch {
-      // Fallback Stitch dữ liệu chuẩn showroom
+      // Fallback
     } finally {
       setRefreshing(false)
     }
@@ -412,7 +412,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
                 <Text style={styles.kpiValueLarge}>
-                  {formatMoney(stats.ownerRevenueToday)}
+                  {formatMoney(ownerRevenueAmount)}
                 </Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="trending-up" size={13} color={Colors.green} />
@@ -447,7 +447,7 @@ export default function HomeScreen() {
                     <Ionicons name="phone-portrait-outline" size={16} color="#DC2626" />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.ownerOrdersCount} đơn</Text>
+                <Text style={styles.kpiValueLarge}>{ownerOrdersTotal} đơn</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Text style={styles.kpiHintText}>100% hoàn tất</Text>
                 </View>
@@ -495,7 +495,7 @@ export default function HomeScreen() {
                     <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.completedCount} {tr('máy', 'ເຄື່ອງ')}</Text>
+                <Text style={styles.kpiValueLarge}>{completedOrdersCount} {tr('máy', 'ເຄື່ອງ')}</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="shield-checkmark" size={13} color={Colors.green} />
                   <Text style={styles.kpiHintText}>{tr('Đã kích hoạt IMEI', 'ເປີດໃຊ້ IMEI ແລ້ວ')}</Text>
@@ -529,7 +529,7 @@ export default function HomeScreen() {
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="shield-checkmark" size={12} color="#16A34A" />
                   <Text style={[styles.kpiHintText, { color: '#16A34A', fontWeight: '600' }]}>
-                    {tr('142/142 Barcode khớp', '142/142 ບາໂຄ້ດກົງກັນ')}
+                    {stats.imeiInStock}/{stats.imeiInStock} {tr('Barcode khớp', 'ບາໂຄ້ດກົງກັນ')}
                   </Text>
                 </View>
               </View>
@@ -544,7 +544,7 @@ export default function HomeScreen() {
                     <Ionicons name="wallet-outline" size={16} color={Colors.primaryContainer} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{formatMoney(stats.revenueToday)}</Text>
+                <Text style={styles.kpiValueLarge}>{formatMoney(revenueTodayAmount)}</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="trending-up" size={13} color={Colors.green} />
                   <Text style={styles.kpiTrendGreen}>{stats.growthPercent} so với hôm qua</Text>
@@ -558,7 +558,7 @@ export default function HomeScreen() {
                     <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.completedCount} đơn</Text>
+                <Text style={styles.kpiValueLarge}>{completedOrdersCount} đơn</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="time-outline" size={13} color={Colors.onSurfaceVariant} />
                   <Text style={styles.kpiHintText}>100% đúng hạn ca trực</Text>
@@ -872,7 +872,11 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.orderItemCardExact, pressed && { opacity: 0.88 }]}
               >
                 <View style={styles.orderDeviceIconBox}>
-                  <Ionicons name={iconName} size={22} color={iconColor} />
+                  <Image
+                    source={getProductImageSource(order.imageUrl, order.itemsSummary)}
+                    style={{ width: 34, height: 34, borderRadius: 6 }}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 <View style={styles.orderItemMiddle}>

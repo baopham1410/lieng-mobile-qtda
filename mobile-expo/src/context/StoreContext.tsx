@@ -3,6 +3,8 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { Platform } from 'react-native'
 
 import * as ownerApi from '@/api/owner'
+import { fetchWarehouseDashboard } from '@/api/warehouse'
+import { fetchDashboardReport } from '@/api/reports'
 import { TOKEN_KEY } from '@/constants/config'
 
 export interface StoreOrder {
@@ -115,8 +117,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '14:45 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: '357892110482914',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA_blgggVKlyM7izoMRksl6W0Bq1BZdBEZlleubEqZmMqcR8mLNPtj4mLoHv6ZzQMSXNoN2CDDS7egqq7hIGk8FYFT4w3f0FS4NVgoYieeUkKPWrkISWhNrICFLibmO0ceH8Uy2XLSopSJ7hF5hYQT6XOQeZEv8vuPl4ByWrNAM69hkNRgFb1CdQqrgx5wLEh1OlfruLQuc9comY685qhFOr7OfwGJ6CnxGWuL7Joc',
+    imageUrl: '/products/iphone-15.jpg',
     actionBtnLabel: 'Duyệt chiết khấu',
     secondaryBtnLabel: 'Xem hóa đơn',
     isVipCustomer: true,
@@ -136,8 +137,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '14:30 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: '357892110482914',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA_blgggVKlyM7izoMRksl6W0Bq1BZdBEZlleubEqZmMqcR8mLNPtj4mLoHv6ZzQMSXNoN2CDDS7egqq7hIGk8FYFT4w3f0FS4NVgoYieeUkKPWrkISWhNrICFLibmO0ceH8Uy2XLSopSJ7hF5hYQT6XOQeZEv8vuPl4ByWrNAM69hkNRgFb1CdQqrgx5wLEh1OlfruLQuc9comY685qhFOr7OfwGJ6CnxGWuL7Joc',
+    imageUrl: '/products/iphone-15.jpg',
     actionBtnLabel: 'Hủy & Hoàn tiền',
     secondaryBtnLabel: 'Xem hóa đơn',
   },
@@ -155,8 +155,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '13:15 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: '359012384756182',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU',
+    imageUrl: '/products/samsung-s24.jpg',
     actionBtnLabel: 'In lại hóa đơn',
     secondaryBtnLabel: 'Chia sẻ HĐ',
   },
@@ -174,8 +173,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '11:45 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: 'Serial: H7K9X2LM',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAd19P7Uqasjevj25hBF1pCCaE2YZRYORIawXOfNyRImeG5Ju9nmqe5RTCoPkxmJBFQiSYdGaM96F87R8gfgvwGh8SEirm4NJgrEZU-2OhIaSTxpVgQfggUpfczqA2Ir07FPZh_bLRECOwjLdVUCE0N7t_5gcQPC23WYTKHRR9FNCtKC7DQOyM1nAkSWJFIZy6HTG55JdT6XZ3A41nHcYCs96QUe-M9qSSw6T5b4jE',
+    imageUrl: '/products/airpods-pro.jpg',
     actionBtnLabel: 'Hủy đơn hàng',
     secondaryBtnLabel: 'Nhắc thanh toán',
   },
@@ -221,25 +219,28 @@ const DEFAULT_VAULT: StoreVault = {
 }
 
 const DEFAULT_STATS: StoreStats = {
-  ownerRevenueToday: 128450000,
+  ownerRevenueToday: 0,
   ownerGrowth: '+18.2%',
-  ownerCashInVault: 34200000,
-  ownerOrdersCount: 24,
-  ownerPendingCount: 2,
-  totalOrders: 24,
-  completedCount: 22,
-  pendingCount: 2,
-  revenueToday: 128450000,
+  ownerCashInVault: 10000000,
+  ownerOrdersCount: 0,
+  ownerPendingCount: 0,
+  totalOrders: 0,
+  completedCount: 0,
+  pendingCount: 0,
+  revenueToday: 0,
   growthPercent: '+18.2%',
-  ordersToday: 22,
-  imeiInStock: 142,
-  servicesPending: 3,
+  ordersToday: 0,
+  imeiInStock: 0,
+  servicesPending: 0,
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null)
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<StoreOrder[]>(DEFAULT_ORDERS)
+  const ordersRef = React.useRef<StoreOrder[]>(DEFAULT_ORDERS)
+  ordersRef.current = orders
+
   const [approvals, setApprovals] = useState<PendingApproval[]>(DEFAULT_APPROVALS)
   const [vault, setVault] = useState<StoreVault>(DEFAULT_VAULT)
   const [stats, setStats] = useState<StoreStats>(DEFAULT_STATS)
@@ -257,7 +258,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ])
 
         if (savedOrders) {
-          setOrders(JSON.parse(savedOrders))
+          const parsed = JSON.parse(savedOrders)
+          setOrders(parsed)
+          ordersRef.current = parsed
         }
         if (savedApprovals) {
           setApprovals(JSON.parse(savedApprovals))
@@ -302,34 +305,108 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Active unapproved pending requests
   const pendingApprovals = approvals.filter((a) => !a.approved && !a.rejected)
 
-    // 0. Sync from backend
+  // 0. Sync from backend (Lấy data thật từ hệ thống Laravel)
   const refreshStoreData = useCallback(async () => {
     try {
       if (Platform.OS === 'web' && typeof localStorage !== 'undefined' && !localStorage.getItem(TOKEN_KEY)) {
         return
       }
 
-      const [dash, v] = await Promise.all([
+      const [dash, v, wh, report] = await Promise.all([
         ownerApi.getOwnerDashboard().catch(() => null),
         ownerApi.getVaultStatus().catch(() => null),
+        fetchWarehouseDashboard().catch(() => null),
+        fetchDashboardReport().catch(() => null),
       ]);
 
-      if (dash?.kpis) {
-        setStats((prev) => ({
-          ...prev,
-          ownerRevenueToday: dash.kpis.revenue_today,
-          ownerCashInVault: dash.kpis.cash_in_vault,
-          ownerOrdersCount: dash.kpis.total_orders,
-          totalOrders: dash.kpis.total_orders,
-          ownerPendingCount: dash.kpis.pending_approvals_count,
-          completedCount: dash.kpis.completed_orders ?? prev.completedCount,
-          pendingCount: dash.kpis.pending_orders ?? prev.pendingCount,
-          revenueToday: dash.kpis.revenue_today,
-          ordersToday: dash.kpis.completed_orders ?? prev.ordersToday,
-          imeiInStock: dash.kpis.imei_in_stock ?? 142,
-          servicesPending: dash.kpis.services_pending ?? 3,
+      const realInStock = Number(
+        wh?.kpis?.total_in_stock ?? dash?.kpis?.imei_in_stock ?? report?.imei_in_stock ?? 0
+      )
+      const realCompleted = Number(
+        dash?.kpis?.completed_orders ?? wh?.kpis?.total_exported ?? (report as any)?.completed_orders ?? report?.today_orders ?? 0
+      )
+      const realServices = Number(
+        wh?.kpis?.warranty_receiving ?? dash?.kpis?.services_pending ?? report?.services_pending ?? 0
+      )
+      const realRevenue = Number(
+        dash?.kpis?.revenue_today ?? report?.today_revenue ?? 0
+      )
+      const realTotalOrders = Number(
+        dash?.kpis?.total_orders ?? realCompleted
+      )
+      const realPendingOrders = Number(
+        dash?.kpis?.pending_orders ?? wh?.kpis?.pending_orders ?? 0
+      )
+      const realPendingApprovals = Number(
+        dash?.kpis?.pending_approvals_count ?? 0
+      )
+      const realCashInVault = Number(
+        dash?.kpis?.cash_in_vault ?? v?.actual_cash_in_vault ?? 10000000
+      )
+
+      let currentOrders = ordersRef.current
+      if (dash?.recent_orders && Array.isArray(dash.recent_orders) && dash.recent_orders.length > 0) {
+        const dbOrders: StoreOrder[] = dash.recent_orders.map((o: any) => ({
+          id: o.id,
+          code: o.code,
+          customerName: o.customer,
+          customerPhone: o.customer_phone || '0988.xxx.456',
+          total: o.total,
+          itemCount: 1,
+          itemsSummary: o.device,
+          productSubtitle: `${o.payment_label} • Vừa cập nhật từ hệ thống`,
+          paymentMethod: o.payment_method,
+          status: o.status,
+          createdAt: o.time || 'Hôm nay',
+          cashier: o.cashier,
+          imageUrl:
+            'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU',
+          actionBtnLabel:
+            o.status === 'completed'
+              ? 'In lại hóa đơn'
+              : o.status === 'pending_discount'
+              ? 'Duyệt chiết khấu'
+              : 'Xem hóa đơn',
+          secondaryBtnLabel: o.status === 'completed' ? 'Chia sẻ HĐ' : undefined,
         }));
+
+        const dbCodes = new Set(dbOrders.map((d) => d.code));
+        const clientNewOnly = ordersRef.current.filter((p) => !dbCodes.has(p.code));
+        currentOrders = [...clientNewOnly, ...dbOrders];
+        setOrders(currentOrders);
+        ordersRef.current = currentOrders;
       }
+
+      // Merge and calculate accurate stats reflecting ALL completed orders (both DB & Mobile POS)
+      const completedList = currentOrders.filter(
+        (o) => o.status === 'completed' || o.status === 'paid'
+      );
+      const pendingList = currentOrders.filter(
+        (o) => o.status === 'pending' || o.status === 'pending_discount' || o.status === 'pending_payment'
+      );
+      const computedCompletedCount = Math.max(realCompleted, completedList.length);
+      const computedPendingCount = Math.max(realPendingOrders, pendingList.length);
+      const computedTotalOrders = Math.max(realTotalOrders, currentOrders.length);
+      const computedCompletedRevenue = Math.max(
+        realRevenue,
+        completedList.reduce((sum, o) => sum + Number(o.total || 0), 0)
+      );
+
+      setStats((prev) => ({
+        ...prev,
+        ownerRevenueToday: computedCompletedRevenue,
+        ownerCashInVault: realCashInVault || prev.ownerCashInVault,
+        ownerOrdersCount: computedTotalOrders,
+        totalOrders: computedTotalOrders,
+        ownerPendingCount: Math.max(realPendingApprovals, pendingList.filter((o) => o.status === 'pending_discount').length),
+        completedCount: computedCompletedCount,
+        pendingCount: computedPendingCount,
+        revenueToday: computedCompletedRevenue,
+        ordersToday: computedCompletedCount,
+        imeiInStock: realInStock,
+        servicesPending: realServices,
+        growthPercent: dash?.kpis?.revenue_growth || prev.growthPercent,
+      }));
 
       if (dash?.pending_approvals) {
         setApprovals(
@@ -348,38 +425,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             ticket_code: p.ticket_code,
           }))
         );
-      }
-
-      if (dash?.recent_orders && Array.isArray(dash.recent_orders) && dash.recent_orders.length > 0) {
-        setOrders((prev) => {
-          const dbOrders: StoreOrder[] = dash.recent_orders.map((o: any) => ({
-            id: o.id,
-            code: o.code,
-            customerName: o.customer,
-            customerPhone: o.customer_phone || '0988.xxx.456',
-            total: o.total,
-            itemCount: 1,
-            itemsSummary: o.device,
-            productSubtitle: `${o.payment_label} • Vừa cập nhật từ hệ thống`,
-            paymentMethod: o.payment_method,
-            status: o.status,
-            createdAt: o.time || 'Hôm nay',
-            cashier: o.cashier,
-            imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU',
-            actionBtnLabel:
-              o.status === 'completed'
-                ? 'In lại hóa đơn'
-                : o.status === 'pending_discount'
-                ? 'Duyệt chiết khấu'
-                : 'Xem hóa đơn',
-            secondaryBtnLabel: o.status === 'completed' ? 'Chia sẻ HĐ' : undefined,
-          }));
-
-          const dbCodes = new Set(dbOrders.map((d) => d.code));
-          const clientNewOnly = prev.filter((p) => !dbCodes.has(p.code));
-          return [...clientNewOnly, ...dbOrders];
-        });
       }
 
       if (v) {
@@ -434,6 +479,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       // Update orders list
       setOrders((prev) => [newOrder, ...prev])
+      ordersRef.current = [newOrder, ...ordersRef.current]
 
       // If pending discount requested, also push to approvals queue
       if (newOrder.status === 'pending_discount') {
@@ -517,6 +563,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           return o
         }),
       )
+      ordersRef.current = ordersRef.current.map((o) =>
+        o.code === targetOrderCode
+          ? { ...o, status: 'completed', actionBtnLabel: 'In lại hóa đơn', secondaryBtnLabel: 'Chia sẻ HĐ' }
+          : o
+      )
     }
 
     // Decrement pending count
@@ -570,6 +621,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }),
       )
 
+      ordersRef.current = ordersRef.current.map((o) =>
+        o.code === orderCode
+          ? { ...o, status: 'completed', actionBtnLabel: 'In lại hóa đơn', secondaryBtnLabel: 'Chia sẻ HĐ' }
+          : o
+      )
+
       // Also mark linked approval as approved
       setApprovals((prev) =>
         prev.map((a) => (a.order_code === orderCode ? { ...a, approved: true } : a)),
@@ -610,6 +667,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }
           return o
         }),
+      )
+
+      ordersRef.current = ordersRef.current.map((o) =>
+        o.code === orderCode
+          ? { ...o, status: 'cancelled', actionBtnLabel: 'Đã hoàn tiền', secondaryBtnLabel: undefined }
+          : o
       )
 
       if (refundAmount > 0) {
