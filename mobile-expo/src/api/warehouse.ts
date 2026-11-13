@@ -50,6 +50,8 @@ export interface ExportOrderItem {
   total: number
   status: string
   status_label: string
+  can_dispatch?: boolean
+  imei_list?: string[]
   time: string
 }
 
@@ -66,6 +68,7 @@ export interface WarehouseDashboardResponse {
   inventory: InventoryVariantItem[]
   recent_imports: StockImportSummary[]
   export_orders: ExportOrderItem[]
+  recent_dispatches?: ExportOrderItem[]
   suppliers: SupplierItem[]
 }
 
@@ -157,6 +160,14 @@ export async function scanWarehouseImei(imei: string): Promise<ImeiScanResult> {
  */
 export async function verifyExportOrder(orderCode: string) {
   const res = await api.get(`/warehouse/orders/${encodeURIComponent(orderCode)}/verify`)
+  return res.data
+}
+
+/**
+ * Dispatch / export order from warehouse and deduct stock
+ */
+export async function dispatchWarehouseOrder(orderCode: string) {
+  const res = await api.post(`/warehouse/orders/${encodeURIComponent(orderCode)}/dispatch`)
   return res.data
 }
 

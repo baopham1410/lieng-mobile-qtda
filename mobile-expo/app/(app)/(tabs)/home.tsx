@@ -19,6 +19,7 @@ import { fetchDashboardReport } from '@/api/reports'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useStore } from '@/context/StoreContext'
+import { useLocale } from '@/context/LocaleContext'
 import { useUserRole } from '@/hooks/useUserRole'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
 
@@ -134,6 +135,9 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { user } = useAuth()
+  const { locale } = useLocale()
+  const isLao = locale === 'lo'
+  const tr = (vi: string, lo: string) => (isLao ? lo : vi)
   const {
     isStoreOwner,
     isWarehouseStaff,
@@ -257,7 +261,11 @@ export default function HomeScreen() {
                     { color: roleBadgeColor },
                   ]}
                 >
-                  {roleBadgeText}
+                  {isWarehouseStaff
+                    ? tr('THỦ KHO', 'ນາຍສາງ')
+                    : isStoreOwner
+                    ? tr('CHỦ QUÁN', 'ເຈົ້າຂອງຮ້ານ')
+                    : tr('BÁN HÀNG', 'ພະນັກງານຂາຍ')}
                 </Text>
               </View>
             </View>
@@ -265,10 +273,10 @@ export default function HomeScreen() {
               <Ionicons name="storefront" size={11} color="#58413F" />
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
-                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  ? tr('Chi nhánh Cầu Giấy • Quản lý', 'ສາຂາ Cầu Giấy • ຜູ້ຈັດການ')
                   : isWarehouseStaff
-                  ? 'Chi nhánh Cầu Giấy • Kho Vận'
-                  : 'Chi nhánh Cầu Giấy • Bán Hàng'}
+                  ? tr('Chi nhánh Cầu Giấy • Kho Vận', 'ສາຂາ Cầu Giấy • ພະແນກສາງ')
+                  : tr('Chi nhánh Cầu Giấy • Bán Hàng', 'ສາຂາ Cầu Giấy • ພະແນກຂາຍ')}
               </Text>
             </View>
           </View>
@@ -277,7 +285,7 @@ export default function HomeScreen() {
           <Pressable
             style={styles.iconCircleBtn}
             accessibilityRole="button"
-            accessibilityLabel="Thông báo"
+            accessibilityLabel={tr('Thông báo', 'ແຈ້ງເຕືອນ')}
           >
             <Ionicons name="notifications-outline" size={20} color={Colors.onSurface} />
             <View style={styles.unreadDot} />
@@ -286,7 +294,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/(app)/(tabs)/account')}
             style={styles.avatarBtn}
             accessibilityRole="button"
-            accessibilityLabel="Tài khoản"
+            accessibilityLabel={tr('Tài khoản', 'ໂປຣໄຟລ໌')}
           >
             <Ionicons name="person-circle-outline" size={26} color={Colors.primaryContainer} />
           </Pressable>
@@ -308,7 +316,7 @@ export default function HomeScreen() {
         <View style={styles.greetingRow}>
           <View style={styles.greetingLeft}>
             <Text style={styles.greetingText}>
-              Xin chào, {isStoreOwner ? 'Tran Quoc B...' : employeeName} 👋
+              {tr('Xin chào,', 'ສະບາຍດີ,')} {isStoreOwner ? 'Tran Quoc B...' : employeeName} 👋
             </Text>
             <View style={styles.storeBadgeRow}>
               <Ionicons name="business-outline" size={13} color={Colors.onSurfaceVariant} />
@@ -316,7 +324,7 @@ export default function HomeScreen() {
                 {isStoreOwner
                   ? 'Liêng Mobile • Flagship #01 (Q.3)'
                   : isWarehouseStaff
-                  ? 'Liêng Mobile • Trung tâm Kho Flagship'
+                  ? tr('Liêng Mobile • Trung tâm Kho Flagship', 'Liêng Mobile • ສູນສາງ Flagship')
                   : 'Liêng Mobile • Flagship #01'}
               </Text>
             </View>
@@ -324,7 +332,11 @@ export default function HomeScreen() {
           <View style={styles.shiftActivePill}>
             <View style={styles.pulseLiveDot} />
             <Text style={styles.shiftActiveText}>
-              {isStoreOwner ? 'Đang trực ca' : isWarehouseStaff ? 'Đang trực kho' : 'Trong ca trực'}
+              {isStoreOwner
+                ? tr('Đang trực ca', 'ກຳລັງຢູ່ໃນກະ')
+                : isWarehouseStaff
+                ? tr('Đang trực kho', 'ກຳລັງປະຈຳການ')
+                : tr('Trong ca trực', 'ກຳລັງຢູ່ໃນກະ')}
             </Text>
           </View>
         </View>
@@ -340,25 +352,25 @@ export default function HomeScreen() {
             />
             <Text style={styles.flagshipPillText}>
               {isStoreOwner
-                ? 'QUẢN TRỊ SHOWROOM'
+                ? tr('QUẢN TRỊ SHOWROOM', 'ຄຸ້ມຄອງໜ້າຮ້ານ')
                 : isWarehouseStaff
-                ? 'QUẢN LÝ KHO & THIẾT BỊ'
-                : 'BÁN LẺ SHOWROOM'}
+                ? tr('QUẢN LÝ KHO & THIẾT BỊ', 'ຄຸ້ມຄອງສາງ & ອຸປະກອນ')
+                : tr('BÁN LẺ SHOWROOM', 'ຂາຍຍ່ອຍໜ້າຮ້ານ')}
             </Text>
           </View>
           <Text style={styles.heroTitle}>
             {isStoreOwner
-              ? 'Quản trị vận hành Showroom & Quầy POS'
+              ? tr('Quản trị vận hành Showroom & Quầy POS', 'ຄຸ້ມຄອງດຳເນີນງານໜ້າຮ້ານ & ເຄົາເຕີ້ POS')
               : isWarehouseStaff
-              ? 'Trung tâm Quản lý Kho & Thiết bị IMEI'
-              : 'Quản lý bán lẻ & Quầy POS'}
+              ? tr('Trung tâm Quản lý Kho & Thiết bị IMEI', 'ສູນຄຸ້ມຄອງສາງ & ອຸປະກອນ IMEI')
+              : tr('Quản lý bán lẻ & Quầy POS', 'ຄຸ້ມຄອງຂາຍຍ່ອຍ & ເຄົາເຕີ້ POS')}
           </Text>
           <Text style={styles.heroSubtitle}>
             {isStoreOwner
-              ? 'Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.'
+              ? tr('Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.', 'ລະບົບດຳເນີນງານມາດຕະຖານຄວາມໄວສູງ, ຄຸ້ມຄອງ IMEI & ຊຳລະ VietQR.')
               : isWarehouseStaff
-              ? `Hệ thống kiểm đếm tồn kho, quản lý ${stats.imeiInStock} thiết bị sẵn sàng và đối soát xuất kho bảo hành.`
-              : 'Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.'}
+              ? tr(`Hệ thống kiểm đếm tồn kho, quản lý ${stats.imeiInStock} thiết bị sẵn sàng và đối soát xuất kho bảo hành.`, `ລະບົບກວດນັບສາງ, ຄຸ້ມຄອງ ${stats.imeiInStock} ອຸປະກອນພ້ອມຈ່າຍ ແລະ ກວດສອບສາງປະກັນ.`)
+              : tr('Hệ thống điều hành chuẩn hóa tốc độ cao, quản lý IMEI & thanh toán VietQR đa cổng.', 'ລະບົບດຳເນີນງານມາດຕະຖານຄວາມໄວສູງ, ຄຸ້ມຄອງ IMEI & ຊຳລະ VietQR.')}
           </Text>
           <Pressable
             onPress={() =>
@@ -379,10 +391,10 @@ export default function HomeScreen() {
             />
             <Text style={styles.heroCtaText}>
               {isStoreOwner
-                ? '+ Bán hàng quầy'
+                ? tr('+ Bán hàng quầy', '+ ຂາຍໜ້າເຄົາເຕີ້')
                 : isWarehouseStaff
-                ? 'Kiểm kê kho ngay'
-                : '+ Bán lẻ ngay'}
+                ? tr('Kiểm kê kho ngay', 'ກວດນັບສາງດ່ວນ')
+                : tr('+ Bán lẻ ngay', '+ ຂາຍຍ່ອຍດ່ວນ')}
             </Text>
           </Pressable>
         </View>
@@ -464,51 +476,51 @@ export default function HomeScreen() {
               {/* Nhân viên kho */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>TỒN KHO KHẢ DỤNG</Text>
+                  <Text style={styles.kpiLabel}>{tr('TỒN KHO KHẢ DỤNG', 'ສາງທີ່ພ້ອມໃຊ້')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: Colors.blueSoft }]}>
                     <Ionicons name="cube-outline" size={16} color={Colors.blueDeep} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.imeiInStock} máy</Text>
+                <Text style={styles.kpiValueLarge}>{stats.imeiInStock} {tr('máy', 'ເຄື່ອງ')}</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="checkmark-circle" size={13} color={Colors.green} />
-                  <Text style={styles.kpiTrendGreen}>Sẵn sàng tại showroom</Text>
+                  <Text style={styles.kpiTrendGreen}>{tr('Sẵn sàng tại showroom', 'ພ້ອມຈ່າຍທີ່ໜ້າຮ້ານ')}</Text>
                 </View>
               </View>
 
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>ĐÃ XUẤT BÁN</Text>
+                  <Text style={styles.kpiLabel}>{tr('ĐÃ XUẤT BÁN', 'ເບີກຈ່າຍແລ້ວ')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: Colors.greenSoft }]}>
                     <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.completedCount} máy</Text>
+                <Text style={styles.kpiValueLarge}>{stats.completedCount} {tr('máy', 'ເຄື່ອງ')}</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="shield-checkmark" size={13} color={Colors.green} />
-                  <Text style={styles.kpiHintText}>Đã kích hoạt IMEI</Text>
+                  <Text style={styles.kpiHintText}>{tr('Đã kích hoạt IMEI', 'ເປີດໃຊ້ IMEI ແລ້ວ')}</Text>
                 </View>
               </View>
 
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>TIẾP NHẬN BẢO HÀNH</Text>
+                  <Text style={styles.kpiLabel}>{tr('TIẾP NHẬN BẢO HÀNH', 'ຮັບປະກັນສ້ອມແປງ')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: Colors.amber100 }]}>
                     <Ionicons name="build-outline" size={16} color={Colors.amber800} />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.servicesPending} máy</Text>
+                <Text style={styles.kpiValueLarge}>{stats.servicesPending} {tr('máy', 'ເຄື່ອງ')}</Text>
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="alert-circle-outline" size={13} color={Colors.amber700} />
                   <Text style={[styles.kpiHintText, { color: Colors.amber800 }]}>
-                    Chờ kỹ thuật xử lý
+                    {tr('Chờ kỹ thuật xử lý', 'ລໍຖ້າຊ່າງກວດສອບ')}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>TỶ LỆ KHỚP KHO</Text>
+                  <Text style={styles.kpiLabel}>{tr('TỶ LỆ KHỚP KHO', 'ອັດຕາກົງກັນສາງ')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#F3F4F6' }]}>
                     <Ionicons name="qr-code-outline" size={16} color="#374151" />
                   </View>
@@ -517,7 +529,7 @@ export default function HomeScreen() {
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="shield-checkmark" size={12} color="#16A34A" />
                   <Text style={[styles.kpiHintText, { color: '#16A34A', fontWeight: '600' }]}>
-                    142/142 Barcode khớp
+                    {tr('142/142 Barcode khớp', '142/142 ບາໂຄ້ດກົງກັນ')}
                   </Text>
                 </View>
               </View>
@@ -724,8 +736,11 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() =>
                   Alert.alert(
-                    'Kiểm kê kho',
-                    `Tổng tồn kho hiện tại: ${stats.imeiInStock} thiết bị sẵn sàng tại showroom.`,
+                    tr('Kiểm kê kho', 'ກວດນັບສາງ'),
+                    tr(
+                      `Tổng tồn kho hiện tại: ${stats.imeiInStock} thiết bị sẵn sàng tại showroom.`,
+                      `ຍອດສິນຄ້າໃນສາງປັດຈຸບັນ: ${stats.imeiInStock} ເຄື່ອງພ້ອມຈ່າຍທີ່ໜ້າຮ້ານ.`,
+                    ),
                   )
                 }
                 style={styles.quickActionBtn}
@@ -733,7 +748,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#FEF3C7' }]}>
                   <Ionicons name="cube-outline" size={22} color="#B45309" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Kiểm kê kho</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Kiểm kê kho', 'ກວດນັບສາງ')}</Text>
               </Pressable>
 
               <Pressable
@@ -743,7 +758,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#0284C7' }]}>
                   <Ionicons name="qr-code-outline" size={20} color="#FFFFFF" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Tra IMEI</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Tra IMEI', 'ກວດ IMEI')}</Text>
               </Pressable>
 
               <Pressable
@@ -753,7 +768,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#7C3AED' }]}>
                   <Ionicons name="speedometer-outline" size={20} color="#FFFFFF" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Thẩm định máy</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Thẩm định máy', 'ປະເມີນສະພາບເຄື່ອງ')}</Text>
               </Pressable>
 
               <Pressable
@@ -763,7 +778,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#047857' }]}>
                   <Ionicons name="shield-checkmark-outline" size={20} color="#FFFFFF" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Tiếp nhận BH</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Tiếp nhận BH', 'ຮັບປະກັນ')}</Text>
               </Pressable>
             </>
           ) : (
@@ -816,7 +831,9 @@ export default function HomeScreen() {
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionTitleWithDot}>
             <Text style={styles.sectionTitle}>
-              {isStoreOwner ? 'Đơn hàng gần đây toàn shop' : 'Đơn hàng gần đây trong ca'}
+              {isStoreOwner
+                ? tr('Đơn hàng gần đây toàn shop', 'ລາຍການໃບບິນຫຼ້າສຸດທົ່ວຮ້ານ')
+                : tr('Đơn hàng gần đây trong ca', 'ລາຍການໃບບິນຫຼ້າສຸດໃນກະ')}
             </Text>
           </View>
           <Pressable
@@ -824,7 +841,9 @@ export default function HomeScreen() {
             style={styles.seeAllBtn}
           >
             <Text style={styles.seeAllText}>
-              {isStoreOwner ? `Xem tất cả (${stats.ownerOrdersCount})` : 'Xem tất cả'}
+              {isStoreOwner
+                ? `${tr('Xem tất cả', 'ເບິ່ງທັງໝົດ')} (${stats.ownerOrdersCount})`
+                : tr('Xem tất cả', 'ເບິ່ງທັງໝົດ')}
             </Text>
             <Ionicons name="chevron-forward" size={13} color={Colors.primaryContainer} />
           </Pressable>
@@ -862,7 +881,9 @@ export default function HomeScreen() {
                     {order.itemsSummary}
                   </Text>
                   <Text style={styles.orderItemCustomerText} numberOfLines={1}>
-                    {order.customerName}
+                    {order.customerName === 'Khách vãng lai'
+                      ? tr('Khách vãng lai', 'ລູກຄ້າທົ່ວໄປ')
+                      : order.customerName}
                   </Text>
                 </View>
 
@@ -888,14 +909,14 @@ export default function HomeScreen() {
                     {isCompleted ? (
                       <>
                         <Ionicons name="checkmark" size={11} color="#059669" />
-                        <Text style={styles.pillTextCompleted}>Hoàn tất</Text>
+                        <Text style={styles.pillTextCompleted}>{tr('Hoàn tất', 'ສຳເລັດ')}</Text>
                       </>
                     ) : isTradein ? (
-                      <Text style={styles.pillTextTradein}>Thu máy cũ</Text>
+                      <Text style={styles.pillTextTradein}>{tr('Thu máy cũ', 'ຮັບຊື້ເຄື່ອງເກົ່າ')}</Text>
                     ) : (
                       <>
                         <Ionicons name="time-outline" size={11} color="#D97706" />
-                        <Text style={styles.pillTextPending}>Chờ xử lý</Text>
+                        <Text style={styles.pillTextPending}>{tr('Chờ xử lý', 'ລໍຖ້າດຳເນີນການ')}</Text>
                       </>
                     )}
                   </View>

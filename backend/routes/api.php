@@ -160,6 +160,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/warehouse/imports', [WarehouseController::class, 'storeImport']);
         Route::get('/warehouse/imei/{imei}', [WarehouseController::class, 'scanImei']);
         Route::get('/warehouse/orders/{code}/verify', [WarehouseController::class, 'verifyExportOrder']);
+        Route::post('/warehouse/orders/{code}/dispatch', [WarehouseController::class, 'dispatchOrder']);
         Route::post('/warehouse/audit', [WarehouseController::class, 'auditStock']);
 
         // Suppliers & Stock imports
