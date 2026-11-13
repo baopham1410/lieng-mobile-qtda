@@ -87,6 +87,9 @@ export default function AccountScreen() {
     employeePhone,
   } = useUserRole()
   const { stats } = useStore()
+  const isLao = locale === 'lo'
+  const tr = (viText: string, loText: string) => (isLao ? loText : viText)
+
   const userInitial = employeeName.trim().charAt(0).toUpperCase()
 
   const avatarUri =
@@ -115,7 +118,11 @@ export default function AccountScreen() {
                     { color: roleBadgeColor },
                   ]}
                 >
-                  {roleBadgeText}
+                  {isWarehouseStaff
+                    ? tr('THỦ KHO', 'ນາຍສາງ')
+                    : isStoreOwner
+                    ? tr('CHỦ QUÁN', 'ເຈົ້າຂອງຮ້ານ')
+                    : tr('BÁN HÀNG', 'ພະນັກງານຂາຍ')}
                 </Text>
               </View>
             </View>
@@ -123,10 +130,10 @@ export default function AccountScreen() {
               <Ionicons name="storefront" size={11} color="#58413F" />
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
-                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  ? tr('Chi nhánh Cầu Giấy • Quản lý', 'ສາຂາ Cầu Giấy • ຜູ້ຈັດການ')
                   : isWarehouseStaff
-                  ? 'Chi nhánh Cầu Giấy • Kho Vận'
-                  : 'Chi nhánh Cầu Giấy • Tôi'}
+                  ? tr('Chi nhánh Cầu Giấy • Kho Vận', 'ສາຂາ Cầu Giấy • ພະແນກສາງ')
+                  : tr('Chi nhánh Cầu Giấy • Tôi', 'ສາຂາ Cầu Giấy • ໂປຣໄຟລ໌')}
               </Text>
             </View>
           </View>
@@ -136,7 +143,7 @@ export default function AccountScreen() {
           <Pressable
             style={styles.iconCircleBtn}
             accessibilityRole="button"
-            accessibilityLabel="Thông báo"
+            accessibilityLabel={tr('Thông báo', 'ແຈ້ງເຕືອນ')}
           >
             <Ionicons name="notifications-outline" size={20} color="#191C1E" />
             <View style={styles.unreadDot} />
@@ -181,10 +188,10 @@ export default function AccountScreen() {
                 </View>
                 <Pressable
                   style={styles.editBtn}
-                  onPress={() => Alert.alert('Thông tin', 'Chỉnh sửa thông tin tài khoản cá nhân.')}
+                  onPress={() => Alert.alert(tr('Thông tin', 'ຂໍ້ມູນ'), tr('Chỉnh sửa thông tin tài khoản cá nhân.', 'ແກ້ໄຂຂໍ້ມູນບັນຊີສ່ວນຕົວ.'))}
                 >
                   <Ionicons name="create-outline" size={13} color="#58413F" />
-                  <Text style={styles.editText}>Sửa</Text>
+                  <Text style={styles.editText}>{tr('Sửa', 'ແກ້ໄຂ')}</Text>
                 </Pressable>
               </View>
 
@@ -209,17 +216,17 @@ export default function AccountScreen() {
             <View style={styles.rankTextBox}>
               <Text style={styles.rankTitle}>
                 {isStoreOwner
-                  ? 'CẤP BẬC TỔNG QUẢN'
+                  ? tr('CẤP BẬC TỔNG QUẢN', 'ລະດັບຜູ້ຈັດການໃຫຍ່')
                   : isWarehouseStaff
-                  ? 'CẤP BẬC QUẢN LÝ KHO'
-                  : 'CẤP BẬC CHUYÊN MÔN'}
+                  ? tr('CẤP BẬC QUẢN LÝ KHO', 'ລະດັບການຈັດການສາງ')
+                  : tr('CẤP BẬC CHUYÊN MÔN', 'ລະດັບວິຊາສະເພາະ')}
               </Text>
               <Text style={styles.rankValue}>
                 {isStoreOwner
-                  ? 'Chủ quán / Quản lý Điều hành Flagship #01 (Toàn quyền)'
+                  ? tr('Chủ quán / Quản lý Điều hành Flagship #01 (Toàn quyền)', 'ເຈົ້າຂອງຮ້ານ / ຜູ້ຈັດການບໍລິຫານ Flagship #01 (ສິດເຕັມ)')
                   : isWarehouseStaff
-                  ? 'Thủ kho & Quản lý 142 thiết bị IMEI (Flagship Level 2)'
-                  : 'Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)'}
+                  ? tr('Thủ kho & Quản lý 142 thiết bị IMEI (Flagship Level 2)', 'ນາຍສາງ & ຄຸ້ມຄອງ 142 ອຸປະກອນ IMEI (Flagship Level 2)')
+                  : tr('Nhân viên Bán hàng & Tư vấn POS (Flagship Level 2)', 'ພະນັກງານຂາຍ & ໃຫ້ຄຳປຶກສາ POS (Flagship Level 2)')}
               </Text>
             </View>
           </View>
@@ -381,20 +388,26 @@ export default function AccountScreen() {
           </>
         ) : isWarehouseStaff ? (
           <View style={styles.shiftCard}>
-            {/* Header phiên trực kho */}
+            {/* Header phiên trực kho - Tránh đè chữ */}
             <View style={styles.shiftHeaderLine}>
-              <View style={styles.shiftHeaderLeft}>
-                <View style={[styles.shiftIconBox, { backgroundColor: '#B45309' }]}>
+              <View style={[styles.shiftHeaderLeft, { flex: 1, minWidth: 0, marginRight: 8 }]}>
+                <View style={[styles.shiftIconBox, { backgroundColor: '#B45309', flexShrink: 0 }]}>
                   <Ionicons name="cube" size={17} color="#FFFFFF" />
                 </View>
-                <View>
-                  <Text style={styles.shiftTagText}>PHIÊN TRỰC KHO VẬN</Text>
-                  <Text style={styles.shiftMainTitle}>Ca chính: Quản lý Kho & Thiết bị IMEI</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.shiftTagText} numberOfLines={1}>
+                    {tr('PHIÊN TRỰC KHO VẬN', 'ຜຽນປະຈຳການສາງ')}
+                  </Text>
+                  <Text style={styles.shiftMainTitle} numberOfLines={1} ellipsizeMode="tail">
+                    {tr('Ca chính: Quản lý Kho & IMEI', 'ກະຫຼັກ: ຈັດການສາງ & IMEI')}
+                  </Text>
                 </View>
               </View>
-              <View style={[styles.shiftStatusPill, { backgroundColor: '#FEF3C7' }]}>
+              <View style={[styles.shiftStatusPill, { backgroundColor: '#FEF3C7', flexShrink: 0 }]}>
                 <View style={[styles.pulseLiveDot, { backgroundColor: '#B45309' }]} />
-                <Text style={[styles.shiftStatusText, { color: '#B45309' }]}>Đang trực kho</Text>
+                <Text style={[styles.shiftStatusText, { color: '#B45309' }]}>
+                  {tr('Đang trực kho', 'ກຳລັງປະຈຳການ')}
+                </Text>
               </View>
             </View>
 
@@ -402,23 +415,31 @@ export default function AccountScreen() {
             <View style={styles.shiftTimeBox}>
               <View style={styles.shiftTimeLeft}>
                 <Ionicons name="time-outline" size={15} color="#58413F" />
-                <Text style={styles.shiftTimeLabel}>Khung giờ:</Text>
+                <Text style={styles.shiftTimeLabel}>{tr('Khung giờ:', 'ເວລາເຮັດວຽກ:')}</Text>
               </View>
-              <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
+              <Text style={styles.shiftTimeValue}>
+                {tr('08:00 — 16:30 (Hôm nay)', '08:00 — 16:30 (ມື້ນີ້)')}
+              </Text>
             </View>
 
             {/* Thiết bị quản lý */}
             <View style={styles.targetSection}>
               <View style={styles.targetHeaderLine}>
-                <Text style={styles.targetLabel}>THIẾT BỊ TỒN KHO QUẢN LÝ</Text>
-                <Text style={[styles.targetPercent, { color: '#16A34A' }]}>100% Khớp Barcode</Text>
+                <Text style={styles.targetLabel}>
+                  {tr('THIẾT BỊ TỒN KHO QUẢN LÝ', 'ອຸປະກອນໃນສາງທີ່ຄຸ້ມຄອງ')}
+                </Text>
+                <Text style={[styles.targetPercent, { color: '#16A34A' }]}>
+                  {tr('100% Khớp Barcode', '100% ກົງກັບບາໂຄດ')}
+                </Text>
               </View>
 
               <View style={styles.targetValueLine}>
                 <Text style={styles.targetAmountVal}>
-                  {stats.imeiInStock} <Text style={styles.targetCurrency}>máy</Text>
+                  {stats.imeiInStock} <Text style={styles.targetCurrency}>{tr('máy', 'ເຄື່ອງ')}</Text>
                 </Text>
-                <Text style={styles.targetHint}>Sẵn sàng xuất bán showroom</Text>
+                <Text style={styles.targetHint}>
+                  {tr('Sẵn sàng xuất bán showroom', 'ພ້ອມຂາຍຢູ່ໜ້າຮ້ານ')}
+                </Text>
               </View>
 
               <View style={styles.progressBarTrack}>
@@ -434,13 +455,15 @@ export default function AccountScreen() {
                 style={[styles.ownerVaultActionBtn, { flex: 1 }]}
                 onPress={() =>
                   Alert.alert(
-                    'Kiểm kê mã vạch',
-                    `142/142 thiết bị trong kho đã được quét mã vạch và khớp chính xác thẻ kho.`,
+                    tr('Kiểm kê mã vạch', 'ກວດນັບບາໂຄດ'),
+                    tr('142/142 thiết bị trong kho đã được quét mã vạch và khớp chính xác thẻ kho.', '142/142 ອຸປະກອນໃນສາງໄດ້ຮັບການສະແກນບາໂຄດຖືກຕ້ອງ 100%.'),
                   )
                 }
               >
                 <Ionicons name="barcode-outline" size={16} color="#7A0C10" />
-                <Text style={styles.ownerVaultActionBtnText}>Kiểm đếm Barcode</Text>
+                <Text style={styles.ownerVaultActionBtnText}>
+                  {tr('Kiểm đếm Barcode', 'ກວດນັບບາໂຄດ')}
+                </Text>
               </Pressable>
 
               <Pressable
@@ -448,7 +471,9 @@ export default function AccountScreen() {
                 onPress={() => router.push('/(app)/(tabs)/orders')}
               >
                 <Ionicons name="receipt-outline" size={16} color="#191C1E" />
-                <Text style={styles.ownerVaultActionBtnText}>Phiếu xuất ({stats.completedCount})</Text>
+                <Text style={styles.ownerVaultActionBtnText}>
+                  {tr('Phiếu xuất', 'ໃບສັ່ງຈ່າຍ')} ({stats.completedCount})
+                </Text>
               </Pressable>
             </View>
 
@@ -471,7 +496,7 @@ export default function AccountScreen() {
                 </Text>
                 <View style={styles.managerLine}>
                   <Ionicons name="headset" size={13} color="#7A0C10" />
-                  <Text style={styles.managerLabel}>Quản lý ca trực: </Text>
+                  <Text style={styles.managerLabel}>{tr('Quản lý ca trực: ', 'ຜູ້ຈັດການກະ: ')}</Text>
                   <Text style={styles.managerName}>Trần Quốc Bảo</Text>
                 </View>
               </View>
@@ -481,18 +506,24 @@ export default function AccountScreen() {
           <View style={styles.shiftCard}>
             {/* Header phiên trực */}
             <View style={styles.shiftHeaderLine}>
-              <View style={styles.shiftHeaderLeft}>
-                <View style={styles.shiftIconBox}>
+              <View style={[styles.shiftHeaderLeft, { flex: 1, minWidth: 0, marginRight: 8 }]}>
+                <View style={[styles.shiftIconBox, { flexShrink: 0 }]}>
                   <Ionicons name="briefcase" size={17} color="#FFFFFF" />
                 </View>
-                <View>
-                  <Text style={styles.shiftTagText}>PHIÊN TRỰC QUẦY</Text>
-                  <Text style={styles.shiftMainTitle}>Ca chính: Bán lẻ & Quầy POS</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.shiftTagText} numberOfLines={1}>
+                    {tr('PHIÊN TRỰC QUẦY', 'ຜຽນປະຈຳເຄົາເຕີ້')}
+                  </Text>
+                  <Text style={styles.shiftMainTitle} numberOfLines={1} ellipsizeMode="tail">
+                    {tr('Ca chính: Bán lẻ & Quầy POS', 'ກະຫຼັກ: ຂາຍຍ່ອຍ & POS')}
+                  </Text>
                 </View>
               </View>
-              <View style={styles.shiftStatusPill}>
+              <View style={[styles.shiftStatusPill, { flexShrink: 0 }]}>
                 <View style={styles.pulseLiveDot} />
-                <Text style={styles.shiftStatusText}>Đang trong ca</Text>
+                <Text style={styles.shiftStatusText}>
+                  {tr('Đang trong ca', 'ກຳລັງຢູ່ໃນກະ')}
+                </Text>
               </View>
             </View>
 
@@ -500,9 +531,11 @@ export default function AccountScreen() {
             <View style={styles.shiftTimeBox}>
               <View style={styles.shiftTimeLeft}>
                 <Ionicons name="time-outline" size={15} color="#58413F" />
-                <Text style={styles.shiftTimeLabel}>Khung giờ:</Text>
+                <Text style={styles.shiftTimeLabel}>{tr('Khung giờ:', 'ເວລາເຮັດວຽກ:')}</Text>
               </View>
-              <Text style={styles.shiftTimeValue}>08:00 — 16:30 (Hôm nay)</Text>
+              <Text style={styles.shiftTimeValue}>
+                {tr('08:00 — 16:30 (Hôm nay)', '08:00 — 16:30 (ມື້ນີ້)')}
+              </Text>
             </View>
 
             {/* Doanh số đã chốt & Progress Bar */}
@@ -562,8 +595,8 @@ export default function AccountScreen() {
         {/* ── 3. Thẻ Cài đặt & Nghiệp vụ POS ── */}
         <View style={styles.settingsCard}>
           <View style={styles.settingsHeaderLine}>
-            <Text style={styles.settingsTitle}>Cài đặt & Nghiệp vụ POS</Text>
-            <Text style={styles.systemVersionText}>Hệ thống v2.6</Text>
+            <Text style={styles.settingsTitle}>{tr('Cài đặt & Nghiệp vụ POS', 'ການຕັ້ງຄ່າ & ລະບົບ POS')}</Text>
+            <Text style={styles.systemVersionText}>{tr('Hệ thống v2.6', 'ລະບົບ v2.6')}</Text>
           </View>
 
           {/* Mục 1: Bộ chuyển đổi ngôn ngữ */}
@@ -571,9 +604,9 @@ export default function AccountScreen() {
             <View style={styles.settingItemTop}>
               <View style={styles.settingItemLeftGroup}>
                 <Ionicons name="language" size={18} color="#7A0C10" />
-                <Text style={styles.settingItemTitle}>Ngôn ngữ hiển thị</Text>
+                <Text style={styles.settingItemTitle}>{tr('Ngôn ngữ hiển thị', 'ພາສາສະແດງຜົນ')}</Text>
               </View>
-              <Text style={styles.settingItemSubtext}>Song ngữ Việt - Lào</Text>
+              <Text style={styles.settingItemSubtext}>{tr('Song ngữ Việt - Lào', 'ສອງພາສາ ຫວຽດ - ລາວ')}</Text>
             </View>
 
             <View style={styles.langSegmentBox}>
@@ -614,8 +647,11 @@ export default function AccountScreen() {
             style={styles.settingItemBox}
             onPress={() =>
               Alert.alert(
-                'Tiện ích Quán Nhỏ',
-                'Thực đơn trà và cà phê pha máy phục vụ khách hàng trải nghiệm tại Flagship #01.'
+                tr('Tiện ích Quán Nhỏ', 'ສິ່ງອຳນວຍຄວາມສະດວກ ຮ້ານນ້ອຍ'),
+                tr(
+                  'Thực đơn trà và cà phê pha máy phục vụ khách hàng trải nghiệm tại Flagship #01.',
+                  'ເມນູຊາ ແລະ ກາເຟ ບໍລິການລູກຄ້າທີ່ມາໃຊ້ບໍລິການທີ່ Flagship #01.'
+                )
               )
             }
           >
@@ -626,18 +662,18 @@ export default function AccountScreen() {
                 </View>
                 <View style={styles.vipTextCol}>
                   <View style={styles.vipTitleRow}>
-                    <Text style={styles.settingItemTitle}>Tiện ích "Quán Nhỏ"</Text>
+                    <Text style={styles.settingItemTitle}>{tr('Tiện ích "Quán Nhỏ"', 'ສິ່ງອຳນວຍຄວາມສະດວກ "ຮ້ານນ້ອຍ"')}</Text>
                     <View style={styles.vipBadge}>
                       <Text style={styles.vipBadgeText}>VIP Care</Text>
                     </View>
                   </View>
                   <Text style={styles.vipSubtext} numberOfLines={1}>
-                    Gọi trà, cà phê phục vụ khách tại bàn trải nghiệm máy
+                    {tr('Gọi trà, cà phê phục vụ khách tại bàn trải nghiệm máy', 'ບໍລິການຊາ, ກາເຟ ສຳລັບລູກຄ້າທີ່ມາໃຊ້ບໍລິການ')}
                   </Text>
                 </View>
               </View>
               <View style={styles.vipRight}>
-                <Text style={styles.menuLinkText}>Menu</Text>
+                <Text style={styles.menuLinkText}>{tr('Menu', 'ເມນູ')}</Text>
                 <Ionicons name="chevron-forward" size={14} color="#58413F" />
               </View>
             </View>
@@ -651,14 +687,14 @@ export default function AccountScreen() {
                   <Ionicons name="print" size={18} color="#58413F" />
                 </View>
                 <View style={styles.printerTextCol}>
-                  <Text style={styles.settingItemTitle}>Máy in bill hóa đơn POS</Text>
+                  <Text style={styles.settingItemTitle}>{tr('Máy in bill hóa đơn POS', 'ເຄື່ອງພິມໃບບິນ POS')}</Text>
                   <Text style={styles.printerSubtext}>Epson TM-T82 (Cổng LAN/Bluetooth)</Text>
                 </View>
               </View>
               <View style={styles.printerRight}>
                 <View style={styles.readyPill}>
                   <View style={styles.readyDot} />
-                  <Text style={styles.readyText}>Sẵn sàng</Text>
+                  <Text style={styles.readyText}>{tr('Sẵn sàng', 'ພ້ອມໃຊ້ງານ')}</Text>
                 </View>
                 <Pressable
                   style={({ pressed }) => [styles.syncBtn, pressed && { opacity: 0.7 }]}
@@ -683,8 +719,8 @@ export default function AccountScreen() {
                   <Ionicons name="server" size={18} color="#58413F" />
                 </View>
                 <View style={styles.serverTextCol}>
-                  <Text style={styles.settingItemTitle}>Máy chủ POS Trung tâm</Text>
-                  <Text style={styles.serverSubtext}>Đồng bộ đám mây thời gian thực</Text>
+                  <Text style={styles.settingItemTitle}>{tr('Máy chủ POS Trung tâm', 'ເຊີເວີ POS ສູນກາງ')}</Text>
+                  <Text style={styles.serverSubtext}>{tr('Đồng bộ đám mây thời gian thực', 'ຊິງຄ໌ຄລາວແບບເວລາຈິງ')}</Text>
                 </View>
               </View>
               <View style={styles.serverRight}>
@@ -692,7 +728,7 @@ export default function AccountScreen() {
                   <Ionicons name="wifi" size={13} color="#7A0C10" />
                   <Text style={styles.serverPingVal}>18 ms</Text>
                 </View>
-                <Text style={styles.serverStatusSub}>Bình thường</Text>
+                <Text style={styles.serverStatusSub}>{tr('Bình thường', 'ປົກກະຕິ')}</Text>
               </View>
             </View>
           </View>
@@ -715,10 +751,10 @@ export default function AccountScreen() {
                 <Ionicons name="refresh-circle-outline" size={24} color="#FFFFFF" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.confirmSettleTitle}>
-                    XÁC NHẬN CHỐT KÉT & LƯU KHO SAO KÊ
+                    {tr('XÁC NHẬN CHỐT KÉT & LƯU KHO SAO KÊ', 'ຢືນຢັນປິດເຊບ & ບັນທຶກສາງ')}
                   </Text>
                   <Text style={styles.confirmSettleSubtitle}>
-                    Tự động đồng bộ máy chủ & in 02 liên bàn giao ca
+                    {tr('Tự động đồng bộ máy chủ & in 02 liên bàn giao ca', 'ຊິງຄ໌ອັດຕະໂນມັດ & ພິມ 02 ໃບມອບໂອນກະ')}
                   </Text>
                 </View>
               </View>
@@ -746,8 +782,8 @@ export default function AccountScreen() {
               }
             >
               {isStoreOwner
-                ? 'ĐĂNG XUẤT TÀI KHOẢN CHỦ QUÁN'
-                : 'ĐĂNG XUẤT TÀI KHOẢN POS'}
+                ? tr('ĐĂNG XUẤT TÀI KHOẢN CHỦ QUÁN', 'ອອກຈາກລະບົບເຈົ້າຂອງຮ້ານ')
+                : tr('ĐĂNG XUẤT TÀI KHOẢN POS', 'ອອກຈາກລະບົບ POS')}
             </Text>
           </Pressable>
 
@@ -759,7 +795,7 @@ export default function AccountScreen() {
               </Text>
             </View>
             <Text style={styles.footerCopyrightText}>
-              Bản quyền thiết kế & vận hành thuộc Liêng Mobile Inc.
+              {tr('Bản quyền thiết kế & vận hành thuộc Liêng Mobile Inc.', 'ສະຫງວນລິຂະສິດໂດຍ Liêng Mobile Inc.')}
             </Text>
           </View>
         </View>
