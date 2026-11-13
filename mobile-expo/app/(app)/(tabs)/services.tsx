@@ -1,3 +1,4 @@
+
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -160,8 +161,8 @@ export default function ServicesScreen() {
           (devStatus === 'in_stock'
             ? 'Đang sẵn sàng tại kho'
             : devStatus === 'sold'
-            ? 'Đã xuất bán cho khách'
-            : 'Đang tiếp nhận bảo hành')
+              ? 'Đã xuất bán cho khách'
+              : 'Đang tiếp nhận bảo hành')
 
         setLookupResult({
           found: true,
@@ -312,8 +313,8 @@ export default function ServicesScreen() {
                 {isStoreOwner
                   ? 'Chi nhánh Cầu Giấy • Quản lý'
                   : isWarehouseStaff
-                  ? 'Chi nhánh Cầu Giấy • Kho Vận & IMEI'
-                  : 'Chi nhánh Cầu Giấy • Dịch Vụ'}
+                    ? 'Chi nhánh Cầu Giấy • Kho Vận & IMEI'
+                    : 'Chi nhánh Cầu Giấy • Dịch Vụ'}
               </Text>
             </View>
           </View>
@@ -524,8 +525,8 @@ export default function ServicesScreen() {
                         lookupResult.status === 'in_stock'
                           ? { backgroundColor: '#DCFCE7' }
                           : lookupResult.status === 'sold'
-                          ? { backgroundColor: '#E0E7FF' }
-                          : { backgroundColor: '#FEF3C7' },
+                            ? { backgroundColor: '#E0E7FF' }
+                            : { backgroundColor: '#FEF3C7' },
                       ]}
                     >
                       <View
@@ -534,8 +535,8 @@ export default function ServicesScreen() {
                           lookupResult.status === 'in_stock'
                             ? { backgroundColor: '#16A34A' }
                             : lookupResult.status === 'sold'
-                            ? { backgroundColor: '#2563EB' }
-                            : { backgroundColor: '#D97706' },
+                              ? { backgroundColor: '#2563EB' }
+                              : { backgroundColor: '#D97706' },
                         ]}
                       />
                       <Text
@@ -544,8 +545,8 @@ export default function ServicesScreen() {
                           lookupResult.status === 'in_stock'
                             ? { color: '#15803D' }
                             : lookupResult.status === 'sold'
-                            ? { color: '#1D4ED8' }
-                            : { color: '#B45309' },
+                              ? { color: '#1D4ED8' }
+                              : { color: '#B45309' },
                         ]}
                       >
                         {lookupResult.statusLabel}
