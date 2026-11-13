@@ -3,6 +3,9 @@ import Constants from 'expo-constants'
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const host = window.location.hostname
+    if (host.includes('trycloudflare.com')) {
+      return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
+    }
     if (!host.includes('exp.direct')) {
       return `http://${host}:8080/api/v1`
     }
