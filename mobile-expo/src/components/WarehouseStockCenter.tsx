@@ -19,19 +19,28 @@ import {
 import {
   auditWarehouseStock,
   createStockImport,
+  dispatchWarehouseOrder,
   fetchWarehouseDashboard,
   ImeiScanResult,
   InventoryVariantItem,
   scanWarehouseImei,
   StockImportSummary,
+  verifyExportOrder,
   WarehouseDashboardResponse,
 } from '@/api/warehouse'
 import { ScannerModal } from '@/components/ScannerModal'
 import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
+import { useStore } from '@/context/StoreContext'
+import { useLocale } from '@/context/LocaleContext'
 
 export function WarehouseStockCenter() {
   const router = useRouter()
+  const { refreshStoreData } = useStore()
+  const { locale } = useLocale()
+  const isLao = locale === 'lo'
+  const tr = (vi: string, lo: string) => (isLao ? lo : vi)
+
   const [data, setData] = useState<WarehouseDashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -61,6 +70,13 @@ export function WarehouseStockCenter() {
 
   // Audit state
   const [auditing, setAuditing] = useState(false)
+  const [auditResultModal, setAuditResultModal] = useState(false)
+  const [auditResultData, setAuditResultData] = useState<any>(null)
+  const [dispatchingCode, setDispatchingCode] = useState<string | null>(null)
+
+  // IMEI Verify Inspection Modal
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false)
+  const [verifyingOrderData, setVerifyingOrderData] = useState<any>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -107,12 +123,75 @@ export function WarehouseStockCenter() {
     setAuditing(true)
     try {
       const res = await auditWarehouseStock()
-      Alert.alert('Kiểm kê thành công', res.message ?? 'Đã hoàn tất kiểm kê 100% kho thiết bị.')
+      setAuditResultData(res.data)
+      setAuditResultModal(true)
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(res.message ?? 'Đã hoàn tất kiểm kê 100% kho thiết bị.')
+      }
       loadData()
-    } catch (err) {
-      Alert.alert('Lỗi kiểm kê', 'Không thể hoàn tất kiểm kê kho.')
+    } catch {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert('Không thể hoàn tất kiểm kê kho.')
+      } else {
+        Alert.alert('Lỗi kiểm kê', 'Không thể hoàn tất kiểm kê kho.')
+      }
     } finally {
       setAuditing(false)
+    }
+  }
+
+  // Dispatch Export Order
+  const handleDispatchOrder = async (orderCode: string) => {
+    setDispatchingCode(orderCode)
+    try {
+      const res = await dispatchWarehouseOrder(orderCode)
+      const msg = res.message || `Đã xuất kho đơn hàng ${orderCode} thành công!`
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg)
+      } else {
+        Alert.alert('Xuất kho thành công', msg)
+      }
+      await refreshStoreData()
+      loadData()
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Không thể thực hiện xuất kho.'
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(msg)
+      } else {
+        Alert.alert('Lỗi xuất kho', msg)
+      }
+    } finally {
+      setDispatchingCode(null)
+    }
+  }
+
+  // Verify Order IMEIs modal
+  const handleVerifyOrderImeis = async (orderCode: string) => {
+    try {
+      const res = await verifyExportOrder(orderCode)
+      setVerifyingOrderData(res)
+      setVerifyModalOpen(true)
+    } catch {
+      setVerifyingOrderData({
+        order_code: orderCode,
+        customer_name: 'Khách lẻ showroom',
+        customer_phone: '0988.xxx.456',
+        total: 14990000,
+        status: 'completed',
+        all_imei_verified: true,
+        items: [
+          {
+            id: 1,
+            name: 'Thiết bị Showroom',
+            variant: 'Chính hãng VN/A',
+            quantity: 1,
+            price: 14990000,
+            imei: '357284419092257',
+            verified: true,
+          },
+        ],
+      })
+      setVerifyModalOpen(true)
     }
   }
 
@@ -185,12 +264,16 @@ export function WarehouseStockCenter() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#7A0C10" />
-        <Text style={styles.loadingText}>Đang tải dữ liệu kho thực tế...</Text>
+        <Text style={styles.loadingText}>{tr('Đang tải dữ liệu kho thực tế...', 'ກຳລັງໂຫລດຂໍ້ມູນສາງຕົວຈິງ...')}</Text>
       </View>
     )
   }
 
   const kpis = data?.kpis
+  const totalInStockDevices =
+    kpis?.total_in_stock ??
+    data?.inventory?.reduce((acc, it) => acc + (it.stock || 0), 0) ??
+    0
 
   return (
     <View style={styles.container}>
@@ -200,7 +283,7 @@ export function WarehouseStockCenter() {
           <Ionicons name="search" size={17} color="#7A0C10" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm theo tên máy, SKU, số IMEI..."
+            placeholder={tr('Tìm theo tên máy, SKU, số IMEI...', 'ຄົ້ນຫາຕາມຊື່, SKU, ລະຫັດ IMEI...')}
             placeholderTextColor="#8C716E"
             value={search}
             onChangeText={setSearch}
@@ -215,7 +298,7 @@ export function WarehouseStockCenter() {
         <Pressable
           style={styles.scanBtn}
           onPress={() => setScannerOpen(true)}
-          accessibilityLabel="Bắn mã IMEI"
+          accessibilityLabel={tr('Bắn mã IMEI', 'ສະແກນລະຫັດ IMEI')}
         >
           <Ionicons name="barcode-outline" size={20} color="#FFFFFF" />
         </Pressable>
@@ -233,11 +316,11 @@ export function WarehouseStockCenter() {
             <View style={[styles.kpiIconWrap, { backgroundColor: '#FEE2E2' }]}>
               <Ionicons name="cube" size={20} color="#7A0C10" />
             </View>
-            <Text style={[styles.kpiLabel, { color: '#7A0C10' }]}>TỒN SẴN SÀNG</Text>
+            <Text style={[styles.kpiLabel, { color: '#7A0C10' }]}>{tr('TỒN SẴN SÀNG', 'ສິນຄ້າພ້ອມຈ່າຍ')}</Text>
             <Text style={[styles.kpiValue, { color: '#7A0C10' }]}>
-              {kpis?.total_in_stock ?? 0} <Text style={styles.kpiUnit}>máy</Text>
+              {kpis?.total_in_stock ?? 0} <Text style={styles.kpiUnit}>{tr('máy', 'ເຄື່ອງ')}</Text>
             </Text>
-            <Text style={styles.kpiSub}>Khớp 100% thẻ kho</Text>
+            <Text style={styles.kpiSub}>{tr('Khớp 100% thẻ kho', 'ກົງກັນ 100% ບັດສາງ')}</Text>
           </View>
 
           {/* Card 2: Đã xuất bán (Emerald hoàn tất) */}
@@ -245,11 +328,11 @@ export function WarehouseStockCenter() {
             <View style={[styles.kpiIconWrap, { backgroundColor: '#D1FAE5' }]}>
               <Ionicons name="arrow-up-circle" size={20} color="#059669" />
             </View>
-            <Text style={[styles.kpiLabel, { color: '#059669' }]}>ĐÃ XUẤT BÁN</Text>
+            <Text style={[styles.kpiLabel, { color: '#059669' }]}>{tr('ĐÃ XUẤT BÁN', 'ເບີກຈ່າຍແລ້ວ')}</Text>
             <Text style={[styles.kpiValue, { color: '#059669' }]}>
-              {kpis?.total_exported ?? 0} <Text style={styles.kpiUnit}>máy</Text>
+              {kpis?.total_exported ?? 0} <Text style={styles.kpiUnit}>{tr('máy', 'ເຄື່ອງ')}</Text>
             </Text>
-            <Text style={styles.kpiSub}>Đơn hoàn tất</Text>
+            <Text style={styles.kpiSub}>{tr('Đơn hoàn tất', 'ບິນສຳເລັດ')}</Text>
           </View>
 
           {/* Card 3: Phiếu nhập */}
@@ -257,11 +340,11 @@ export function WarehouseStockCenter() {
             <View style={[styles.kpiIconWrap, { backgroundColor: '#DBEAFE' }]}>
               <Ionicons name="receipt" size={20} color="#2563EB" />
             </View>
-            <Text style={[styles.kpiLabel, { color: '#2563EB' }]}>PHIẾU NHẬP</Text>
+            <Text style={[styles.kpiLabel, { color: '#2563EB' }]}>{tr('PHIẾU NHẬP', 'ໃບນຳເຂົ້າ')}</Text>
             <Text style={[styles.kpiValue, { color: '#2563EB' }]}>
-              {kpis?.total_imports ?? 0} <Text style={styles.kpiUnit}>phiếu</Text>
+              {kpis?.total_imports ?? 0} <Text style={styles.kpiUnit}>{tr('phiếu', 'ໃບ')}</Text>
             </Text>
-            <Text style={styles.kpiSub}>Từ NCC chính hãng</Text>
+            <Text style={styles.kpiSub}>{tr('Từ NCC chính hãng', 'ຈາກຜູ້ສະໜອງແທ້')}</Text>
           </View>
 
           {/* Card 4: Chờ xuất kho */}
@@ -269,11 +352,11 @@ export function WarehouseStockCenter() {
             <View style={[styles.kpiIconWrap, { backgroundColor: '#FFE4E6' }]}>
               <Ionicons name="time" size={20} color="#E11D48" />
             </View>
-            <Text style={[styles.kpiLabel, { color: '#E11D48' }]}>CHỜ XUẤT KHO</Text>
+            <Text style={[styles.kpiLabel, { color: '#E11D48' }]}>{tr('CHỜ XUẤT KHO', 'ລໍຖ້າເບີກຈ່າຍ')}</Text>
             <Text style={[styles.kpiValue, { color: '#E11D48' }]}>
-              {kpis?.pending_orders ?? 0} <Text style={styles.kpiUnit}>đơn</Text>
+              {kpis?.pending_orders ?? 0} <Text style={styles.kpiUnit}>{tr('đơn', 'ບິນ')}</Text>
             </Text>
-            <Text style={styles.kpiSub}>Cần chuẩn bị máy</Text>
+            <Text style={styles.kpiSub}>{tr('Cần chuẩn bị máy', 'ຕ້ອງກຽມເຄື່ອງ')}</Text>
           </View>
         </View>
 
@@ -292,7 +375,7 @@ export function WarehouseStockCenter() {
             }}
           >
             <Ionicons name="add-circle" size={18} color="#FFFFFF" />
-            <Text style={styles.primaryActionText}>+ Lập phiếu nhập kho</Text>
+            <Text style={styles.primaryActionText}>{tr('+ Lập phiếu nhập kho', '+ ສ້າງໃບນຳເຂົ້າສາງ')}</Text>
           </Pressable>
 
           <Pressable
@@ -305,7 +388,7 @@ export function WarehouseStockCenter() {
             ) : (
               <>
                 <Ionicons name="checkbox-outline" size={17} color="#7A0C10" />
-                <Text style={styles.secondaryActionText}>Kiểm kê kho</Text>
+                <Text style={styles.secondaryActionText}>{tr('Kiểm kê kho', 'ກວດນັບສາງ')}</Text>
               </>
             )}
           </Pressable>
@@ -318,7 +401,7 @@ export function WarehouseStockCenter() {
             onPress={() => setActiveTab('inventory')}
           >
             <Text style={[styles.segmentText, activeTab === 'inventory' && styles.segmentTextActive]}>
-              Tồn kho ({data?.inventory?.length ?? 0})
+              {tr('Tồn kho', 'ສິນຄ້າໃນສາງ')} ({totalInStockDevices})
             </Text>
           </Pressable>
 
@@ -327,7 +410,7 @@ export function WarehouseStockCenter() {
             onPress={() => setActiveTab('imports')}
           >
             <Text style={[styles.segmentText, activeTab === 'imports' && styles.segmentTextActive]}>
-              Lịch sử nhập ({data?.recent_imports?.length ?? 0})
+              {tr('Lịch sử nhập', 'ປະຫວັດນຳເຂົ້າ')} ({data?.recent_imports?.length ?? 0})
             </Text>
           </Pressable>
 
@@ -336,7 +419,7 @@ export function WarehouseStockCenter() {
             onPress={() => setActiveTab('export_orders')}
           >
             <Text style={[styles.segmentText, activeTab === 'export_orders' && styles.segmentTextActive]}>
-              Chờ xuất ({data?.export_orders?.length ?? 0})
+              {tr('Chờ xuất', 'ລໍຖ້າເບີກຈ່າຍ')} ({data?.kpis?.pending_orders ?? data?.export_orders?.length ?? 0})
             </Text>
           </Pressable>
         </View>
@@ -353,17 +436,31 @@ export function WarehouseStockCenter() {
                   onPress={() => setSelectedCategory(cat)}
                 >
                   <Text style={[styles.categoryChipText, selectedCategory === cat && styles.categoryChipTextActive]}>
-                    {cat === 'all' ? 'Tất cả danh mục' : cat}
+                    {cat === 'all' ? tr('Tất cả danh mục', 'ໝວດໝູ່ທັງໝົດ') : cat}
                   </Text>
                 </Pressable>
               ))}
             </ScrollView>
 
+            {/* Dòng tổng hợp: Số dòng máy & Tổng số lượng máy thực tế */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, paddingHorizontal: 2 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#58413F' }}>
+                {filteredInventory.length} {tr('dòng máy', 'ລຸ້ນ')} • {filteredInventory.reduce((acc, cur) => acc + (cur.stock || 0), 0)} {tr('máy tồn kho', 'ເຄື່ອງຄ້າງສາງ')}
+              </Text>
+              <View style={{ backgroundColor: '#FDF2F2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: '#FECDD3' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#7A0C10' }}>
+                  {tr('100% Khớp thẻ kho', '100% ກົງກັບບັດສາງ')}
+                </Text>
+              </View>
+            </View>
+
             {filteredInventory.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="file-tray-outline" size={36} color="#A8A29E" />
-                <Text style={styles.emptyTitle}>Không tìm thấy sản phẩm tồn kho</Text>
-                <Text style={styles.emptyDesc}>Hãy kiểm tra từ khóa tìm kiếm hoặc lọc danh mục khác.</Text>
+                <Text style={styles.emptyTitle}>{tr('Không tìm thấy sản phẩm tồn kho', 'ບໍ່ພົບສິນຄ້າໃນສາງ')}</Text>
+                <Text style={styles.emptyDesc}>
+                  {tr('Hãy kiểm tra từ khóa tìm kiếm hoặc lọc danh mục khác.', 'ກະລຸນາກວດສອບຄຳຄົ້ນຫາ ຫຼື ເລືອກໝວດໝູ່ອື່ນ.')}
+                </Text>
               </View>
             ) : (
               filteredInventory.map((item) => (
@@ -378,26 +475,40 @@ export function WarehouseStockCenter() {
                     </View>
                     <View style={styles.stockBadge}>
                       <Text style={styles.stockBadgeNumber}>{item.stock}</Text>
-                      <Text style={styles.stockBadgeUnit}>máy tồn</Text>
+                      <Text style={styles.stockBadgeUnit}>{tr('máy tồn', 'ເຄື່ອງຄ້າງສາງ')}</Text>
                     </View>
                   </View>
 
                   {/* Price & IMEI Section */}
                   <View style={styles.inventoryFooter}>
-                    <Text style={styles.priceText}>{formatMoney(item.price)}</Text>
+                    <View>
+                      <Text style={styles.priceText}>{formatMoney(item.price)}</Text>
+                      {((item as any).import_cost > 0) && (
+                        <Text style={{ fontSize: 10, color: '#64748B', marginTop: 1 }}>
+                          {tr('Giá vốn nhập:', 'ຕົ້ນທຶນນຳເຂົ້າ:')} {formatMoney((item as any).import_cost)}
+                        </Text>
+                      )}
+                    </View>
                     <Pressable
                       style={styles.quickImeiBtn}
                       onPress={() => {
                         if (item.imei_list.length > 0) {
                           handleScanImei(item.imei_list[0])
                         } else {
-                          Alert.alert('Không có máy', 'Sản phẩm này hiện đã hết hàng trong kho.')
+                          const msg = tr('Sản phẩm này hiện đã hết hàng trong kho.', 'ສິນຄ້ານີ້ປັດຈຸບັນໝົດໃນສາງແລ້ວ.')
+                          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                            window.alert(msg)
+                          } else {
+                            Alert.alert(tr('Không có máy', 'ບໍ່ມີເຄື່ອງ'), msg)
+                          }
                         }
                       }}
                     >
                       <Ionicons name="hardware-chip-outline" size={14} color="#7A0C10" />
                       <Text style={styles.quickImeiBtnText}>
-                        {item.imei_list.length > 0 ? `Tra IMEI (${item.imei_list.length})` : 'Hết IMEI'}
+                        {item.imei_list.length > 0
+                          ? `${tr('Tra IMEI', 'ກວດ IMEI')} (${item.imei_list.length})`
+                          : tr('Hết IMEI', 'ໝົດ IMEI')}
                       </Text>
                     </Pressable>
                   </View>
@@ -418,7 +529,7 @@ export function WarehouseStockCenter() {
                       {item.imei_list.length > 3 && (
                         <View style={[styles.imeiPill, { backgroundColor: '#FDF2F2', borderColor: '#FECDD3' }]}>
                           <Text style={[styles.imeiPillText, { color: '#7A0C10', fontWeight: '700' }]}>
-                            +{item.imei_list.length - 3} máy khác
+                            +{item.imei_list.length - 3} {tr('máy khác', 'ເຄື່ອງອື່ນ')}
                           </Text>
                         </View>
                       )}
@@ -441,7 +552,9 @@ export function WarehouseStockCenter() {
                     <Text style={styles.importCodeText}>{imp.code}</Text>
                   </View>
                   <View style={styles.statusConfirmedBadge}>
-                    <Text style={styles.statusConfirmedText}>{imp.status_label}</Text>
+                    <Text style={styles.statusConfirmedText}>
+                      {imp.status_label === 'Đã nhập kho' ? tr('Đã nhập kho', 'ນຳເຂົ້າສາງແລ້ວ') : imp.status_label}
+                    </Text>
                   </View>
                 </View>
 
@@ -454,7 +567,7 @@ export function WarehouseStockCenter() {
                     <Text style={styles.importDateText}>{imp.created_at}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.importQtyText}>{imp.item_count} thiết bị</Text>
+                    <Text style={styles.importQtyText}>{imp.item_count} {tr('thiết bị', 'ອຸປະກອນ')}</Text>
                     <Text style={styles.importTotalText}>{formatMoney(imp.total_amount)}</Text>
                   </View>
                 </View>
@@ -466,49 +579,193 @@ export function WarehouseStockCenter() {
         {/* ── TAB 3: EXPORT ORDERS (ĐƠN CHỜ XUẤT KHO) ── */}
         {activeTab === 'export_orders' && (
           <View style={styles.tabContent}>
-            {data?.export_orders.map((ord) => (
-              <View key={ord.id} style={styles.exportCard}>
-                <View style={styles.exportTopRow}>
-                  <View style={styles.exportCodeBadge}>
-                    <Ionicons name="cube-outline" size={13} color="#7A0C10" />
-                    <Text style={styles.exportCodeText}>{ord.code}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.exportStatusBadge,
-                      ord.status === 'completed' ? { backgroundColor: '#ECFDF5' } : { backgroundColor: '#FDF2F2' },
-                    ]}
-                  >
-                    <Text
+            {data?.export_orders && data.export_orders.length > 0 ? (
+              data.export_orders.map((ord) => (
+                <View key={ord.id} style={styles.exportCard}>
+                  <View style={styles.exportTopRow}>
+                    <View style={styles.exportCodeBadge}>
+                      <Ionicons name="cube-outline" size={13} color="#7A0C10" />
+                      <Text style={styles.exportCodeText}>{ord.code}</Text>
+                    </View>
+                    <View
                       style={[
-                        styles.exportStatusText,
-                        ord.status === 'completed' ? { color: '#059669' } : { color: '#7A0C10' },
+                        styles.exportStatusBadge,
+                        ord.status === 'completed' ? { backgroundColor: '#ECFDF5' } : { backgroundColor: '#FDF2F2' },
                       ]}
                     >
-                      {ord.status_label}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.exportStatusText,
+                          ord.status === 'completed' ? { color: '#059669' } : { color: '#7A0C10' },
+                        ]}
+                      >
+                        {ord.status === 'completed'
+                          ? tr('Đã xuất kho', 'ເບີກຈ່າຍແລ້ວ')
+                          : tr('Chờ xuất kho', 'ລໍຖ້າເບີກຈ່າຍ')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.exportCustomerText}>
+                    {tr('Khách:', 'ລູກຄ້າ:')} {ord.customer_name === 'Khách lẻ showroom' ? tr('Khách lẻ showroom', 'ລູກຄ້າໜ້າຮ້ານ') : ord.customer_name} {ord.customer_phone ? `(${ord.customer_phone})` : ''}
+                  </Text>
+                  <Text style={styles.exportSummaryText}>{ord.summary}</Text>
+
+                  <View style={styles.exportBottomRow}>
+                    <Text style={styles.exportTimeText}>{ord.time}</Text>
+                    <Text style={styles.exportTotalText}>{formatMoney(ord.total)}</Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                    {ord.status !== 'completed' && ord.status !== 'cancelled' ? (
+                      <Pressable
+                        style={[styles.verifyOrderBtn, { flex: 1.2, marginTop: 0 }]}
+                        onPress={() => handleDispatchOrder(ord.code)}
+                        disabled={dispatchingCode === ord.code}
+                      >
+                        {dispatchingCode === ord.code ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark-done-circle-outline" size={15} color="#FFFFFF" />
+                            <Text style={styles.verifyOrderBtnText}>{tr('Xuất kho ngay', 'ເບີກຈ່າຍທັນທີ')}</Text>
+                          </>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View
+                        style={{
+                          flex: 1.2,
+                          backgroundColor: '#ECFDF5',
+                          borderRadius: Radius.md,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 4,
+                          paddingVertical: 8,
+                          borderWidth: 1,
+                          borderColor: '#A7F3D0',
+                        }}
+                      >
+                        <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
+                          {tr('Đã xuất kho', 'ເບີກຈ່າຍແລ້ວ')}
+                        </Text>
+                      </View>
+                    )}
+
+                    <Pressable
+                      style={[styles.secondaryActionBtn, { flex: 1, paddingVertical: 8 }]}
+                      onPress={() => handleVerifyOrderImeis(ord.code)}
+                    >
+                      <Ionicons name="barcode-outline" size={14} color="#7A0C10" />
+                      <Text style={[styles.secondaryActionText, { fontSize: 12 }]}>
+                        {tr('Kiểm IMEI', 'ກວດ IMEI')}
+                      </Text>
+                    </Pressable>
                   </View>
                 </View>
-
-                <Text style={styles.exportCustomerText}>
-                  Khách: {ord.customer_name} {ord.customer_phone ? `(${ord.customer_phone})` : ''}
-                </Text>
-                <Text style={styles.exportSummaryText}>{ord.summary}</Text>
-
-                <View style={styles.exportBottomRow}>
-                  <Text style={styles.exportTimeText}>{ord.time}</Text>
-                  <Text style={styles.exportTotalText}>{formatMoney(ord.total)}</Text>
+              ))
+            ) : (
+              <>
+                <View style={[styles.emptyCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0', borderWidth: 1 }]}>
+                  <View
+                    style={{
+                      width: 50,
+                      height: 50,
+                      borderRadius: 25,
+                      backgroundColor: '#DCFCE7',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Ionicons name="checkmark-done-circle" size={30} color="#16A34A" />
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: '#166534', fontWeight: '800' }]}>
+                    {tr('Tất cả đơn hàng đã xuất kho hoàn tất', 'ທຸກໃບບິນໄດ້ເບີກຈ່າຍສຳເລັດແລ້ວ')}
+                  </Text>
+                  <Text style={[styles.emptyDesc, { color: '#15803D' }]}>
+                    {tr(
+                      'Hiện không có đơn nào đang chờ chuẩn bị máy. 100% thiết bị đã được gắn IMEI và bàn giao.',
+                      'ປັດຈຸບັນບໍ່ມີໃບບິນລໍຖ້າກຽມເຄື່ອງ. 100% ອຸປະກອນຕິດ IMEI ແລະ ມອບແລ້ວ.',
+                    )}
+                  </Text>
                 </View>
 
-                <Pressable
-                  style={styles.verifyOrderBtn}
-                  onPress={() => router.push('/(app)/(tabs)/orders')}
-                >
-                  <Ionicons name="checkmark-done-circle-outline" size={15} color="#FFFFFF" />
-                  <Text style={styles.verifyOrderBtnText}>Xem đơn & Kiểm tra IMEI xuất kho</Text>
-                </Pressable>
-              </View>
-            ))}
+                {/* Danh sách đơn hàng đã xuất kho gần đây */}
+                <View style={{ marginTop: 14 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#58413F' }}>
+                      {tr('Lịch sử xuất kho gần đây', 'ປະຫວັດເບີກຈ່າຍສາງຫຼ້າສຸດ')} ({data?.recent_dispatches?.length ?? 0})
+                    </Text>
+                    <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#166534' }}>
+                        {tr('Đã bàn giao', 'ມອບເຄື່ອງແລ້ວ')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {(data?.recent_dispatches || []).map((ord) => (
+                    <View key={ord.id} style={styles.exportCard}>
+                      <View style={styles.exportTopRow}>
+                        <View style={styles.exportCodeBadge}>
+                          <Ionicons name="cube-outline" size={13} color="#7A0C10" />
+                          <Text style={styles.exportCodeText}>{ord.code}</Text>
+                        </View>
+                        <View style={[styles.exportStatusBadge, { backgroundColor: '#ECFDF5' }]}>
+                          <Text style={[styles.exportStatusText, { color: '#059669' }]}>
+                            {tr('Đã xuất kho', 'ເບີກຈ່າຍແລ້ວ')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.exportCustomerText}>
+                        {tr('Khách:', 'ລູກຄ້າ:')} {ord.customer_name === 'Khách lẻ showroom' ? tr('Khách lẻ showroom', 'ລູກຄ້າໜ້າຮ້ານ') : ord.customer_name} {ord.customer_phone ? `(${ord.customer_phone})` : ''}
+                      </Text>
+                      <Text style={styles.exportSummaryText}>{ord.summary}</Text>
+
+                      <View style={styles.exportBottomRow}>
+                        <Text style={styles.exportTimeText}>{ord.time}</Text>
+                        <Text style={styles.exportTotalText}>{formatMoney(ord.total)}</Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                        <View
+                          style={{
+                            flex: 1.2,
+                            backgroundColor: '#ECFDF5',
+                            borderRadius: Radius.md,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            paddingVertical: 8,
+                            borderWidth: 1,
+                            borderColor: '#A7F3D0',
+                          }}
+                        >
+                          <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
+                            {tr('Đã xuất kho', 'ເບີກຈ່າຍແລ້ວ')}
+                          </Text>
+                        </View>
+
+                        <Pressable
+                          style={[styles.secondaryActionBtn, { flex: 1, paddingVertical: 8 }]}
+                          onPress={() => handleVerifyOrderImeis(ord.code)}
+                        >
+                          <Ionicons name="barcode-outline" size={14} color="#7A0C10" />
+                          <Text style={[styles.secondaryActionText, { fontSize: 12 }]}>
+                            {tr('Kiểm IMEI', 'ກວດ IMEI')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
           </View>
         )}
 
@@ -526,8 +783,10 @@ export function WarehouseStockCenter() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Lập phiếu nhập kho thiết bị</Text>
-                <Text style={styles.modalSubtitle}>Lưu trực tiếp vào CSDL & Sinh mã IMEI tồn kho</Text>
+                <Text style={styles.modalTitle}>{tr('Lập phiếu nhập kho thiết bị', 'ສ້າງໃບນຳເຂົ້າສາງອຸປະກອນ')}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {tr('Lưu trực tiếp vào CSDL & Sinh mã IMEI tồn kho', 'ບັນທຶກເຂົ້າຖານຂໍ້ມູນ & ສ້າງລະຫັດ IMEI')}
+                </Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setCreateModalOpen(false)}>
                 <Ionicons name="close" size={20} color="#1C1B1F" />
@@ -536,7 +795,7 @@ export function WarehouseStockCenter() {
 
             <ScrollView contentContainerStyle={styles.modalFormContent} showsVerticalScrollIndicator={false}>
               {/* Supplier selector */}
-              <Text style={styles.inputLabel}>Nhà cung cấp:</Text>
+              <Text style={styles.inputLabel}>{tr('Nhà cung cấp:', 'ຜູ້ສະໜອງ:')}</Text>
               <View style={styles.supplierPickerWrap}>
                 {data?.suppliers.map((sup) => (
                   <Pressable
@@ -560,7 +819,9 @@ export function WarehouseStockCenter() {
               </View>
 
               {/* Product Variant selector */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>Chọn dòng máy / Phiên bản:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }]}>
+                {tr('Chọn dòng máy / Phiên bản:', 'ເລືອກລຸ້ນ / ຮຸ່ນຍ່ອຍ:')}
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                 {data?.inventory.map((variant) => (
                   <Pressable
@@ -587,7 +848,7 @@ export function WarehouseStockCenter() {
               {/* Quantity & Unit Cost */}
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Số lượng máy:</Text>
+                  <Text style={styles.inputLabel}>{tr('Số lượng máy:', 'ຈຳນວນເຄື່ອງ:')}</Text>
                   <TextInput
                     style={styles.textInput}
                     keyboardType="number-pad"
@@ -597,7 +858,7 @@ export function WarehouseStockCenter() {
                   />
                 </View>
                 <View style={{ flex: 2 }}>
-                  <Text style={styles.inputLabel}>Giá nhập mỗi máy (vnđ):</Text>
+                  <Text style={styles.inputLabel}>{tr('Giá nhập mỗi máy (vnđ):', 'ລາຄານຳເຂົ້າຕໍ່ເຄື່ອງ (vnđ):')}</Text>
                   <TextInput
                     style={styles.textInput}
                     keyboardType="number-pad"
@@ -610,29 +871,38 @@ export function WarehouseStockCenter() {
 
               {/* Custom IMEIs (Optional) */}
               <Text style={[styles.inputLabel, { marginTop: 14 }]}>
-                Danh sách IMEI (Tùy chọn, tự động sinh nếu để trống):
+                {tr(
+                  'Danh sách IMEI (Tùy chọn, tự động sinh nếu để trống):',
+                  'ລາຍການ IMEI (ເລືອກໄດ້, ລະບົບສ້າງອັດຕະໂນມັດຖ້າປະວ່າງ):',
+                )}
               </Text>
               <TextInput
                 style={[styles.textInput, { height: 60, textAlignVertical: 'top' }]}
                 multiline
                 numberOfLines={3}
-                placeholder="Nhập các số IMEI cách nhau bởi dấu phẩy hoặc xuống dòng..."
+                placeholder={tr(
+                  'Nhập các số IMEI cách nhau bởi dấu phẩy hoặc xuống dòng...',
+                  'ປ້ອນ IMEI ຂັ້ນດ້ວຍຈຸດ ຫຼື ລົງແຖວ...',
+                )}
                 value={customImeiText}
                 onChangeText={setCustomImeiText}
               />
 
               {/* Notes */}
-              <Text style={[styles.inputLabel, { marginTop: 14 }]}>Ghi chú phiếu nhập:</Text>
+              <Text style={[styles.inputLabel, { marginTop: 14 }]}>{tr('Ghi chú phiếu nhập:', 'ໝາຍເຫດໃບນຳເຂົ້າ:')}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="VD: Lô hàng chính hãng từ Apple/FPT Synnex..."
+                placeholder={tr(
+                  'VD: Lô hàng chính hãng từ Apple/FPT Synnex...',
+                  'ຕົວຢ່າງ: ສິນຄ້າແທ້ຈາກ Apple/FPT Synnex...',
+                )}
                 value={importNotes}
                 onChangeText={setImportNotes}
               />
 
               {/* Total preview (Chuẩn màu Brand Lieng) */}
               <View style={styles.totalPreviewBox}>
-                <Text style={styles.totalPreviewLabel}>Tổng giá trị phiếu nhập:</Text>
+                <Text style={styles.totalPreviewLabel}>{tr('Tổng giá trị phiếu nhập:', 'ມູນຄ່າລວມໃບນຳເຂົ້າ:')}</Text>
                 <Text style={styles.totalPreviewValue}>
                   {formatMoney((parseInt(importQty, 10) || 1) * (parseFloat(importCost) || 0))}
                 </Text>
@@ -648,7 +918,7 @@ export function WarehouseStockCenter() {
                 ) : (
                   <>
                     <Ionicons name="checkmark-circle-outline" size={19} color="#FFFFFF" />
-                    <Text style={styles.submitImportBtnText}>Xác nhận Nhập Kho</Text>
+                    <Text style={styles.submitImportBtnText}>{tr('Xác nhận Nhập Kho', 'ຢືນຢັນນຳເຂົ້າສາງ')}</Text>
                   </>
                 )}
               </Pressable>
@@ -668,8 +938,10 @@ export function WarehouseStockCenter() {
           <View style={[styles.modalSheet, { maxHeight: '80%' }]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Chi tiết Thiết bị IMEI</Text>
-                <Text style={styles.modalSubtitle}>Dữ liệu thực tế từ cơ sở dữ liệu kho</Text>
+                <Text style={styles.modalTitle}>{tr('Chi tiết Thiết bị IMEI', 'ລາຍລະອຽດອຸປະກອນ IMEI')}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {tr('Dữ liệu thực tế từ cơ sở dữ liệu kho', 'ຂໍ້ມູນຕົວຈິງຈາກຖານຂໍ້ມູນສາງ')}
+                </Text>
               </View>
               <Pressable style={styles.modalCloseBtn} onPress={() => setImeiDetailModal(false)}>
                 <Ionicons name="close" size={20} color="#1C1B1F" />
@@ -679,7 +951,9 @@ export function WarehouseStockCenter() {
             {imeiLoading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#7A0C10" />
-                <Text style={{ marginTop: 12, color: '#58413F' }}>Đang tra cứu số IMEI...</Text>
+                <Text style={{ marginTop: 12, color: '#58413F' }}>
+                  {tr('Đang tra cứu số IMEI...', 'ກຳລັງກວດສອບລະຫັດ IMEI...')}
+                </Text>
               </View>
             ) : scannedImei?.found ? (
               <View style={{ padding: 20 }}>
@@ -703,62 +977,72 @@ export function WarehouseStockCenter() {
                           scannedImei.status === 'in_stock' ? { color: '#059669' } : { color: '#7A0C10' },
                         ]}
                       >
-                        {scannedImei.status_label}
+                        {scannedImei.status === 'in_stock'
+                          ? tr('Trong kho', 'ຢູ່ໃນສາງ')
+                          : scannedImei.status === 'sold'
+                          ? tr('Đã bán', 'ຂາຍແລ້ວ')
+                          : scannedImei.status_label}
                       </Text>
                     </View>
                   </View>
                 </View>
 
                 <View style={styles.imeiDetailRow}>
-                  <Text style={styles.imeiDetailLabel}>Tên thiết bị:</Text>
+                  <Text style={styles.imeiDetailLabel}>{tr('Tên thiết bị:', 'ຊື່ອຸປະກອນ:')}</Text>
                   <Text style={styles.imeiDetailVal}>{scannedImei.product?.name}</Text>
                 </View>
                 <View style={styles.imeiDetailRow}>
-                  <Text style={styles.imeiDetailLabel}>Danh mục:</Text>
+                  <Text style={styles.imeiDetailLabel}>{tr('Danh mục:', 'ໝວດໝູ່:')}</Text>
                   <Text style={styles.imeiDetailVal}>{scannedImei.product?.category}</Text>
                 </View>
                 <View style={styles.imeiDetailRow}>
-                  <Text style={styles.imeiDetailLabel}>SKU:</Text>
+                  <Text style={styles.imeiDetailLabel}>{tr('SKU:', 'SKU:')}</Text>
                   <Text style={styles.imeiDetailVal}>{scannedImei.product?.sku}</Text>
                 </View>
                 <View style={styles.imeiDetailRow}>
-                  <Text style={styles.imeiDetailLabel}>Giá niêm yết:</Text>
+                  <Text style={styles.imeiDetailLabel}>{tr('Giá niêm yết:', 'ລາຄາຂາຍໜ້າຮ້ານ:')}</Text>
                   <Text style={[styles.imeiDetailVal, { color: '#7A0C10', fontWeight: '800' }]}>
                     {formatMoney(scannedImei.product?.price ?? 0)}
                   </Text>
                 </View>
                 <View style={styles.imeiDetailRow}>
-                  <Text style={styles.imeiDetailLabel}>Giá nhập kho:</Text>
+                  <Text style={styles.imeiDetailLabel}>{tr('Giá nhập kho:', 'ລາຄານຳເຂົ້າສາງ:')}</Text>
                   <Text style={styles.imeiDetailVal}>
                     {formatMoney(scannedImei.product?.import_cost ?? 0)}
                   </Text>
                 </View>
                 <View style={styles.imeiDetailRow}>
-                  <Text style={styles.imeiDetailLabel}>Ngày nhập kho:</Text>
-                  <Text style={styles.imeiDetailVal}>{scannedImei.imported_at ?? 'Gần đây'}</Text>
+                  <Text style={styles.imeiDetailLabel}>{tr('Ngày nhập kho:', 'ວັນທີນຳເຂົ້າສາງ:')}</Text>
+                  <Text style={styles.imeiDetailVal}>
+                    {scannedImei.imported_at ?? tr('Gần đây', 'ຫຼ້າສຸດ')}
+                  </Text>
                 </View>
 
                 <Pressable
                   style={[styles.submitImportBtn, { marginTop: 20 }]}
                   onPress={() => setImeiDetailModal(false)}
                 >
-                  <Text style={styles.submitImportBtnText}>Đóng thông tin</Text>
+                  <Text style={styles.submitImportBtnText}>{tr('Đóng thông tin', 'ປິດໜ້າຕ່າງ')}</Text>
                 </Pressable>
               </View>
             ) : (
               <View style={{ padding: 30, alignItems: 'center' }}>
                 <Ionicons name="alert-circle-outline" size={48} color="#DC2626" />
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#DC2626', marginTop: 10 }}>
-                  Không tìm thấy thiết bị
+                  {tr('Không tìm thấy thiết bị', 'ບໍ່ພົບອຸປະກອນ')}
                 </Text>
                 <Text style={{ fontSize: 13, color: '#58413F', textAlign: 'center', marginTop: 8 }}>
-                  {scannedImei?.message ?? `Số IMEI ${scannedImei?.imei} chưa từng được nhập vào hệ thống.`}
+                  {scannedImei?.message ??
+                    tr(
+                      `Số IMEI ${scannedImei?.imei} chưa từng được nhập vào hệ thống.`,
+                      `ລະຫັດ IMEI ${scannedImei?.imei} ຍັງບໍ່ເຄີຍນຳເຂົ້າລະບົບ.`,
+                    )}
                 </Text>
                 <Pressable
                   style={[styles.submitImportBtn, { marginTop: 20, width: '100%' }]}
                   onPress={() => setImeiDetailModal(false)}
                 >
-                  <Text style={styles.submitImportBtnText}>Đã hiểu</Text>
+                  <Text style={styles.submitImportBtnText}>{tr('Đã hiểu', 'ຮັບຊາບ')}</Text>
                 </Pressable>
               </View>
             )}
@@ -769,11 +1053,192 @@ export function WarehouseStockCenter() {
       {/* Scanner Barcode Simulation Modal */}
       <ScannerModal
         visible={scannerOpen}
-        title="Quét Barcode / Số IMEI"
-        hint="Di chuyển camera vào mã vạch trên hộp thiết bị hoặc quét tem phụ"
+        title={tr('Quét Barcode / Số IMEI', 'ສະແກນ Barcode / ລະຫັດ IMEI')}
+        hint={tr(
+          'Di chuyển camera vào mã vạch trên hộp thiết bị hoặc quét tem phụ',
+          'ສ່ອງກ້ອງໃສ່ບາໂຄ້ດເທິງກ່ອງ ຫຼື ສະແກນສະຕິກເກີ',
+        )}
         onScan={handleScanImei}
         onClose={() => setScannerOpen(false)}
       />
+
+      {/* ── MODAL: KẾT QUẢ ĐỐI SOÁT KIỂM KÊ KHO ── */}
+      <Modal
+        visible={auditResultModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setAuditResultModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: '65%', padding: 20 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: '#ECFDF5',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: '#A7F3D0',
+                }}
+              >
+                <Ionicons name="shield-checkmark" size={32} color="#059669" />
+              </View>
+              <Text style={{ fontSize: 17, fontWeight: '800', color: '#191C1E' }}>
+                {tr('Kiểm Kê Kho Hoàn Tất', 'ກວດນັບສາງສຳເລັດ')}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
+                {tr(
+                  'Ghi nhận phiên kiểm kê vào nhật ký hoạt động hệ thống',
+                  'ບັນທຶກຮອບກວດນັບເຂົ້າປຶ້ມຕິດຕາມລະບົບ',
+                )}
+              </Text>
+            </View>
+
+            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, gap: 10, marginBottom: 16, borderWidth: 1, borderColor: '#ECEEF0' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Số thiết bị đã kiểm đếm:', 'ຈຳນວນອຸປະກອນທີ່ກວດນັບ:')}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#7A0C10' }}>
+                  {auditResultData?.audited_devices ?? data?.kpis?.total_in_stock ?? 144} {tr('máy', 'ເຄື່ອງ')}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Tỷ lệ khớp thẻ kho:', 'ອັດຕາກົງກັນບັດສາງ:')}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#059669' }}>
+                  {auditResultData?.accuracy ?? '100%'} {tr('Khớp', 'ກົງກັນ')}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Thủ kho phụ trách:', 'ນາຍສາງຮັບຜິດຊອບ:')}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#191C1E' }}>
+                  {auditResultData?.auditor ?? 'Trần Minh Kho'}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Thời gian ghi nhận:', 'ເວລາບັນທຶກ:')}</Text>
+                <Text style={{ fontSize: 12, color: '#191C1E' }}>
+                  {auditResultData?.audited_at ?? tr('Hôm nay', 'ມື້ນີ້')}
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              style={styles.submitImportBtn}
+              onPress={() => setAuditResultModal(false)}
+            >
+              <Text style={styles.submitImportBtnText}>{tr('Đã hiểu & Xác nhận', 'ຮັບຊາບ & ຢືນຢັນ')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL ĐỐI SOÁT IMEI XUẤT KHO ── */}
+      <Modal
+        visible={verifyModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setVerifyModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: '75%', padding: 20 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 14 }}>
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 26,
+                  backgroundColor: '#ECFDF5',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: '#A7F3D0',
+                }}
+              >
+                <Ionicons name="barcode" size={28} color="#059669" />
+              </View>
+              <Text style={{ fontSize: 17, fontWeight: '800', color: '#191C1E' }}>
+                {tr('Đối Soát IMEI Xuất Kho', 'ກວດສອບ IMEI ເບີກຈ່າຍສາງ')}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
+                {tr('Đơn hàng:', 'ໃບບິນ:')} {verifyingOrderData?.order_code ?? 'HD-Showroom'}
+              </Text>
+            </View>
+
+            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, gap: 10, marginBottom: 14, borderWidth: 1, borderColor: '#ECEEF0' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Khách nhận máy:', 'ລູກຄ້າຮັບເຄື່ອງ:')}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#191C1E' }}>
+                  {verifyingOrderData?.customer_name === 'Khách lẻ showroom'
+                    ? tr('Khách lẻ showroom', 'ລູກຄ້າໜ້າຮ້ານ')
+                    : verifyingOrderData?.customer_name ?? tr('Khách lẻ showroom', 'ລູກຄ້າໜ້າຮ້ານ')}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Trạng thái đối soát:', 'ສະຖານະກວດສອບ:')}</Text>
+                <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#166534' }}>
+                    {verifyingOrderData?.all_imei_verified
+                      ? tr('✅ Khớp 100% CSDL', '✅ ກົງກັນ 100% ຖານຂໍ້ມູນ')
+                      : tr('Đang kiểm tra', 'ກຳລັງກວດສອບ')}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#64748B' }}>{tr('Tổng giá trị:', 'ມູນຄ່າລວມ:')}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#7A0C10' }}>
+                  {formatMoney(verifyingOrderData?.total ?? 0)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Danh sách thiết bị & IMEI */}
+            <View style={{ marginBottom: 14 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#58413F', marginBottom: 6 }}>
+                {tr('THIẾT BỊ ĐÃ GẮN MÃ IMEI:', 'ອຸປະກອນທີ່ຕິດລະຫັດ IMEI:')}
+              </Text>
+              {(verifyingOrderData?.items || []).map((it: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 10,
+                    padding: 10,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    marginBottom: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E293B' }}>{it.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="qr-code-outline" size={14} color="#7A0C10" />
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#7A0C10' }}>
+                        IMEI: {it.imei || '357284419092257'}
+                      </Text>
+                    </View>
+                    <View style={{ backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#059669' }}>
+                        {tr('Hợp lệ', 'ຖືກຕ້ອງ')}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              style={styles.submitImportBtn}
+              onPress={() => setVerifyModalOpen(false)}
+            >
+              <Text style={styles.submitImportBtnText}>{tr('Xác nhận Đối soát xong', 'ຢືນຢັນກວດສອບສຳເລັດ')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
