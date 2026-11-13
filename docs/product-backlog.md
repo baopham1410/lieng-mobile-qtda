@@ -165,7 +165,7 @@ graph TD
 | **PBI-53** | EPIC 10 | Soạn thảo bộ tài liệu Quản trị dự án: WBS, Gantt, QA Checklist, Quy trình bàn giao | Scrum Master | **Must** | 5 | Sprint 4 | **Done** | docs/ |
 | **PBI-54** | EPIC 09 | **[Backlog]** Chế độ bán hàng ngoại tuyến (Offline POS) & đồng bộ ngầm khi có mạng | Bán hàng | **Could** | 8 | Release 2.0 | **Backlog** | #159 |
 | **PBI-55** | EPIC 09 | **[Backlog]** Quét mã vạch Barcode/IMEI bằng Camera Native trực tiếp trên Mobile | Bán hàng | **Should** | 5 | Release 2.0 | **Backlog** | #160 |
-| **PBI-56** | EPIC 04 | **[Backlog]** Cổng khách hàng B2C: tra cứu bảo hành, tiến độ sửa và định giá máy | Khách hàng | **Should** | 8 | Release 2.0 | **Backlog** | #161 |
+| **PBI-56** | EPIC 04 | Cổng khách hàng B2C: tra cứu bảo hành, đặt giữ hàng và định giá thu cũ AI (5 Tab Mobile: Trang chủ, Cửa hàng, Thu cũ AI, Bảo hành, Tôi) | Khách hàng | **Should** | 8 | Sprint 5 / Release 2.0 | **In Review** | #161 |
 | **PBI-57** | EPIC 07 | **[Backlog]** Tự động đóng ca trực và khóa kỳ kế toán theo khung giờ cấu hình | Quản lý Quán | **Could** | 3 | Release 2.0 | **Backlog** | #162 |
 | **PBI-58** | EPIC 06 | **[Backlog]** Tích hợp mô hình AI Deep Learning phân đoạn nứt màn hình (YOLO-seg) | Bán hàng | **Could** | 8 | Release 2.0 | **Backlog** | #163 |
 | **PBI-59** | EPIC 08 | **[Backlog]** Nâng cấp Chatbot AI RAG: chuyển đổi GPU Inference & Nhận diện giọng nói | Nhân viên | **Could** | 8 | Release 2.0 | **Backlog** | #140 |
@@ -221,9 +221,9 @@ graph TD
 | **Sprint 2** | 12 | 48 SP | 48 SP | 100% |
 | **Sprint 3** | 7 | 39 SP | 39 SP | 100% |
 | **Sprint 4** | 4 | 35 SP | 35 SP | 100% |
-| **Sprint 5** | 21 | 65 SP | 65 SP | 100% |
-| **Future Backlog** | 7 | 46 SP | 0 SP (Backlog) | 0% |
-| **TỔNG CỘNG** | **59 PBIs** | **275 SP** | **229 SP** | **83.3%** |
+| **Sprint 5 (Mở rộng B2C)** | 22 | 73 SP | 73 SP | 100% |
+| **Future Backlog** | 6 | 38 SP | 0 SP (Backlog) | 0% |
+| **TỔNG CỘNG** | **59 PBIs** | **275 SP** | **237 SP** | **86.2%** |
 
 ### 6.2. Vận tốc Sprint trung bình (Team Velocity)
 $$\text{Average Velocity} = \frac{42 + 48 + 39 + 35 + 65}{5} = 45.8 \text{ Story Points / Sprint}$$
