@@ -67,6 +67,9 @@ assistant-service/data/vectorstore/
 autograde-service/.venv/
 autograde-service/venv/
 
+# AutoGrade vision service
+autograde-service/.venv/
+
 __pycache__/
 *.py[cod]
 
