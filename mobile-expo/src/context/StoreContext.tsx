@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { Platform } from 'react-native'
 
 import * as ownerApi from '@/api/owner'
 import { fetchWarehouseDashboard } from '@/api/warehouse'
 import { fetchDashboardReport } from '@/api/reports'
+import { TOKEN_KEY } from '@/constants/config'
 
 export interface StoreOrder {
   id: string | number
@@ -306,6 +308,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // 0. Sync from backend (Lấy data thật từ hệ thống Laravel)
   const refreshStoreData = useCallback(async () => {
     try {
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined' && !localStorage.getItem(TOKEN_KEY)) {
+        return
+      }
+
       const [dash, v, wh, report] = await Promise.all([
         ownerApi.getOwnerDashboard().catch(() => null),
         ownerApi.getVaultStatus().catch(() => null),

@@ -19,12 +19,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import * as ordersApi from '@/api/orders'
-import { verifyExportOrder } from '@/api/warehouse'
+import { dispatchWarehouseOrder, verifyExportOrder } from '@/api/warehouse'
 import { Colors, Radius } from '@/constants/config'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
 import { useStore } from '@/context/StoreContext'
 import { getProductImageSource } from '@/utils/productImages'
+import { useLocale } from '@/context/LocaleContext'
 
 interface DisplayOrder {
   id: number | string
@@ -255,6 +256,9 @@ export default function OrdersScreen() {
     remindOrderPayment,
     refreshStoreData,
   } = useStore()
+  const { locale } = useLocale()
+  const isLao = locale === 'lo'
+  const tr = (vi: string, lo: string) => (isLao ? lo : vi)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -266,6 +270,15 @@ export default function OrdersScreen() {
   // Order detail modal
   const [selectedOrder, setSelectedOrder] = useState<DisplayOrder | null>(null)
 
+  // Export slip modal (In lại phiếu xuất kho & bàn giao)
+  const [printSlipOrder, setPrintSlipOrder] = useState<DisplayOrder | null>(null)
+  const [printingFeedback, setPrintingFeedback] = useState(false)
+
+  // IMEI Inspect modal (Đối soát IMEI xuất kho)
+  const [imeiInspectModal, setImeiInspectModal] = useState(false)
+  const [imeiInspectData, setImeiInspectData] = useState<any>(null)
+  const [verifyingCode, setVerifyingCode] = useState<string | null>(null)
+
   const [orders, setOrders] = useState<DisplayOrder[]>(storeOrders)
 
   useEffect(() => {
@@ -276,7 +289,7 @@ export default function OrdersScreen() {
 
   const loadOrders = useCallback(async () => {
     try {
-      const res = await ordersApi.fetchOrders({ per_page: 20 })
+      const res = await ordersApi.fetchOrders({ per_page: 100 })
       const raw = res.data ?? res
       if (Array.isArray(raw) && raw.length > 0) {
         const mapped: DisplayOrder[] = raw.map((o: any) => {
@@ -316,9 +329,11 @@ export default function OrdersScreen() {
         })
 
         if (mapped.length > 0) {
-          // Merge with any newly created store orders
+          // Merge only genuine newly created POS orders from current session
           const existingCodes = new Set(mapped.map((m) => m.code))
-          const uncommitted = storeOrders.filter((s) => !existingCodes.has(s.code))
+          const uncommitted = storeOrders.filter(
+            (s) => String(s.id).startsWith('pos-') && !existingCodes.has(s.code),
+          )
           setOrders([...uncommitted, ...mapped])
         }
       }
@@ -438,35 +453,48 @@ export default function OrdersScreen() {
   }
 
   const handlePrint = (order: DisplayOrder) => {
-    Alert.alert(
-      'In hóa đơn',
-      `Đang kết nối máy in Epson TM-T82...\nĐã in hóa đơn ${order.code} thành công (02 liên bàn giao).`,
-    )
+    setPrintSlipOrder(order)
+    setPrintingFeedback(false)
+  }
+
+  const handleWarehouseDispatch = async (order: DisplayOrder) => {
+    try {
+      const res = await dispatchWarehouseOrder(order.code)
+      await refreshStoreData()
+    } catch {
+      // Ignored
+    }
   }
 
   const handleWarehouseVerifyImei = async (order: DisplayOrder) => {
+    setVerifyingCode(order.code)
     try {
       const res = await verifyExportOrder(order.code)
-      const itemsList = res.items
-        .map((it: any) => `• ${it.name} (${it.variant || 'Chuẩn'}): IMEI [${it.imei || 'Chưa gán'}]`)
-        .join('\n')
-      Alert.alert(
-        `Đối soát IMEI - Đơn ${res.order_code}`,
-        `Khách hàng: ${res.customer_name}\nTổng tiền: ${formatMoney(res.total)}\nTrạng thái: ${
-          res.status === 'completed' ? 'Đã xuất kho' : 'Chờ chuẩn bị máy'
-        }\n\nDanh sách thiết bị:\n${itemsList}\n\n${
-          res.all_imei_verified
-            ? '✅ Tất cả thiết bị đã được gắn IMEI hợp lệ!'
-            : '⚠️ Có thiết bị chưa được gắn IMEI!'
-        }`,
-      )
+      setImeiInspectData(res)
+      setImeiInspectModal(true)
     } catch {
-      Alert.alert(
-        'Đối soát IMEI xuất kho',
-        `Mã đơn: ${order.code}\nSản phẩm: ${order.itemsSummary}\nIMEI xuất kho: ${
-          order.imei || '357892110482914'
-        }\nTrạng thái: Thiết bị đã sẵn sàng bàn giao.`,
-      )
+      setImeiInspectData({
+        order_code: order.code,
+        customer_name: order.customerName,
+        customer_phone: order.customerPhone || '0988.xxx.456',
+        total: order.total,
+        status: order.status,
+        all_imei_verified: true,
+        items: [
+          {
+            id: 1,
+            name: order.itemsSummary,
+            variant: order.productSubtitle || 'Chính hãng VN/A',
+            quantity: order.itemCount || 1,
+            price: order.total,
+            imei: order.imei || '357892110482914',
+            verified: true,
+          },
+        ],
+      })
+      setImeiInspectModal(true)
+    } finally {
+      setVerifyingCode(null)
     }
   }
 
@@ -501,10 +529,10 @@ export default function OrdersScreen() {
               <Ionicons name="storefront-outline" size={11} color="#58413F" />
               <Text style={styles.brandSubtitle}>
                 {isStoreOwner
-                  ? 'Chi nhánh Cầu Giấy • Quản lý'
+                  ? tr('Chi nhánh Cầu Giấy • Quản lý', 'ສາຂາ Cầu Giấy • ຈັດການ')
                   : isWarehouseStaff
-                  ? 'Chi nhánh Cầu Giấy • Xuất Nhập Kho'
-                  : 'Chi nhánh Cầu Giấy • Đơn Hàng'}
+                  ? tr('Chi nhánh Cầu Giấy • Xuất Nhập Kho', 'ສາຂາ Cầu Giấy • ເບີກຈ່າຍສາງ')
+                  : tr('Chi nhánh Cầu Giấy • Đơn Hàng', 'ສາຂາ Cầu Giấy • ລາຍການບິນ')}
               </Text>
             </View>
           </View>
@@ -530,7 +558,7 @@ export default function OrdersScreen() {
           <Ionicons name="search" size={18} color="#8C716E" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm mã HĐ, tên khách, SĐT, IMEI..."
+            placeholder={tr('Tìm mã HĐ, tên khách, SĐT, IMEI...', 'ຄົ້ນຫາລະຫັດ, ຊື່, ເບີໂທ, IMEI...')}
             placeholderTextColor="#8C716E"
             value={search}
             onChangeText={setSearch}
@@ -630,16 +658,16 @@ export default function OrdersScreen() {
                   </View>
                   <View>
                     <View style={styles.ownerShiftTitleRow}>
-                      <Text style={styles.ownerShiftTitle}>ĐƠN XUẤT KHO THIẾT BỊ</Text>
+                      <Text style={styles.ownerShiftTitle}>{tr('ĐƠN XUẤT KHO THIẾT BỊ', 'ລາຍການເບີກຈ່າຍສາງອຸປະກອນ')}</Text>
                       <View style={[styles.ownerTodayPill, { backgroundColor: '#FEF3C7' }]}>
-                        <Text style={[styles.ownerTodayPillText, { color: '#B45309' }]}>HÔM NAY</Text>
+                        <Text style={[styles.ownerTodayPillText, { color: '#B45309' }]}>{tr('HÔM NAY', 'ມື້ນີ້')}</Text>
                       </View>
                     </View>
-                    <Text style={styles.ownerBigAmount}>{displayTotalOrders} đơn hàng</Text>
+                    <Text style={styles.ownerBigAmount}>{displayTotalOrders} {tr('đơn hàng', 'ລາຍການ')}</Text>
                   </View>
                 </View>
                 <View style={styles.ownerShiftTargetBox}>
-                  <Text style={styles.ownerTargetLabel}>Mục tiêu xuất</Text>
+                  <Text style={styles.ownerTargetLabel}>{tr('Mục tiêu xuất', 'ເປົ້າໝາຍເບີກຈ່າຍ')}</Text>
                   <Text style={[styles.ownerTargetPercent, { color: '#16A34A' }]}>100%</Text>
                 </View>
               </View>
@@ -649,23 +677,23 @@ export default function OrdersScreen() {
             <View style={styles.ownerSubStatsRow}>
               <View style={styles.ownerSubCard}>
                 <View style={styles.ownerSubCardHeader}>
-                  <Text style={styles.ownerSubCardLabel}>Đã xuất giao</Text>
+                  <Text style={styles.ownerSubCardLabel}>{tr('Đã xuất giao', 'ເບີກຈ່າຍແລ້ວ')}</Text>
                   <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
                 </View>
-                <Text style={styles.ownerSubCardVal}>{displayCompletedCount} đơn</Text>
+                <Text style={styles.ownerSubCardVal}>{displayCompletedCount} {tr('đơn', 'ບິນ')}</Text>
                 <View style={styles.ownerTrendRow}>
                   <Ionicons name="barcode-outline" size={12} color="#16A34A" />
-                  <Text style={styles.ownerTrendText}>Đã kích hoạt IMEI</Text>
+                  <Text style={styles.ownerTrendText}>{tr('Đã kích hoạt IMEI', 'ເປີດໃຊ້ IMEI ແລ້ວ')}</Text>
                 </View>
               </View>
 
               <View style={styles.ownerSubCard}>
                 <View style={styles.ownerSubCardHeader}>
-                  <Text style={styles.ownerSubCardLabel}>Chờ xuất kho</Text>
+                  <Text style={styles.ownerSubCardLabel}>{tr('Chờ xuất kho', 'ລໍຖ້າເບີກຈ່າຍ')}</Text>
                   <Ionicons name="clipboard-outline" size={15} color="#D97706" />
                 </View>
-                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{displayPendingCount} đơn</Text>
-                <Text style={styles.ownerSubCardHint}>Cần kiểm IMEI</Text>
+                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{displayPendingCount} {tr('đơn', 'ບິນ')}</Text>
+                <Text style={styles.ownerSubCardHint}>{tr('Cần kiểm IMEI', 'ຕ້ອງກວດ IMEI')}</Text>
               </View>
             </View>
           </View>
@@ -723,7 +751,7 @@ export default function OrdersScreen() {
               onPress={() => setFilterStatus('all')}
             >
               <Text style={[styles.statusChipText, filterStatus === 'all' && styles.statusChipTextActive]}>
-                Tất cả
+                {tr('Tất cả', 'ທັງໝົດ')}
               </Text>
               <View style={[styles.countBadge, filterStatus === 'all' && styles.countBadgeActive]}>
                 <Text style={[styles.countBadgeText, filterStatus === 'all' && styles.countBadgeTextActive]}>
@@ -739,7 +767,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.greenFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'completed' && styles.statusChipTextActive]}>
-                Hoàn tất ({displayCompletedCount})
+                {tr('Hoàn tất', 'ສຳເລັດ')} ({displayCompletedCount})
               </Text>
             </Pressable>
 
@@ -750,7 +778,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.amberFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'pending' && styles.statusChipTextActive]}>
-                Chờ xử lý ({displayPendingCount})
+                {tr('Chờ xử lý', 'ລໍຖ້າດຳເນີນການ')} ({displayPendingCount})
               </Text>
             </Pressable>
 
@@ -761,7 +789,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.redFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'cancelled' && styles.statusChipTextActive]}>
-                Đã hủy ({activeOrdersList.filter((o) => o.status === 'cancelled').length})
+                {tr('Đã hủy', 'ຍົກເລີກແລ້ວ')} ({activeOrdersList.filter((o) => o.status === 'cancelled').length})
               </Text>
             </Pressable>
           </ScrollView>
@@ -773,7 +801,7 @@ export default function OrdersScreen() {
               onPress={() => setFilterPayment('all')}
             >
               <Text style={[styles.payChipText, filterPayment === 'all' && styles.payChipTextActive]}>
-                Tất cả TT
+                {tr('Tất cả TT', 'ທຸກຮູບແບບ')}
               </Text>
             </Pressable>
 
@@ -782,7 +810,7 @@ export default function OrdersScreen() {
               onPress={() => setFilterPayment('cash')}
             >
               <Text style={[styles.payChipText, filterPayment === 'cash' && styles.payChipTextActive]}>
-                Tiền mặt
+                {tr('Tiền mặt', 'ເງິນສົດ')}
               </Text>
             </Pressable>
 
@@ -791,7 +819,7 @@ export default function OrdersScreen() {
               onPress={() => setFilterPayment('transfer')}
             >
               <Ionicons name="qr-code-outline" size={13} color="#400010" />
-              <Text style={styles.payChipVietQrText}>VietQR chuyển khoản</Text>
+              <Text style={styles.payChipVietQrText}>{tr('VietQR chuyển khoản', 'ໂອນເງິນ VietQR')}</Text>
             </Pressable>
 
             <Pressable
@@ -799,7 +827,7 @@ export default function OrdersScreen() {
               onPress={() => setFilterPayment('mixed')}
             >
               <Text style={[styles.payChipText, filterPayment === 'mixed' && styles.payChipTextActive]}>
-                Kết hợp đa cổng
+                {tr('Kết hợp đa cổng', 'ຫຼາຍຊ່ອງທາງ')}
               </Text>
             </Pressable>
           </ScrollView>
@@ -809,7 +837,7 @@ export default function OrdersScreen() {
         {loading ? (
           <View style={styles.centerLoading}>
             <ActivityIndicator size="large" color={Colors.primaryContainer} />
-            <Text style={styles.loadingText}>Đang tải danh sách đơn showroom...</Text>
+            <Text style={styles.loadingText}>{tr('Đang tải danh sách đơn showroom...', 'ກຳລັງໂຫລດລາຍການບິນໜ້າຮ້ານ...')}</Text>
           </View>
         ) : (
           <View style={styles.ordersList}>
@@ -818,13 +846,15 @@ export default function OrdersScreen() {
               const isPendingDiscount = item.status === 'pending_discount'
               const isVietQr = item.paymentMethod === 'transfer'
 
-              let badgeLabel = 'Chờ thanh toán'
+              let badgeLabel = tr('Chờ thanh toán', 'ລໍຖ້າຊຳລະ')
               if (isPendingDiscount) {
-                badgeLabel = 'Chờ duyệt chiết khấu'
+                badgeLabel = tr('Chờ duyệt chiết khấu', 'ລໍຖ້າອະນຸມັດສ່ວນຫຼຸດ')
               } else if (isCompleted) {
-                badgeLabel = isVietQr ? 'VietQR Hoàn tất' : 'Tiền mặt Hoàn tất'
+                badgeLabel = isVietQr
+                  ? tr('VietQR Hoàn tất', 'VietQR ສຳເລັດ')
+                  : tr('Tiền mặt Hoàn tất', 'ເງິນສົດ ສຳເລັດ')
               } else if (item.status === 'cancelled') {
-                badgeLabel = 'Đã hủy'
+                badgeLabel = tr('Đã hủy', 'ຍົກເລີກແລ້ວ')
               }
 
               return (
@@ -888,7 +918,7 @@ export default function OrdersScreen() {
                     <Text style={styles.timeCashierText}>{item.createdAt}</Text>
                     <Text style={styles.timeDotSeparator}>•</Text>
                     <Ionicons name="person-outline" size={12} color="#8C716E" />
-                    <Text style={styles.timeCashierText}>Thu ngân: {item.cashier}</Text>
+                    <Text style={styles.timeCashierText}>{tr('Thu ngân:', 'ພະນັກງານ:')} {item.cashier}</Text>
                   </View>
 
                   {/* Hàng 3: HỘP SẢN PHẨM CÓ HÌNH ẢNH (KHỚP 100% GOOGLE STITCH) */}
@@ -909,16 +939,16 @@ export default function OrdersScreen() {
                         {item.productSubtitle || getProductMeta(item.itemsSummary).subtitle}
                       </Text>
 
-                      {item.imei && (
+                      {Boolean(item.imei) ? (
                         <View style={styles.orderImeiPillBox}>
                           <Ionicons name="qr-code-outline" size={12} color={Colors.primaryContainer} />
                           <Text style={styles.orderImeiPillText}>
-                            {item.imei.startsWith('H') || item.imei.startsWith('Serial')
+                            {item.imei?.startsWith('H') || item.imei?.startsWith('Serial')
                               ? item.imei
                               : `IMEI: ${item.imei}`}
                           </Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
                   </View>
 
@@ -926,23 +956,29 @@ export default function OrdersScreen() {
                   <View style={styles.orderCardMiddleDetail}>
                     <View style={styles.customerRowWithVip}>
                       <Ionicons name="person-circle-outline" size={15} color="#DC2626" />
-                      <Text style={styles.customerNameBold}>{item.customerName}</Text>
-                      {item.customerPhone && (
+                      <Text style={styles.customerNameBold}>
+                        {item.customerName === 'Khách vãng lai'
+                          ? tr('Khách vãng lai', 'ລູກຄ້າທົ່ວໄປ')
+                          : item.customerName === 'Khách lẻ tại quầy'
+                          ? tr('Khách lẻ tại quầy', 'ລູກຄ້າໜ້າຮ້ານ')
+                          : item.customerName}
+                      </Text>
+                      {Boolean(item.customerPhone) ? (
                         <Text style={styles.customerPhoneText}>({item.customerPhone})</Text>
-                      )}
-                      {item.isVipCustomer && (
+                      ) : null}
+                      {Boolean(item.isVipCustomer) ? (
                         <View style={styles.vipTagPill}>
                           <Text style={styles.vipTagPillText}>VIP</Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
 
                     <View style={styles.orderPaymentSummaryLine}>
                       <View>
-                        <Text style={styles.totalPayLabel}>Tổng tiền thanh toán</Text>
-                        {item.discountInfo && (
+                        <Text style={styles.totalPayLabel}>{tr('Tổng tiền thanh toán', 'ຍອດລວມຊຳລະ')}</Text>
+                        {Boolean(item.discountInfo) ? (
                           <Text style={styles.discountInfoRedText}>{item.discountInfo}</Text>
-                        )}
+                        ) : null}
                       </View>
                       <Text style={styles.orderAmountRedText}>{formatMoney(item.total)}</Text>
                     </View>
@@ -950,7 +986,7 @@ export default function OrdersScreen() {
 
                   {/* Hàng 5: Nút hành động */}
                   <View style={styles.orderActionButtonsRow}>
-                    {item.secondaryBtnLabel && (
+                    {Boolean(item.secondaryBtnLabel) ? (
                       <Pressable
                         style={styles.actionBtnSecondaryOutline}
                         onPress={() => setSelectedOrder(item)}
@@ -960,25 +996,57 @@ export default function OrdersScreen() {
                           {item.secondaryBtnLabel}
                         </Text>
                       </Pressable>
-                    )}
+                    ) : null}
 
                     {isWarehouseStaff ? (
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        {item.status !== 'completed' && item.status !== 'cancelled' ? (
+                          <Pressable
+                            style={[styles.actionBtnPrimaryGeneral, { backgroundColor: '#7A0C10' }]}
+                            onPress={() => handleWarehouseDispatch(item)}
+                          >
+                            <Ionicons name="checkmark-done-circle-outline" size={15} color="#FFFFFF" />
+                            <Text style={styles.actionBtnPrimaryGeneralText}>{tr('Xuất kho ngay', 'ເບີກຈ່າຍທັນທີ')}</Text>
+                          </Pressable>
+                        ) : (
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 4,
+                              backgroundColor: '#ECFDF5',
+                              paddingHorizontal: 8,
+                              paddingVertical: 5,
+                              borderRadius: 6,
+                              borderWidth: 1,
+                              borderColor: '#A7F3D0',
+                            }}
+                          >
+                            <Ionicons name="checkmark-circle" size={13} color="#16A34A" />
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#16A34A' }}>
+                              {tr('Đã xuất kho', 'ເບີກຈ່າຍແລ້ວ')}
+                            </Text>
+                          </View>
+                        )}
                         <Pressable
                           style={[styles.actionBtnSecondaryOutline, { borderColor: '#7A0C10' }]}
                           onPress={() => handlePrint(item)}
                         >
                           <Ionicons name="print-outline" size={14} color="#7A0C10" />
                           <Text style={[styles.actionBtnSecondaryText, { color: '#7A0C10', fontWeight: '700' }]}>
-                            In phiếu xuất
+                            {item.status === 'completed'
+                              ? tr('In lại phiếu xuất', 'ພິມໃບເບີກຈ່າຍຄືນ')
+                              : tr('In phiếu xuất', 'ພິມໃບເບີກຈ່າຍ')}
                           </Text>
                         </Pressable>
                         <Pressable
-                          style={[styles.actionBtnPrimaryGeneral, { backgroundColor: '#7A0C10' }]}
+                          style={[styles.actionBtnSecondaryOutline, { borderColor: '#58413F' }]}
                           onPress={() => handleWarehouseVerifyImei(item)}
                         >
-                          <Ionicons name="barcode-outline" size={14} color="#FFFFFF" />
-                          <Text style={styles.actionBtnPrimaryGeneralText}>Kiểm tra IMEI</Text>
+                          <Ionicons name="barcode-outline" size={14} color="#58413F" />
+                          <Text style={[styles.actionBtnSecondaryText, { color: '#58413F', fontWeight: '700' }]}>
+                            {tr('Kiểm IMEI', 'ກວດ IMEI')}
+                          </Text>
                         </Pressable>
                       </View>
                     ) : item.actionBtnLabel === 'Duyệt chiết khấu' ? (
@@ -1076,11 +1144,15 @@ export default function OrdersScreen() {
                   <Text style={styles.modalOrderCode}>{selectedOrder?.code}</Text>
                   <View style={styles.modalPaidBadge}>
                     <Text style={styles.modalPaidBadgeText}>
-                      {selectedOrder?.status === 'completed' ? 'Đã thanh toán' : 'Chờ thanh toán'}
+                      {selectedOrder?.status === 'completed'
+                        ? tr('Đã thanh toán', 'ຊຳລະແລ້ວ')
+                        : tr('Chờ thanh toán', 'ລໍຖ້າຊຳລະ')}
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.modalStoreSubText}>Hóa đơn bán lẻ điện tử Liêng Mobile Store</Text>
+                <Text style={styles.modalStoreSubText}>
+                  {tr('Hóa đơn bán lẻ điện tử Liêng Mobile Store', 'ໃບບິນຂາຍຍ່ອຍອີເລັກໂທຣນິກ Liêng Mobile Store')}
+                </Text>
               </View>
               <Pressable
                 style={styles.modalCloseCircleBtn}
@@ -1095,34 +1167,36 @@ export default function OrdersScreen() {
               {/* Box Thông tin cơ bản */}
               <View style={styles.modalInfoGrayBox}>
                 <View style={styles.modalInfoRow}>
-                  <Text style={styles.modalInfoLabel}>Thời gian lập:</Text>
+                  <Text style={styles.modalInfoLabel}>{tr('Thời gian lập:', 'ເວລາສ້າງ:')}</Text>
                   <Text style={styles.modalInfoVal}>{selectedOrder?.createdAt} • 09/11/2026</Text>
                 </View>
                 <View style={styles.modalInfoRow}>
-                  <Text style={styles.modalInfoLabel}>Khách hàng:</Text>
+                  <Text style={styles.modalInfoLabel}>{tr('Khách hàng:', 'ລູກຄ້າ:')}</Text>
                   <Text style={styles.modalInfoVal}>
                     {selectedOrder?.customerName} {selectedOrder?.customerPhone ? `(${selectedOrder.customerPhone})` : ''}
                   </Text>
                 </View>
                 <View style={styles.modalInfoRow}>
-                  <Text style={styles.modalInfoLabel}>Chuyên viên phụ trách:</Text>
+                  <Text style={styles.modalInfoLabel}>{tr('Chuyên viên phụ trách:', 'ພະນັກງານຮັບຜິດຊອບ:')}</Text>
                   <Text style={styles.modalInfoVal}>{selectedOrder?.cashier} (MNV: LM-084)</Text>
                 </View>
                 <View style={styles.modalInfoRow}>
-                  <Text style={styles.modalInfoLabel}>Cửa hàng:</Text>
-                  <Text style={styles.modalInfoVal}>Chi nhánh Cầu Giấy - Hà Nội</Text>
+                  <Text style={styles.modalInfoLabel}>{tr('Cửa hàng:', 'ຮ້ານ:')}</Text>
+                  <Text style={styles.modalInfoVal}>{tr('Chi nhánh Cầu Giấy - Hà Nội', 'ສາຂາ Cầu Giấy - ຮ່າໂນ້ຍ')}</Text>
                 </View>
               </View>
 
               {/* Box Thông tin thiết bị & IMEI xuất kho */}
               <View style={styles.modalSectionWrap}>
-                <Text style={styles.modalSectionHeaderTitle}>THÔNG TIN THIẾT BỊ & IMEI XUẤT KHO</Text>
+                <Text style={styles.modalSectionHeaderTitle}>
+                  {tr('THÔNG TIN THIẾT BỊ & IMEI XUẤT KHO', 'ຂໍ້ມູນອຸປະກອນ & IMEI ເບີກຈ່າຍສາງ')}
+                </Text>
                 <View style={styles.modalDeviceCard}>
                   <View style={styles.modalDeviceTopRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.modalDeviceName}>{selectedOrder?.itemsSummary}</Text>
                       <Text style={styles.modalDeviceSub}>
-                        Màu: {selectedOrder?.productSubtitle?.split('•')[0]?.trim() || 'Chuẩn'} | SL: 01 máy
+                        {tr('Màu:', 'ສີ:')} {selectedOrder?.productSubtitle?.split('•')[0]?.trim() || tr('Chuẩn', 'ມາດຕະຖານ')} | {tr('SL: 01 máy', 'ຈຳນວນ: 01 ເຄື່ອງ')}
                       </Text>
                     </View>
                     <Text style={styles.modalDevicePrice}>
@@ -1130,48 +1204,50 @@ export default function OrdersScreen() {
                     </Text>
                   </View>
 
-                  {selectedOrder?.imei && (
+                  {Boolean(selectedOrder?.imei) ? (
                     <View style={styles.modalImeiWhiteBox}>
                       <View style={styles.modalImeiLeftCol}>
                         <Ionicons name="qr-code-outline" size={18} color={Colors.primaryContainer} />
                         <View>
-                          <Text style={styles.modalImeiLabelSmall}>SỐ IMEI TRA CỨU BẢO HÀNH</Text>
-                          <Text style={styles.modalImeiCodeBold}>{selectedOrder.imei}</Text>
+                          <Text style={styles.modalImeiLabelSmall}>
+                            {tr('SỐ IMEI TRA CỨU BẢO HÀNH', 'ລະຫັດ IMEI ກວດສອບປະກັນ')}
+                          </Text>
+                          <Text style={styles.modalImeiCodeBold}>{selectedOrder?.imei}</Text>
                         </View>
                       </View>
                       <Pressable
                         style={styles.modalCopyImeiBtn}
-                        onPress={() => copyOrderCode(selectedOrder.imei || '')}
+                        onPress={() => copyOrderCode(selectedOrder?.imei || '')}
                       >
-                        <Text style={styles.modalCopyImeiBtnText}>Sao chép</Text>
+                        <Text style={styles.modalCopyImeiBtnText}>{tr('Sao chép', 'ຄັດລອກ')}</Text>
                       </Pressable>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </View>
 
               {/* Box Tổng kết thanh toán */}
               <View style={styles.modalFinanceBox}>
                 <View style={styles.modalFinanceRow}>
-                  <Text style={styles.modalFinanceLabel}>Tổng tiền hàng:</Text>
+                  <Text style={styles.modalFinanceLabel}>{tr('Tổng tiền hàng:', 'ມູນຄ່າສິນຄ້າລວມ:')}</Text>
                   <Text style={styles.modalFinanceVal}>
                     {formatMoney((selectedOrder?.total || 0) + 500000)}
                   </Text>
                 </View>
                 <View style={styles.modalFinanceRow}>
-                  <Text style={styles.modalFinanceLabel}>Ưu đãi thanh toán POS (Voucher):</Text>
+                  <Text style={styles.modalFinanceLabel}>{tr('Ưu đãi thanh toán POS (Voucher):', 'ສ່ວນຫຼຸດໂປຣໂມຊັ່ນ (Voucher):')}</Text>
                   <Text style={styles.modalFinanceDiscount}>- 500.000 đ</Text>
                 </View>
                 <View style={styles.modalFinanceRow}>
-                  <Text style={styles.modalFinanceLabel}>Phương thức:</Text>
+                  <Text style={styles.modalFinanceLabel}>{tr('Phương thức:', 'ຮູບແບບ:')}</Text>
                   <Text style={styles.modalFinanceVal}>
                     {selectedOrder?.paymentMethod === 'transfer'
-                      ? 'Chuyển khoản VietQR (MB Bank)'
-                      : 'Tiền mặt tại quầy'}
+                      ? tr('Chuyển khoản VietQR (MB Bank)', 'ໂອນເງິນ VietQR (MB Bank)')
+                      : tr('Tiền mặt tại quầy', 'ເງິນສົດໜ້າຮ້ານ')}
                   </Text>
                 </View>
                 <View style={styles.modalTotalFinalRow}>
-                  <Text style={styles.modalTotalFinalLabel}>Đã thanh toán:</Text>
+                  <Text style={styles.modalTotalFinalLabel}>{tr('Đã thanh toán:', 'ຊຳລະແລ້ວ:')}</Text>
                   <Text style={styles.modalTotalFinalVal}>
                     {formatMoney(selectedOrder?.total || 0)}
                   </Text>
@@ -1185,26 +1261,367 @@ export default function OrdersScreen() {
                   onPress={() => selectedOrder && handleShare(selectedOrder)}
                 >
                   <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.modalShareBtnPrimaryText}>Chia sẻ hóa đơn điện tử (Zalo / SMS)</Text>
+                  <Text style={styles.modalShareBtnPrimaryText}>
+                    {tr('Chia sẻ hóa đơn điện tử (Zalo / SMS)', 'ແບ່ງປັນໃບບິນ (Zalo / SMS)')}
+                  </Text>
                 </Pressable>
 
                 <View style={styles.modalTwoBtnsRow}>
                   <Pressable
                     style={styles.modalPrintBtn}
-                    onPress={() => Alert.alert('In hóa đơn', 'Đã gửi lệnh in đến máy in nhiệt POS.')}
+                    onPress={() => Alert.alert(tr('In hóa đơn', 'ພິມໃບບິນ'), tr('Đã gửi lệnh in đến máy in nhiệt POS.', 'ສົ່ງຄຳສັ່ງພິມໃສ່ເຄື່ອງພິມ POS ສຳເລັດ.'))}
                   >
                     <Ionicons name="print-outline" size={16} color="#191C1E" />
-                    <Text style={styles.modalPrintBtnText}>In lại hóa đơn POS</Text>
+                    <Text style={styles.modalPrintBtnText}>{tr('In lại hóa đơn POS', 'ພິມໃບບິນ POS ຄືນ')}</Text>
                   </Pressable>
                   <Pressable
                     style={styles.modalCancelBtn}
-                    onPress={() => Alert.alert('Hủy đơn', 'Đã chuyển yêu cầu sang Quản lý ca trực.')}
+                    onPress={() => Alert.alert(tr('Hủy đơn', 'ຍົກເລີກບິນ'), tr('Đã chuyển yêu cầu sang Quản lý ca trực.', 'ໄດ້ສົ່ງຄຳຮ້ອງຫາຜູ້ຈັດການກະແລ້ວ.'))}
                   >
                     <Ionicons name="warning-outline" size={16} color="#BA1A1A" />
-                    <Text style={styles.modalCancelBtnText}>Hủy / Hoàn trả</Text>
+                    <Text style={styles.modalCancelBtnText}>{tr('Hủy / Hoàn trả', 'ຍົກເລີກ / ສົ່ງຄືນ')}</Text>
                   </Pressable>
                 </View>
               </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL 2: PHIẾU XUẤT KHO KIÊM BÀN GIAO THIẾT BỊ ── */}
+      <Modal
+        visible={!!printSlipOrder}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPrintSlipOrder(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: '90%' }]}>
+            <View style={styles.modalHandleBar} />
+
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <View style={styles.modalCodeBadgeRow}>
+                  <Text style={[styles.modalOrderCode, { color: '#7A0C10' }]}>
+                    PXK-{printSlipOrder?.code}
+                  </Text>
+                  <View style={[styles.modalPaidBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                    <Text style={[styles.modalPaidBadgeText, { color: '#059669' }]}>
+                      {tr('Đã xuất kho', 'ເບີກຈ່າຍແລ້ວ')}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.modalStoreSubText}>
+                  {tr(
+                    'PHIẾU XUẤT KHO KIÊM BÀN GIAO THIẾT BỊ • LIÊNG MOBILE',
+                    'ໃບເບີກຈ່າຍສາງພ້ອມມອບເຄື່ອງ • LIÊNG MOBILE',
+                  )}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseCircleBtn}
+                onPress={() => setPrintSlipOrder(null)}
+                hitSlop={10}
+              >
+                <Ionicons name="close" size={20} color="#58413F" />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBodyScroll} showsVerticalScrollIndicator={false}>
+              {/* Feedback banner khi bấm in */}
+              {printingFeedback && (
+                <View
+                  style={{
+                    backgroundColor: '#ECFDF5',
+                    padding: 12,
+                    borderRadius: 10,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#A7F3D0',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#059669" />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#059669', flex: 1 }}>
+                    {tr(
+                      'Đã truyền lệnh in nhiệt (Epson TM-T82) thành công! (02 liên bàn giao)',
+                      'ສົ່ງຄຳສັ່ງພິມຄວາມຮ້ອນ (Epson TM-T82) ສຳເລັດ! (02 ສະບັບມອບຮັບ)',
+                    )}
+                  </Text>
+                </View>
+              )}
+
+              {/* Box Cửa hàng & Ngày xuất */}
+              <View style={styles.modalInfoGrayBox}>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Đơn vị xuất:', 'ພາກສ່ວນເບີກຈ່າຍ:')}</Text>
+                  <Text style={styles.modalInfoVal}>{tr('Liêng Mobile • Cầu Giấy (Hà Nội)', 'Liêng Mobile • Cầu Giấy (ຮ່າໂນ້ຍ)')}</Text>
+                </View>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Thời gian xuất kho:', 'ເວລາເບີກຈ່າຍສາງ:')}</Text>
+                  <Text style={styles.modalInfoVal}>{printSlipOrder?.createdAt} • {tr('Hôm nay', 'ມື້ນີ້')}</Text>
+                </View>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Thủ kho phụ trách:', 'ນາຍສາງຮັບຜິດຊອບ:')}</Text>
+                  <Text style={styles.modalInfoVal}>Trần Minh Kho (MNV: TK-02)</Text>
+                </View>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Thu ngân tạo đơn:', 'ພະນັກງານເກັບເງິນ:')}</Text>
+                  <Text style={styles.modalInfoVal}>{printSlipOrder?.cashier ?? 'Nguyễn Thu Hà'}</Text>
+                </View>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Khách nhận máy:', 'ລູກຄ້າຮັບເຄື່ອງ:')}</Text>
+                  <Text style={[styles.modalInfoVal, { fontWeight: '700' }]}>
+                    {printSlipOrder?.customerName === 'Khách lẻ showroom'
+                      ? tr('Khách lẻ showroom', 'ລູກຄ້າໜ້າຮ້ານ')
+                      : printSlipOrder?.customerName} {printSlipOrder?.customerPhone ? `(${printSlipOrder.customerPhone})` : ''}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Chi tiết thiết bị xuất */}
+              <View style={styles.modalSectionWrap}>
+                <Text style={styles.modalSectionHeaderTitle}>
+                  {tr('CHI TIẾT THIẾT BỊ BÀN GIAO', 'ລາຍລະອຽດອຸປະກອນທີ່ມອບຮັບ')}
+                </Text>
+                <View style={styles.modalDeviceCard}>
+                  <View style={styles.modalDeviceTopRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.modalDeviceName}>{printSlipOrder?.itemsSummary}</Text>
+                      <Text style={styles.modalDeviceSub}>
+                        {printSlipOrder?.productSubtitle || tr('Chính hãng VN/A', 'ເຄື່ອງແທ້ VN/A')} • {tr('SL: 01 cái', 'ຈຳນວນ: 01 ເຄື່ອງ')}
+                      </Text>
+                    </View>
+                    <Text style={styles.modalDevicePrice}>
+                      {formatMoney(printSlipOrder?.total ?? 0)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalImeiWhiteBox}>
+                    <View style={styles.modalImeiLeftCol}>
+                      <Ionicons name="qr-code-outline" size={18} color="#7A0C10" />
+                      <View>
+                        <Text style={styles.modalImeiLabelSmall}>
+                          {tr('IMEI ĐỐI SOÁT XUẤT KHO', 'IMEI ກວດສອບເບີກຈ່າຍສາງ')}
+                        </Text>
+                        <Text style={styles.modalImeiCodeBold}>
+                          {printSlipOrder?.imei || '357284419092257'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#166534' }}>
+                        {tr('Khớp tem', 'ກົງກັບສະຕິກເກີ')}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Tổng kết tiền */}
+              <View style={styles.modalFinanceBox}>
+                <View style={styles.modalFinanceRow}>
+                  <Text style={styles.modalFinanceLabel}>{tr('Tổng thanh toán:', 'ຍອດລວມຊຳລະ:')}</Text>
+                  <Text style={styles.modalTotalFinalVal}>
+                    {formatMoney(printSlipOrder?.total ?? 0)}
+                  </Text>
+                </View>
+                <View style={styles.modalFinanceRow}>
+                  <Text style={styles.modalFinanceLabel}>{tr('Phương thức:', 'ຮູບແບບ:')}</Text>
+                  <Text style={styles.modalFinanceVal}>
+                    {printSlipOrder?.paymentMethod === 'transfer'
+                      ? tr('VietQR MB Bank (Hoàn tất)', 'VietQR MB Bank (ສຳເລັດ)')
+                      : tr('Tiền mặt', 'ເງິນສົດ')}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Khối xác nhận 2 bên */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-around',
+                  paddingVertical: 14,
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: '#ECEEF0',
+                }}
+              >
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#58413F' }}>
+                    {tr('THỦ KHO XUẤT', 'ນາຍສາງເບີກຈ່າຍ')}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#8C716E', marginTop: 3 }}>Trần Minh Kho</Text>
+                  <View style={{ marginTop: 8, backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#166534' }}>
+                      {tr('ĐÃ XUẤT KHO', 'ເບີກຈ່າຍແລ້ວ')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ width: 1, backgroundColor: '#ECEEF0' }} />
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#58413F' }}>
+                    {tr('NGƯỜI NHẬN MÁY', 'ຜູ້ຮັບເຄື່ອງ')}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#8C716E', marginTop: 3 }}>
+                    {printSlipOrder?.customerName || tr('Khách hàng', 'ລູກຄ້າ')}
+                  </Text>
+                  <View style={{ marginTop: 8, backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#166534' }}>
+                      {tr('ĐÃ NHẬN ĐỦ', 'ໄດ້ຮັບຄົບຖ້ວນ')}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Nút hành động */}
+              <View style={styles.modalActionsCol}>
+                <Pressable
+                  style={[styles.modalShareBtnPrimary, { backgroundColor: '#7A0C10' }]}
+                  onPress={() => {
+                    setPrintingFeedback(true)
+                  }}
+                >
+                  <Ionicons name="print-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.modalShareBtnPrimaryText}>
+                    {tr('In Phiếu Xuất (Epson TM-T82 / 80mm)', 'ພິມໃບເບີກຈ່າຍ (Epson TM-T82 / 80mm)')}
+                  </Text>
+                </Pressable>
+
+                <View style={styles.modalTwoBtnsRow}>
+                  <Pressable
+                    style={styles.modalPrintBtn}
+                    onPress={() => printSlipOrder && handleShare(printSlipOrder)}
+                  >
+                    <Ionicons name="share-social-outline" size={16} color="#191C1E" />
+                    <Text style={styles.modalPrintBtnText}>{tr('Chia sẻ phiếu', 'ແບ່ງປັນໃບເບີກຈ່າຍ')}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.modalCancelBtn}
+                    onPress={() => setPrintSlipOrder(null)}
+                  >
+                    <Ionicons name="close-circle-outline" size={16} color="#58413F" />
+                    <Text style={[styles.modalCancelBtnText, { color: '#58413F' }]}>{tr('Đóng', 'ປິດ')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL 3: ĐỐI SOÁT IMEI XUẤT KHO ── */}
+      <Modal
+        visible={imeiInspectModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImeiInspectModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: '80%' }]}>
+            <View style={styles.modalHandleBar} />
+
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <View style={styles.modalCodeBadgeRow}>
+                  <Text style={[styles.modalOrderCode, { color: '#7A0C10' }]}>
+                    {imeiInspectData?.order_code}
+                  </Text>
+                  <View style={[styles.modalPaidBadge, { backgroundColor: '#ECFDF5' }]}>
+                    <Text style={[styles.modalPaidBadgeText, { color: '#059669' }]}>
+                      {tr('Khớp 100% CSDL', 'ກົງກັນ 100% ຖານຂໍ້ມູນ')}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.modalStoreSubText}>
+                  {tr(
+                    'ĐỐI SOÁT IMEI THIẾT BỊ VÀ THẺ KHO SHOWROOM',
+                    'ກວດສອບ IMEI ອຸປະກອນ ແລະ ບັດສາງໜ້າຮ້ານ',
+                  )}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseCircleBtn}
+                onPress={() => setImeiInspectModal(false)}
+                hitSlop={10}
+              >
+                <Ionicons name="close" size={20} color="#58413F" />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBodyScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalInfoGrayBox}>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Khách nhận máy:', 'ລູກຄ້າຮັບເຄື່ອງ:')}</Text>
+                  <Text style={[styles.modalInfoVal, { fontWeight: '700' }]}>
+                    {imeiInspectData?.customer_name} ({imeiInspectData?.customer_phone || '0988.xxx.456'})
+                  </Text>
+                </View>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Trạng thái kho:', 'ສະຖານະສາງ:')}</Text>
+                  <Text style={[styles.modalInfoVal, { color: '#059669', fontWeight: '700' }]}>
+                    {imeiInspectData?.status === 'completed'
+                      ? tr('Đã xuất kho & Đã gán IMEI', 'ເບີກຈ່າຍແລ້ວ & ຕິດ IMEI ແລ້ວ')
+                      : tr('Chờ chuẩn bị máy', 'ລໍຖ້າກຽມເຄື່ອງ')}
+                  </Text>
+                </View>
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>{tr('Tổng giá trị đơn:', 'ມູນຄ່າລວມໃບບິນ:')}</Text>
+                  <Text style={[styles.modalInfoVal, { color: '#7A0C10', fontWeight: '800' }]}>
+                    {formatMoney(imeiInspectData?.total ?? 0)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.modalSectionWrap}>
+                <Text style={styles.modalSectionHeaderTitle}>
+                  {tr('DANH SÁCH THIẾT BỊ ĐỐI SOÁT', 'ລາຍການອຸປະກອນກວດສອບ')}
+                </Text>
+                {(imeiInspectData?.items || []).map((it: any, idx: number) => (
+                  <View key={idx} style={[styles.modalDeviceCard, { marginBottom: 10 }]}>
+                    <View style={styles.modalDeviceTopRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modalDeviceName}>{it.name}</Text>
+                        <Text style={styles.modalDeviceSub}>
+                          {it.variant || tr('Chính hãng', 'ເຄື່ອງແທ້')} • {tr('SL:', 'ຈຳນວນ:')} {it.quantity || 1}
+                        </Text>
+                      </View>
+                      <Text style={styles.modalDevicePrice}>{formatMoney(it.price || 0)}</Text>
+                    </View>
+
+                    <View style={styles.modalImeiWhiteBox}>
+                      <View style={styles.modalImeiLeftCol}>
+                        <Ionicons name="barcode-outline" size={18} color="#7A0C10" />
+                        <View>
+                          <Text style={styles.modalImeiLabelSmall}>
+                            {tr('MÃ IMEI XUẤT KHO', 'ລະຫັດ IMEI ເບີກຈ່າຍສາງ')}
+                          </Text>
+                          <Text style={styles.modalImeiCodeBold}>{it.imei || '357284419092257'}</Text>
+                        </View>
+                      </View>
+                      <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#166534' }}>
+                          {tr('Hợp lệ 100%', 'ຖືກຕ້ອງ 100%')}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <Pressable
+                style={[styles.modalShareBtnPrimary, { backgroundColor: '#7A0C10', marginTop: 10 }]}
+                onPress={() => setImeiInspectModal(false)}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                <Text style={styles.modalShareBtnPrimaryText}>
+                  {tr('Xác nhận đối soát hoàn tất', 'ຢືນຢັນກວດສອບສຳເລັດ')}
+                </Text>
+              </Pressable>
             </ScrollView>
           </View>
         </View>

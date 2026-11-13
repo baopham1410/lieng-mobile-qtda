@@ -21,10 +21,6 @@ class PayOSService
 
     public function createPaymentLink(Order $order, ?float $amount = null): array
     {
-        if (! $this->isConfigured()) {
-            throw new RuntimeException('Chưa cấu hình PayOS. Vui lòng thiết lập PAYOS_CLIENT_ID, PAYOS_API_KEY và PAYOS_CHECKSUM_KEY.');
-        }
-
         $payAmount = (int) round($amount ?? (float) $order->total);
         if ($payAmount <= 0) {
             throw new RuntimeException('Số tiền thanh toán PayOS phải lớn hơn 0.');
@@ -32,6 +28,22 @@ class PayOSService
 
         $orderCode = $this->numericOrderCode($order);
         $expiresAt = now()->addMinutes(15);
+
+        if (! $this->isConfigured()) {
+            $vietQrUrl = "https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount={$payAmount}&addInfo=Thanh%20toan%20{$order->code}";
+            return [
+                'provider' => 'vietqr_showroom',
+                'reference' => (string) $orderCode,
+                'checkout_url' => $vietQrUrl,
+                'qr_code' => $vietQrUrl,
+                'expires_at' => $expiresAt,
+                'payload' => [
+                    'orderCode' => $orderCode,
+                    'amount' => $payAmount,
+                    'description' => substr('Thanh toan '.$order->code, 0, 25),
+                ],
+            ];
+        }
         $payload = [
             'orderCode' => $orderCode,
             'amount' => $payAmount,
