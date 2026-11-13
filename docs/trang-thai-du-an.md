@@ -286,6 +286,7 @@ Chi tiết: [`mobile-expo/README.md`](../mobile-expo/README.md)
 
 ## 7. Liên kết tài liệu khác
 
+- [**Product Backlog chi tiết & Quản lý dự án**](./product-backlog.md)
 - [**Dự án Quán (cửa hàng nhỏ)**](./quan-project.md)
 - [**Bot chat nội bộ (kế hoạch)**](./chatbot-internal.md)
 - [README tổng](../README.md)
