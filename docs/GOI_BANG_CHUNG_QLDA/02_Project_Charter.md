@@ -91,9 +91,11 @@ Nhóm gồm **3 thành viên** phân công chuyên trách 5 vai trò kỹ thuậ
 
 | Thành viên | Vai trò kỹ thuật đảm nhiệm | Trách nhiệm chính trong dự án | % Đóng góp |
 |---|---|---|:---:|
-| **Phạm Quốc Bảo** (`baopham1410`) | **Technical Lead / System Architect & Backend/AI Lead** | Quyết định kiến trúc hệ thống, thiết kế DB, xây dựng Backend API Laravel, Dịch vụ AI AutoGrade (:8091), Chatbot RAG (:8090) và CI/CD GitHub Actions. | **40%** |
-| **Nguyễn Thị Hồng** (`Chimsedinang605`) | **Project Manager (PM) / Scrum Master & Frontend Lead** | Điều phối tiến độ, quản trị GitHub Projects Board, duy trì Sprint Backlog, phát triển Web Admin POS, module Quán và kiểm soát Definition of Done. | **35%** |
-| **Khổng Thị Lệ Giang** (`ktlgiang`) | **Mobile Lead / UI/UX Designer & QA Test Engineer** | Thiết kế giao diện Mobile Stitch UI/UX, phát triển các component Mobile App, xây dựng Ma trận kiểm thử QA Matrix, QA Checklist và điều phối UAT với khách hàng. | **25%** |
+| **Phạm Quốc Bảo** (`baopham1410`) | **Technical Lead / System Architect & Backend/AI Lead** | Quyết định kiến trúc hệ thống, thiết kế DB, xây dựng Backend API Laravel, Dịch vụ AI AutoGrade (:8091), Chatbot RAG (:8090) và CI/CD GitHub Actions. | **33.3%** |
+| **Nguyễn Thị Hồng** (`Chimsedinang605`) | **Project Manager (PM) / Scrum Master & Frontend Lead** | Điều phối tiến độ, quản trị GitHub Projects Board, duy trì Sprint Backlog, phát triển Web Admin POS, module Quán và kiểm soát Definition of Done. | **33.3%** |
+| **Khổng Thị Lệ Giang** (`ktlgiang`) | **Mobile Lead / UI/UX Designer & QA Test Engineer** | Thiết kế giao diện Mobile Stitch UI/UX, phát triển các component Mobile App, xây dựng Ma trận kiểm thử QA Matrix, QA Checklist và điều phối UAT với khách hàng. | **33.4%** |
+
+> **Tổng tỷ lệ đóng góp:** **100% (Chia đều cả 3 thành viên: ~33.3% / người)**. Nhóm thống nhất đánh giá cả 3 thành viên đều tham gia tích cực, trách nhiệm và hoàn thành trọn vẹn khối lượng công việc được giao.
 
 ## 11. Quản trị Rủi ro ban đầu (Tóm tắt)
 

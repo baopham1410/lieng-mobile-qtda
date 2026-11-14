@@ -12,10 +12,10 @@
 - **Tên đề tài:** Nền tảng Quản trị Chuỗi Cửa hàng Điện thoại & Phân hệ Tiện ích Liêng Mobile
 - **Sourcing Pathway:** Pathway 1 — Kế thừa & song hành Đồ án chuyên ngành Web, Mobile & Kỹ thuật AI
 - **Giảng viên phụ trách:** TS. Nguyễn Thanh Tuấn — Khoa Khoa học Máy tính (VKU)
-- **Đội ngũ thực hiện (3 thành viên):**
-  - **Phạm Quốc Bảo** (`baopham1410`) — Technical Lead / System Architect & Backend/AI Lead (40%)
-  - **Nguyễn Thị Hồng** (`Chimsedinang605`) — Project Manager / Scrum Master & Frontend Lead (35%)
-  - **Khổng Thị Lệ Giang** (`ktlgiang`) — Mobile Lead / UI/UX Designer & QA Test Engineer (25%)
+- **Đội ngũ thực hiện (3 thành viên — Đóng góp đồng đều 100%):**
+  - **Phạm Quốc Bảo** (`baopham1410`) — Technical Lead / System Architect & Backend/AI Lead (33.3%)
+  - **Nguyễn Thị Hồng** (`Chimsedinang605`) — Project Manager / Scrum Master & Frontend Lead (33.3%)
+  - **Khổng Thị Lệ Giang** (`ktlgiang`) — Mobile Lead / UI/UX Designer & QA Test Engineer (33.4%)
 - **GitHub Repository:** `github.com/baopham1410/lieng-mobile-qtda` (Public, Branch Protection enabled)
 
 ---
