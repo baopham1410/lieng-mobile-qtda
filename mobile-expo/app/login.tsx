@@ -61,14 +61,14 @@ const DEMO_ACCOUNTS = [
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets()
-  const { user, loading, login } = useAuth()
+  const { user, loading, login, customerLogin } = useAuth()
   const { t, locale, setLocale } = useLocale()
 
   const [mode, setMode] = useState<'customer' | 'staff'>('customer')
 
   // Customer state
-  const [customerPhone, setCustomerPhone] = useState('0988.777.666')
-  const [customerName, setCustomerName] = useState('Trần Quốc Bảo')
+  const [customerPhone, setCustomerPhone] = useState('0383435600')
+  const [customerName, setCustomerName] = useState('Phạm Quốc Bảo')
 
   // Staff state
   const [email, setEmail] = useState('banhang@liengmobile.com')
@@ -87,12 +87,21 @@ export default function LoginScreen() {
     })
   }, [])
 
-  function handleCustomerLogin() {
+  async function handleCustomerLogin() {
+    if (!customerPhone.trim()) {
+      setError('Vui lòng nhập số điện thoại')
+      return
+    }
     setSubmitting(true)
-    setTimeout(() => {
+    setError('')
+    try {
+      await customerLogin(customerPhone.trim(), customerName.trim())
+      router.replace('/(customer)/(tabs)/account' as any)
+    } catch (e: any) {
+      setError(e?.message || 'Không thể đăng nhập. Vui lòng kiểm tra kết nối.')
+    } finally {
       setSubmitting(false)
-      router.replace('/(customer)/(tabs)/home' as any)
-    }, 300)
+    }
   }
 
   function handleGuestBrowse() {

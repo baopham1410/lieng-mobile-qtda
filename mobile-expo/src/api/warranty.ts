@@ -21,6 +21,39 @@ export async function lookupWarrantyByImei(imei: string) {
   return data
 }
 
+export interface CustomerWarrantyItem {
+  id: number
+  imei: string
+  deviceName: string
+  color: string
+  package: string
+  startDate: string
+  endDate: string
+  daysRemaining: number
+  status: string
+  statusBadge: string
+  orderCode: string
+  repairs: Array<{
+    id: number
+    description: string
+    date?: string
+    cost: number
+    technician: string
+  }>
+}
+
+export async function fetchMyWarranties(phone?: string): Promise<CustomerWarrantyItem[]> {
+  const url = phone ? `/customer/my-warranties?phone=${encodeURIComponent(phone)}` : '/customer/my-warranties'
+  const { data } = await api.get(url)
+  return data.data || []
+}
+
+export async function fetchMyInquiries(phone?: string) {
+  const url = phone ? `/customer/my-inquiries?phone=${encodeURIComponent(phone)}` : '/customer/my-inquiries'
+  const { data } = await api.get(url)
+  return data.data || []
+}
+
 export async function createWarrantyRepair(payload: {
   imei: string
   symptom: string

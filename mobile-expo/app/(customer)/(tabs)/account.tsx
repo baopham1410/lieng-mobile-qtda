@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Modal,
@@ -15,30 +16,63 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { fetchMyWarranties, type CustomerWarrantyItem } from '@/api/warranty'
 import { Radius } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 
 export default function CustomerAccountScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, customer, logout } = useAuth()
 
-  const [customerName, setCustomerName] = useState(user?.name || 'Quý khách hàng')
-  const [customerPhone, setCustomerPhone] = useState(user?.phone || '0988.777.666')
+  const initialName = customer?.name || user?.name || 'phạm quốc bảo'
+  const initialPhone = customer?.phone || user?.phone || '0383435600'
+  const memberTier = customer?.tier || 'Thành viên Bạc'
+  const loyaltyPoints = customer?.loyalty_points ?? 0
+
+  const [customerName, setCustomerName] = useState(initialName)
+  const [customerPhone, setCustomerPhone] = useState(initialPhone)
+  const [warranties, setWarranties] = useState<CustomerWarrantyItem[]>([])
+  const [loadingWarranties, setLoadingWarranties] = useState(false)
+
   const [showEditModal, setShowEditModal] = useState(false)
   const [tempName, setTempName] = useState(customerName)
   const [tempPhone, setTempPhone] = useState(customerPhone)
   const [showPolicyModal, setShowPolicyModal] = useState(false)
 
+  useEffect(() => {
+    if (customer?.name) setCustomerName(customer.name)
+    if (customer?.phone) setCustomerPhone(customer.phone)
+    else if (user?.phone) setCustomerPhone(user.phone)
+  }, [customer, user])
+
+  const loadWarranties = useCallback(async (phoneTarget?: string) => {
+    const p = phoneTarget || customerPhone || '0383435600'
+    setLoadingWarranties(true)
+    try {
+      const list = await fetchMyWarranties(p)
+      setWarranties(list)
+    } catch (e) {
+      console.warn('Lỗi tải danh sách bảo hành:', e)
+    } finally {
+      setLoadingWarranties(false)
+    }
+  }, [customerPhone])
+
+  useEffect(() => {
+    loadWarranties(customerPhone)
+  }, [customerPhone, loadWarranties])
+
   const handleSaveProfile = () => {
     setCustomerName(tempName)
     setCustomerPhone(tempPhone)
     setShowEditModal(false)
-    Alert.alert('Thành công', 'Đã cập nhật thông tin cá nhân!')
+    loadWarranties(tempPhone)
+    Alert.alert('Thành công', 'Đã cập nhật thông tin và tải lại hồ sơ bảo hành!')
   }
 
   const handleLogout = async () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
+    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất tài khoản khách hàng?', [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Đăng xuất',
@@ -82,16 +116,16 @@ export default function CustomerAccountScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarWrap}>
             <Text style={styles.avatarLetter}>
-              {customerName.charAt(0).toUpperCase()}
+              {customerName ? customerName.charAt(0).toUpperCase() : 'B'}
             </Text>
           </View>
 
           <View style={{ flex: 1 }}>
             <Text style={styles.customerName}>{customerName}</Text>
-            <Text style={styles.customerPhone}>SĐT: {customerPhone}</Text>
+            <Text style={styles.customerPhone}>SĐT liên kết: {customerPhone}</Text>
             <View style={styles.memberBadge}>
               <Ionicons name="sparkles" size={13} color="#D97706" />
-              <Text style={styles.memberBadgeText}>Hội viên Vàng · 450 điểm</Text>
+              <Text style={styles.memberBadgeText}>{memberTier} · {loyaltyPoints} điểm tích lũy</Text>
             </View>
           </View>
 
@@ -105,6 +139,115 @@ export default function CustomerAccountScreen() {
           >
             <Ionicons name="create-outline" size={18} color="#7A0C10" />
           </Pressable>
+        </View>
+
+        {/* ── SECTION: THIẾT BỊ CỦA TÔI & BẢO HÀNH ĐIỆN TỬ (OMNICHANNEL) ── */}
+        <View style={styles.warrantySection}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="shield-checkmark" size={18} color="#7A0C10" />
+              <Text style={styles.sectionTitle}>Thiết bị & Bảo hành điện tử</Text>
+            </View>
+            <Pressable
+              style={styles.refreshBtn}
+              onPress={() => loadWarranties(customerPhone)}
+              hitSlop={8}
+            >
+              <Ionicons name="refresh" size={16} color="#7A0C10" />
+              <Text style={styles.refreshBtnText}>Làm mới</Text>
+            </Pressable>
+          </View>
+
+          {loadingWarranties ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="small" color="#7A0C10" />
+              <Text style={styles.loadingText}>Đang tra cứu thiết bị trên hệ thống Lieng Cloud...</Text>
+            </View>
+          ) : warranties.length > 0 ? (
+            warranties.map((w) => (
+              <View key={w.id || w.imei} style={styles.deviceCard}>
+                <View style={styles.deviceHeader}>
+                  <View style={styles.deviceIconCircle}>
+                    <Ionicons name="phone-portrait" size={20} color="#7A0C10" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.deviceName}>{w.deviceName}</Text>
+                    <Text style={styles.deviceSub}>
+                      IMEI: <Text style={styles.imeiCode}>{w.imei}</Text> · {w.color}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    w.status === 'active' ? styles.statusBadgeActive : styles.statusBadgeExpired,
+                  ]}>
+                    <Text style={[
+                      styles.statusBadgeText,
+                      w.status === 'active' ? styles.statusBadgeTextActive : styles.statusBadgeTextExpired,
+                    ]}>
+                      {w.statusBadge}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardDivider} />
+
+                <View style={styles.deviceMetaRow}>
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>Gói bảo hành</Text>
+                    <Text style={styles.metaValue} numberOfLines={1}>{w.package}</Text>
+                  </View>
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>Hạn bảo hành</Text>
+                    <Text style={styles.metaValue}>{w.endDate}</Text>
+                  </View>
+                </View>
+
+                {w.orderCode ? (
+                  <View style={styles.orderTagRow}>
+                    <Ionicons name="receipt-outline" size={13} color="#64748B" />
+                    <Text style={styles.orderTagText}>Mã hóa đơn gốc: {w.orderCode}</Text>
+                  </View>
+                ) : null}
+
+                <View style={styles.deviceActionRow}>
+                  <Pressable
+                    style={styles.outlineActionBtn}
+                    onPress={() => router.replace('/(customer)/(tabs)/warranty' as any)}
+                  >
+                    <Ionicons name="search-outline" size={14} color="#7A0C10" />
+                    <Text style={styles.outlineActionText}>Tra cứu IMEI</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.primaryActionBtn}
+                    onPress={() => {
+                      Linking.openURL('tel:0900000000').catch(() => {
+                        Alert.alert('Hotline Kỹ Thuật', 'Gọi ngay: 0900.000.000 để yêu cầu bảo hành nhanh tại quầy.')
+                      })
+                    }}
+                  >
+                    <Ionicons name="construct" size={14} color="#FFFFFF" />
+                    <Text style={styles.primaryActionText}>Yêu cầu bảo hành</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyWarrantyCard}>
+              <Ionicons name="shield-outline" size={32} color="#94A3B8" />
+              <Text style={styles.emptyTitle}>Chưa có thiết bị bảo hành liên kết</Text>
+              <Text style={styles.emptySub}>
+                Khi quý khách mua máy tại Showroom Lieng Mobile và đăng ký SĐT {customerPhone}, thiết bị sẽ tự động xuất hiện tại đây.
+              </Text>
+              <Pressable
+                style={styles.quickSearchBtn}
+                onPress={() => router.replace('/(customer)/(tabs)/warranty' as any)}
+              >
+                <Ionicons name="search" size={14} color="#7A0C10" />
+                <Text style={styles.quickSearchBtnText}>Tra cứu bằng 15 số IMEI</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Lối tắt dịch vụ */}
@@ -133,8 +276,8 @@ export default function CustomerAccountScreen() {
               <Ionicons name="shield-checkmark" size={20} color="#0284C7" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.menuTitle}>Máy & Bảo hành của tôi</Text>
-              <Text style={styles.menuSub}>Tra cứu 15 số IMEI chính hãng</Text>
+              <Text style={styles.menuTitle}>Tra cứu bảo hành toàn quốc</Text>
+              <Text style={styles.menuSub}>Kiểm tra 15 số IMEI hoặc số điện thoại</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
           </Pressable>
@@ -188,7 +331,7 @@ export default function CustomerAccountScreen() {
           </Pressable>
         </View>
 
-        {/* Chuyển sang chế độ nhân viên */}
+        {/* Chuyển sang chế độ nhân viên & Đăng xuất */}
         <View style={styles.menuGroup}>
           <Pressable style={styles.switchStaffCard} onPress={handleSwitchToStaff}>
             <Ionicons name="briefcase-outline" size={22} color="#7A0C10" />
@@ -201,7 +344,7 @@ export default function CustomerAccountScreen() {
 
           <Pressable style={styles.logoutBtn} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={20} color="#DC2626" />
-            <Text style={styles.logoutBtnText}>Đăng xuất tài khoản</Text>
+            <Text style={styles.logoutBtnText}>Đăng xuất tài khoản khách hàng</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -210,7 +353,10 @@ export default function CustomerAccountScreen() {
       <Modal visible={showEditModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalBoxTitle}>Chỉnh sửa thông tin cá nhân</Text>
+            <Text style={styles.modalBoxTitle}>Chỉnh sửa số điện thoại & thông tin</Text>
+            <Text style={styles.modalBoxSub}>
+              Hệ thống sẽ tự động đồng bộ máy và phiếu bảo hành điện tử theo số điện thoại này.
+            </Text>
 
             <TextInput
               style={styles.modalInput}
@@ -221,7 +367,7 @@ export default function CustomerAccountScreen() {
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Số điện thoại"
+              placeholder="Số điện thoại đăng ký bảo hành"
               keyboardType="phone-pad"
               value={tempPhone}
               onChangeText={setTempPhone}
@@ -239,7 +385,7 @@ export default function CustomerAccountScreen() {
                 style={[styles.modalBtn, { backgroundColor: '#7A0C10' }]}
                 onPress={handleSaveProfile}
               >
-                <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>Lưu thông tin</Text>
+                <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>Lưu & Đồng bộ</Text>
               </Pressable>
             </View>
           </View>
@@ -360,6 +506,224 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FECACA',
   },
+  // Warranty Section
+  warrantySection: {
+    gap: 10,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191C1E',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  refreshBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  refreshBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  loadingBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  deviceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  deviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deviceIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFF1F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deviceName: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  deviceSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  imeiCode: {
+    fontWeight: '700',
+    color: '#1E293B',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusBadgeExpired: {
+    backgroundColor: '#F1F5F9',
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  statusBadgeTextActive: {
+    color: '#15803D',
+  },
+  statusBadgeTextExpired: {
+    color: '#64748B',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
+  deviceMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+  },
+  metaCol: {
+    flex: 1,
+  },
+  metaLabel: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  metaValue: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 2,
+  },
+  orderTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  orderTagText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  deviceActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  outlineActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FFF8F8',
+  },
+  outlineActionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  primaryActionBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#7A0C10',
+  },
+  primaryActionText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  emptyWarrantyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 4,
+  },
+  emptySub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  quickSearchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    marginTop: 6,
+  },
+  quickSearchBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  // Menu Groups
   menuGroup: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -448,6 +812,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#191C1E',
+  },
+  modalBoxSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 16,
   },
   modalInput: {
     backgroundColor: '#F8FAFC',

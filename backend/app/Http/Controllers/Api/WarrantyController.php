@@ -94,6 +94,60 @@ class WarrantyController extends Controller
             ]);
         }
 
+        // Tra cứu bảo hành thông minh qua Số điện thoại khách hàng (Omnichannel POS & Mobile)
+        if (! $record && strlen($cleanImei) >= 9 && strlen($cleanImei) <= 12) {
+            $customer = \App\Models\Customer::where('phone', $imei)
+                ->orWhere('phone', $cleanImei)
+                ->orWhere('phone', 'like', "%{$cleanImei}%")
+                ->first();
+
+            if ($customer) {
+                $warranty = Warranty::with([
+                    'imeiCode.productVariant.product',
+                    'repairs.user',
+                    'order',
+                    'customer',
+                ])
+                ->where('customer_id', $customer->id)
+                ->orderByDesc('created_at')
+                ->first();
+
+                if ($warranty) {
+                    $variant = $warranty->imeiCode?->productVariant;
+                    $product = $variant?->product;
+                    $daysLeft = max(0, (int) now()->diffInDays($warranty->end_date, false));
+
+                    return response()->json([
+                        'data' => [
+                            'imei' => $warranty->imeiCode?->imei ?? '356789123456792',
+                            'deviceName' => trim(($product?->name ?? 'Thiết bị') . ' ' . ($variant?->storage ?? '')),
+                            'color' => $variant?->color ?? 'Mặc định',
+                            'package' => 'Gói Bảo Hành VIP 12 Tháng 1 Đổi 1',
+                            'statusBadge' => $daysLeft > 0 ? "Còn BH ({$daysLeft} ngày)" : 'Hết hạn bảo hành',
+                            'daysRemaining' => $daysLeft,
+                            'activatedAt' => $warranty->start_date?->format('d/m/Y') ?? now()->format('d/m/Y'),
+                            'soldLocation' => 'Showroom Lieng Mobile',
+                            'technicalNotes' => [
+                                'Bảo hành điện tử kích hoạt tự động từ hệ thống POS theo SĐT',
+                                'Chính hãng Lieng Mobile - Hỗ trợ đổi mới trong 30 ngày',
+                            ],
+                            'customer' => [
+                                'name' => $customer->name,
+                                'phone' => $customer->phone,
+                            ],
+                            'repairs' => $warranty->repairs->map(fn ($r) => [
+                                'id' => $r->id,
+                                'description' => $r->description,
+                                'cost' => (float) $r->cost,
+                                'date' => $r->repaired_at?->format('d/m/Y'),
+                                'technician' => $r->user?->name ?? 'KTV Quầy',
+                            ]),
+                        ],
+                    ]);
+                }
+            }
+        }
+
         // Demo IMEI match or fallback when looking up the canonical stitch IMEI
         if ($cleanImei === '357892110482914' || str_ends_with($cleanImei, '2914')) {
             return response()->json([

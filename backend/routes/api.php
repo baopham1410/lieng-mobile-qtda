@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\CustomerPortalController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PosController;
@@ -34,6 +35,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/customer-login', [CustomerPortalController::class, 'login']);
+    Route::get('/customer/my-warranties', [CustomerPortalController::class, 'myWarranties']);
+    Route::get('/customer/my-inquiries', [CustomerPortalController::class, 'myInquiries']);
     Route::post('/payments/payos/webhook', PayOSWebhookController::class);
 
     // Cửa hàng online (public)
