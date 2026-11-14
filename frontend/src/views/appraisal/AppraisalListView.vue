@@ -125,12 +125,18 @@ const filteredRows = computed(() => {
       row.model,
       row.storage,
       row.imei,
+      row.accessoriesNote,
       row.aiResult?.grade,
     ]
       .join(' ')
       .toLowerCase()
     const matchQ = !q || hay.includes(q.replace(/\s/g, '')) || hay.includes(q)
-    const matchStatus = selectedStatus.value === 'all' || row.status === selectedStatus.value
+    const matchStatus =
+      selectedStatus.value === 'all'
+        ? true
+        : selectedStatus.value === 'app_appointment'
+          ? (row.accessoriesNote || '').includes('[Lịch hẹn Mobile App]')
+          : row.status === selectedStatus.value
     return matchQ && matchStatus
   })
 })
@@ -152,6 +158,10 @@ const deductionTotal = computed(() =>
   (aiResult.value?.deductions || []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
 )
 
+const appAppointmentCount = computed(
+  () => rows.value.filter((r) => (r.accessoriesNote || '').includes('[Lịch hẹn Mobile App]')).length,
+)
+
 const statCards = computed(() => [
   {
     label: 'Tổng phiếu',
@@ -162,7 +172,15 @@ const statCards = computed(() => [
     valueClass: 'text-[#111118]',
   },
   {
-    label: 'Nháp',
+    label: 'Lịch hẹn App',
+    value: appAppointmentCount.value,
+    hint: 'Khách đặt từ Mobile App',
+    icon: 'draft',
+    iconColor: 'text-rose-600 bg-rose-50',
+    valueClass: 'text-rose-600 font-extrabold',
+  },
+  {
+    label: 'Chờ định giá (Draft)',
     value: stats.value.draft,
     hint: 'Chưa chạy / chưa báo giá',
     icon: 'draft',
@@ -884,6 +902,7 @@ onMounted(loadInitialData)
               class="w-full rounded-[16px] border border-red-200 bg-red-50/60 px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:border-red-400"
             >
               <option value="all">Tất cả</option>
+              <option value="app_appointment">📅 Lịch hẹn Mobile App</option>
               <option v-for="s in APPRAISAL_STATUSES" :key="s.key" :value="s.key">{{ s.label }}</option>
             </select>
           </div>
@@ -946,7 +965,15 @@ onMounted(loadInitialData)
               @click="openDetail(row)"
             >
               <td class="px-6 py-4">
-                <p class="font-bold text-[#111118]">{{ row.code }}</p>
+                <div class="flex items-center gap-1.5">
+                  <p class="font-bold text-[#111118]">{{ row.code }}</p>
+                  <span
+                    v-if="(row.accessoriesNote || '').includes('[Lịch hẹn Mobile App]')"
+                    class="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700"
+                  >
+                    📅 App
+                  </span>
+                </div>
                 <p class="font-mono text-[11px] text-violet-600">{{ row.ticketQr }}</p>
                 <p class="text-xs text-slate-500">{{ formatAppraisalDate(row.createdAt) }}</p>
               </td>
@@ -958,7 +985,17 @@ onMounted(loadInitialData)
                     · Pin {{ row.aiResult.ocr.batteryPercent ?? row.aiResult.ocr.battery_percent }}%
                   </span>
                 </p>
-                <p class="text-xs text-slate-500">{{ row.customerName || 'Khách vãng lai' }}</p>
+                <p class="text-xs font-medium text-slate-600">
+                  {{ row.customerName || 'Khách vãng lai' }}
+                  <span v-if="row.customerPhone" class="text-slate-400">· {{ row.customerPhone }}</span>
+                </p>
+                <p
+                  v-if="(row.accessoriesNote || '').includes('[Lịch hẹn Mobile App]')"
+                  class="mt-1 line-clamp-1 text-[11px] font-semibold text-rose-600"
+                  :title="row.accessoriesNote"
+                >
+                  📍 {{ row.accessoriesNote.replace('[Lịch hẹn Mobile App]', '').trim() }}
+                </p>
               </td>
               <td class="px-6 py-4">
                 <p class="text-xs font-semibold text-slate-600">{{ photoCountLabel(row) }}</p>
@@ -1922,6 +1959,14 @@ onMounted(loadInitialData)
         </div>
 
         <div class="space-y-5 p-6">
+          <div
+            v-if="selected.accessoriesNote"
+            class="rounded-[14px] border border-rose-200 bg-rose-50/80 p-3.5 text-xs text-slate-800"
+          >
+            <p class="font-bold text-rose-700">📍 Thông tin đặt lịch hẹn Mobile App / Ghi chú:</p>
+            <p class="mt-1 font-medium text-slate-700">{{ selected.accessoriesNote }}</p>
+          </div>
+
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="rounded-[14px] bg-red-50/80 px-4 py-3 ring-1 ring-red-100">
               <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Khách</p>

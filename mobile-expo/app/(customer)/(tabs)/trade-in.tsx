@@ -298,23 +298,34 @@ export default function CustomerTradeInScreen() {
             ? 'Loại 3 (Cấn / Vỡ kính)'
             : 'Loại 4 (Hỏng nặng)'
 
-    const newTicketCode = `TC-${Date.now().toString().slice(-6)}`
+    let finalCode = `TC-${Date.now().toString().slice(-6)}`
 
     try {
-      await api.post('/store/inquiry', {
+      const res = await api.post('/store/inquiry', {
         name: customerName.trim() || 'Khách đặt lịch thu cũ',
         phone: customerPhone.trim(),
         product_name: `${deviceDisplayName} [${gradeLabel}]`,
         topic: 'Đặt lịch hẹn thu cũ',
-        note: `Định giá: ${isCustom ? 'Định giá trực tiếp tại showroom' : `${estimatedPrice.toLocaleString('vi-VN')} đ`} | Lịch hẹn: ${chosenTimeSlot.label} | Tại: ${chosenBranch.name} | Ghi chú: ${note}`,
+        note: `Định giá: ${isCustom ? 'Định giá trực tiếp tại showroom' : `${estimatedPrice.toLocaleString('vi-VN')} đ`} | Lịch hẹn: ${chosenTimeSlot.label} | Tại: ${chosenBranch.name} | Ghi chú: ${note.trim() || 'Không'}`,
         items: [{ productId: 1, qty: 1 }],
+        brand: isCustom
+          ? (customModelName.toLowerCase().includes('iphone') ? 'Apple' : customModelName.toLowerCase().includes('samsung') ? 'Samsung' : 'Khác')
+          : currentDevice?.brand || 'Khác',
+        model: isCustom ? customModelName.trim() : (currentDevice?.model || deviceDisplayName),
+        storage: isCustom ? (customStorage.trim() || '256GB') : (currentDevice?.storage || '256GB'),
+        suggested_price: estimatedPrice,
+        branch_name: chosenBranch.name,
+        time_slot: chosenTimeSlot.label,
       })
+      if (res.data?.data?.appraisalCode) {
+        finalCode = res.data.data.appraisalCode
+      }
     } catch (e: any) {
       console.warn('Inquiry API log:', e?.message)
     }
 
     const newTicket = {
-      code: newTicketCode,
+      code: finalCode,
       device: deviceDisplayName,
       isCustom: isCustom,
       gradeLabel: gradeLabel,

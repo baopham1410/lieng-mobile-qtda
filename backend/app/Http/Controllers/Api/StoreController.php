@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\AppraisalTicket;
 use App\Models\Category;
 use App\Models\CustomerInquiry;
 use App\Models\ImeiCode;
@@ -129,25 +130,120 @@ class StoreController extends Controller
             'status' => 'ringing',
         ]);
 
+        $isTradeIn = str_contains(mb_strtolower($topic), 'thu cũ') || str_contains(mb_strtolower($topic), 'trade');
+        $appraisalTicket = null;
+
+        if ($isTradeIn) {
+            $todayPrefixTD = 'TD-'.now()->format('ymd').'-';
+            $latestTicket = AppraisalTicket::where('code', 'like', $todayPrefixTD.'%')->orderByDesc('id')->first();
+            $tSeq = 1;
+            if ($latestTicket && preg_match('/-(\d+)$/', $latestTicket->code, $m)) {
+                $tSeq = ((int) $m[1]) + 1;
+            }
+            $ticketCode = $todayPrefixTD.str_pad((string) $tSeq, 3, '0', STR_PAD_LEFT);
+            while (AppraisalTicket::where('code', $ticketCode)->exists()) {
+                $tSeq++;
+                $ticketCode = $todayPrefixTD.str_pad((string) $tSeq, 3, '0', STR_PAD_LEFT);
+            }
+
+            $brand = $request->input('brand');
+            $model = $request->input('model');
+            $storage = $request->input('storage');
+            $suggestedPrice = (float) $request->input('suggested_price', 0);
+            $branchName = $request->input('branch_name', 'Chi nhánh chính');
+            $timeSlot = $request->input('time_slot', 'Trong ngày');
+
+            if (! $brand || ! $model) {
+                $rawProduct = $productName ?: '';
+                if (preg_match('/iPhone|Apple|iPad/i', $rawProduct)) {
+                    $brand = 'Apple';
+                } elseif (preg_match('/Samsung|Galaxy/i', $rawProduct)) {
+                    $brand = 'Samsung';
+                } elseif (preg_match('/Xiaomi|Redmi/i', $rawProduct)) {
+                    $brand = 'Xiaomi';
+                } elseif (preg_match('/Oppo/i', $rawProduct)) {
+                    $brand = 'OPPO';
+                } else {
+                    $brand = 'Khác';
+                }
+
+                $clean = preg_replace('/\[.*?\]/', '', $rawProduct);
+                if (preg_match('/(\d+\s*(?:GB|TB))/i', $clean, $sm)) {
+                    $storage = strtoupper(str_replace(' ', '', $sm[1]));
+                    $clean = str_ireplace($sm[0], '', $clean);
+                } else {
+                    $storage = '256GB';
+                }
+                $model = trim($clean) ?: 'Điện thoại cũ';
+            }
+
+            $noteStr = $validated['note'] ?? '';
+            $accessoriesNote = "[Lịch hẹn Mobile App] {$branchName} · {$timeSlot}";
+            if (! empty($noteStr)) {
+                $accessoriesNote .= " · {$noteStr}";
+            }
+
+            $defaultHardware = [
+                'touch' => 'pass', 'audio' => 'pass', 'vibrate' => 'pass', 'faceId' => 'pass',
+                'icloudClean' => true, 'powerOn' => true, 'wifi' => 'pass', 'bluetooth' => 'pass',
+                'backCamera' => 'pass', 'frontCamera' => 'pass', 'volumeDown' => 'pass',
+                'volumeUp' => 'pass', 'earpiece' => 'pass', 'speaker' => 'pass', 'callMic' => 'pass',
+                'videoMic' => 'pass', 'simSignal' => 'pass', 'screenDisplay' => 'good',
+                'screenAuthenticity' => 'original', 'glassCondition' => 'good', 'powerButton' => 'good',
+                'trueTone' => 'yes', 'charging' => 'good',
+            ];
+
+            $appraisalTicket = AppraisalTicket::create([
+                'code' => $ticketCode,
+                'ticket_qr' => 'AG-'.$ticketCode,
+                'customer_name' => $validated['name'],
+                'customer_phone' => $validated['phone'],
+                'brand' => $brand,
+                'model' => $model,
+                'storage' => $storage ?: '256GB',
+                'suggested_price' => $suggestedPrice,
+                'final_price' => $suggestedPrice,
+                'accessories_note' => $accessoriesNote,
+                'hardware_checks' => $defaultHardware,
+                'status' => 'draft',
+                'ai_ran' => false,
+                'ai_mode' => 'pending',
+            ]);
+        }
+
         try {
             $admin = User::first();
             if ($admin) {
-                ActivityLog::create([
-                    'user_id' => $admin->id,
-                    'action' => 'customer_inquiry',
-                    'module' => 'consult',
-                    'title' => 'Khách hàng đặt giữ máy: '.$validated['name'],
-                    'description' => ($productName ? "Mẫu: {$productName} · " : '')."SĐT: {$validated['phone']}".(! empty($validated['note']) ? " · Ghi chú: {$validated['note']}" : ''),
-                    'link' => '/consult',
-                ]);
+                if ($isTradeIn) {
+                    ActivityLog::create([
+                        'user_id' => $admin->id,
+                        'action' => 'trade_in_appointment',
+                        'module' => 'appraisal',
+                        'title' => 'Lịch hẹn thu cũ: '.$validated['name'],
+                        'description' => ($productName ? "Mẫu: {$productName} · " : '')."SĐT: {$validated['phone']}".(! empty($validated['note']) ? " · {$validated['note']}" : ''),
+                        'link' => '/appraisal',
+                    ]);
+                } else {
+                    ActivityLog::create([
+                        'user_id' => $admin->id,
+                        'action' => 'customer_inquiry',
+                        'module' => 'consult',
+                        'title' => 'Khách hàng đặt giữ máy: '.$validated['name'],
+                        'description' => ($productName ? "Mẫu: {$productName} · " : '')."SĐT: {$validated['phone']}".(! empty($validated['note']) ? " · Ghi chú: {$validated['note']}" : ''),
+                        'link' => '/consult',
+                    ]);
+                }
             }
         } catch (\Throwable $e) {}
 
         return response()->json([
-            'message' => 'Đã ghi nhận yêu cầu tư vấn & giữ máy. Nhân viên sẽ liên hệ trong ít phút.',
+            'message' => $isTradeIn
+                ? 'Đã đặt lịch hẹn thu cũ thành công. Showroom đã sẵn sàng đón tiếp quý khách.'
+                : 'Đã ghi nhận yêu cầu tư vấn & giữ máy. Nhân viên sẽ liên hệ trong ít phút.',
             'data' => [
                 'id' => $inquiry->id,
                 'reference' => $inquiry->code,
+                'appraisalCode' => $appraisalTicket?->code,
                 'customer' => $inquiry->customer_name,
                 'phone' => $inquiry->customer_phone,
                 'productName' => $inquiry->product_name,
