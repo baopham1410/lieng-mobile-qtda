@@ -4,8 +4,8 @@
 
 Mo thu muc:
 
-`docs/GOI_BANG_CHUNG_QLDA/NOP_DRIVE_DOCX_V3/`  
-(bản cập nhật mới nhất chuẩn 3 thành viên Bảo - Hồng - Giang, tích hợp 100% AI AutoGrade, Chatbot RAG và Mobile B2C — dùng V3)
+`docs/GOI_BANG_CHUNG_QLDA/NOP_DRIVE_DOCX_V4/`  
+(Bản chính thức hoàn chỉnh V4 — chuẩn 3 thành viên: Bảo 33.4%, Hồng 33.3%, Giang 33.3% — dùng thư mục V4 này)
 
 | File | Dinh dang |
 |------|-----------|

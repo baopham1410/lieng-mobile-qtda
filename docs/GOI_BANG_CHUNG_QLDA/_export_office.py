@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
 ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "NOP_DRIVE_DOCX_V3"
+OUT = ROOT / "NOP_DRIVE_DOCX_V4"
 OUT.mkdir(exist_ok=True)
 
 MD_FILES = [
