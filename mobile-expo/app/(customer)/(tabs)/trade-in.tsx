@@ -204,6 +204,18 @@ const TRADE_IN_DEVICES: DevicePricing[] = [
 
 const BRANDS = ['Tất cả', 'Apple', 'Samsung', 'Xiaomi', 'OPPO']
 
+const BRANCHES = [
+  { id: 'q5', name: 'Showroom 1: 123 Nguyễn Văn Cừ, Q.5', address: '123 Nguyễn Văn Cừ, P.4, Q.5, TP.HCM' },
+  { id: 'q3', name: 'Showroom 2: 456 Lê Văn Sỹ, Q.3', address: '456 Lê Văn Sỹ, P.14, Q.3, TP.HCM' },
+]
+
+const TIME_SLOTS = [
+  { id: 'today_morning', label: 'Hôm nay: 08:30 – 12:00' },
+  { id: 'today_afternoon', label: 'Hôm nay: 13:30 – 17:30' },
+  { id: 'today_evening', label: 'Hôm nay: 18:00 – 21:00' },
+  { id: 'tomorrow', label: 'Ngày mai: Cả ngày (8:30 – 21:00)' },
+]
+
 export default function CustomerTradeInScreen() {
   const insets = useSafeAreaInsets()
   const { user } = useAuth()
@@ -212,18 +224,16 @@ export default function CustomerTradeInScreen() {
   const [selectedDeviceId, setSelectedDeviceId] = useState('apple-iphone-15-pmax-256')
   const [selectedGrade, setSelectedGrade] = useState<'grade1' | 'grade2' | 'grade3' | 'grade4'>('grade1')
   
-  // Thông tin nhận tiền
-  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'cash'>('bank')
-  const [bankName, setBankName] = useState('Vietcombank')
-  const [bankAccount, setBankAccount] = useState('')
-  const [accountHolder, setAccountHolder] = useState(user?.name || '')
+  // Thông tin đặt lịch hẹn
+  const [selectedBranchId, setSelectedBranchId] = useState('q5')
+  const [selectedTimeSlotId, setSelectedTimeSlotId] = useState('today_afternoon')
   
   // Thông tin liên hệ
   const [customerName, setCustomerName] = useState(user?.name || '')
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '0383435600')
   const [note, setNote] = useState('')
   
-  // Danh sách phiếu thật lưu trữ
+  // Danh sách phiếu lịch hẹn
   const [submittedTickets, setSubmittedTickets] = useState<any[]>([])
 
   useEffect(() => {
@@ -244,15 +254,12 @@ export default function CustomerTradeInScreen() {
 
   const currentDevice = TRADE_IN_DEVICES.find((d) => d.id === selectedDeviceId) || TRADE_IN_DEVICES[0]
   const estimatedPrice = currentDevice.gradePrices[selectedGrade] || 0
+  const chosenBranch = BRANCHES.find((b) => b.id === selectedBranchId) || BRANCHES[0]
+  const chosenTimeSlot = TIME_SLOTS.find((s) => s.id === selectedTimeSlotId) || TIME_SLOTS[0]
 
   const handleCreateTicket = async () => {
     if (!customerPhone.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để tạo phiếu thu cũ.')
-      return
-    }
-
-    if (paymentMethod === 'bank' && !bankAccount.trim()) {
-      Alert.alert('Thiếu thông tin thanh toán', 'Vui lòng nhập Số tài khoản ngân hàng để nhận tiền chuyển khoản ngay sau khi thẩm định.')
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để tạo lịch hẹn thu cũ.')
       return
     }
 
@@ -269,11 +276,11 @@ export default function CustomerTradeInScreen() {
 
     try {
       await api.post('/store/inquiry', {
-        name: customerName.trim() || 'Khách thu cũ',
+        name: customerName.trim() || 'Khách đặt lịch thu cũ',
         phone: customerPhone.trim(),
         product_name: `${currentDevice.displayName} [${gradeLabel}]`,
-        topic: 'Thu mua máy cũ',
-        note: `Định giá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ | Nhận tiền: ${paymentMethod === 'bank' ? `${bankName} - ${bankAccount}` : 'Tiền mặt tại quầy'} | Ghi chú: ${note}`,
+        topic: 'Đặt lịch hẹn thu cũ',
+        note: `Định giá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ | Lịch hẹn: ${chosenTimeSlot.label} | Tại: ${chosenBranch.name} | Ghi chú: ${note}`,
         items: [{ productId: 1, qty: 1 }],
       })
     } catch (e: any) {
@@ -286,8 +293,9 @@ export default function CustomerTradeInScreen() {
       brand: currentDevice.brand,
       gradeLabel: gradeLabel,
       estimatePrice: estimatedPrice,
-      paymentMethod: paymentMethod === 'bank' ? `Chuyển khoản (${bankName} - ${bankAccount})` : 'Tiền mặt tại quầy',
-      status: 'Chờ mang máy tới quầy',
+      branch: chosenBranch.name,
+      timeSlot: chosenTimeSlot.label,
+      status: 'Đã đặt lịch hẹn',
       createdAt: new Date().toLocaleDateString('vi-VN'),
     }
 
@@ -296,8 +304,8 @@ export default function CustomerTradeInScreen() {
     await AsyncStorage.setItem('lieng_customer_tradein_tickets', JSON.stringify(updated))
 
     Alert.alert(
-      'Tạo phiếu thu cũ thành công 🎉',
-      `Mã phiếu: ${newTicket.code}\nThiết bị: ${newTicket.device}\nGiá thu mua ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\nBạn vui lòng mang máy đến Showroom Lieng Mobile (123 Nguyễn Văn Cừ, Q.5, TP.HCM). Kỹ thuật viên sẽ kiểm tra trực tiếp bằng máy quét AutoGrade trong 5 phút và thanh toán ngay!`,
+      'Đặt lịch hẹn thành công 🎉',
+      `Mã lịch hẹn: ${newTicket.code}\nThiết bị: ${newTicket.device}\nGiá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\n📍 Địa điểm: ${chosenBranch.name}\n⏰ Thời gian: ${chosenTimeSlot.label}\n\nNhân viên kỹ thuật showroom đã nhận thông tin và sẽ sẵn sàng đón tiếp bạn kiểm tra máy nhé!`,
     )
   }
 
@@ -305,8 +313,8 @@ export default function CustomerTradeInScreen() {
     <View style={styles.container}>
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
-        <Text style={styles.headerTitle}>Thu Mua Điện Thoại Cũ Giá Cao</Text>
-        <Text style={styles.headerSub}>Định giá minh bạch · Nhận tiền ngay trong 5 phút</Text>
+        <Text style={styles.headerTitle}>Đặt Lịch Hẹn Thu Mua Điện Thoại Cũ</Text>
+        <Text style={styles.headerSub}>Định giá tham khảo · Đặt lịch mang máy tới Showroom</Text>
       </View>
 
       <ScrollView
@@ -315,7 +323,7 @@ export default function CustomerTradeInScreen() {
       >
         {/* Banner 4 bước */}
         <View style={styles.stepsBanner}>
-          <Text style={styles.stepsTitle}>Quy Trình 4 Bước Thu Mua Minh Bạch</Text>
+          <Text style={styles.stepsTitle}>Quy Trình 4 Bước Đặt Lịch Hẹn</Text>
           <View style={styles.stepGrid}>
             <View style={styles.stepItem}>
               <View style={styles.stepNumBox}><Text style={styles.stepNum}>1</Text></View>
@@ -331,7 +339,7 @@ export default function CustomerTradeInScreen() {
             </View>
             <View style={styles.stepItem}>
               <View style={styles.stepNumBox}><Text style={styles.stepNum}>4</Text></View>
-              <Text style={styles.stepLabel}>Nhận tiền 5 phút</Text>
+              <Text style={styles.stepLabel}>Đặt lịch hẹn</Text>
             </View>
           </View>
         </View>
@@ -458,79 +466,76 @@ export default function CustomerTradeInScreen() {
 
         {/* ── BƯỚC 3: Giá thu mua ước tính ── */}
         <View style={styles.priceEstimateCard}>
-          <Text style={styles.estimateLabel}>GIÁ THU MUA ƯỚC TÍNH TẠI QUẦY</Text>
+          <Text style={styles.estimateLabel}>GIÁ THU MUA THAM KHẢO TẠI QUẦY</Text>
           <Text style={styles.estimateValue}>
             {estimatedPrice.toLocaleString('vi-VN')} đ
           </Text>
           <View style={styles.subsidyRow}>
-            <Ionicons name="flash" size={15} color="#059669" />
+            <Ionicons name="shield-checkmark" size={15} color="#065F46" />
             <Text style={styles.subsidyText}>
-              Thanh toán tức thì trong 5 phút sau khi kiểm tra máy
+              Định giá tham khảo · Kiểm tra máy trực tiếp tại Showroom
             </Text>
           </View>
           <Text style={styles.disclaimerText}>
-            * Mức giá trên áp dụng theo Bảng giá sàn chính thức của Lieng Mobile. Khi mang máy đến cửa hàng, kỹ thuật viên sẽ dùng camera AutoGrade kiểm tra ngoại quan 4 góc trong 5 phút để chốt giá thu mua minh bạch.
+            * Mức giá trên là giá tham khảo theo bảng giá niêm yết của Lieng Mobile. Khi bạn mang máy đến cửa hàng theo lịch hẹn, chuyên viên kỹ thuật sẽ kiểm tra máy trực tiếp để chốt giá chính thức với bạn.
           </Text>
         </View>
 
-        {/* ── BƯỚC 4: Hình thức nhận tiền & Thông tin liên hệ ── */}
+        {/* ── BƯỚC 4: Chọn Chi nhánh & Khung giờ hẹn ── */}
         <View style={styles.sectionCard}>
-          <Text style={styles.cardHeader}>Bước 4: Hình thức nhận tiền & Đặt lịch</Text>
+          <Text style={styles.cardHeader}>Bước 4: Đặt lịch hẹn mang máy tới Showroom</Text>
 
-          {/* Chọn nhận tiền */}
-          <View style={styles.paymentMethodRow}>
-            <Pressable
-              style={[styles.paymentMethodBtn, paymentMethod === 'bank' && styles.paymentMethodBtnActive]}
-              onPress={() => setPaymentMethod('bank')}
-            >
-              <Ionicons name="card" size={18} color={paymentMethod === 'bank' ? '#7A0C10' : '#64748B'} />
-              <Text style={[styles.paymentMethodText, paymentMethod === 'bank' && styles.paymentMethodTextActive]}>
-                Chuyển khoản VietQR
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.paymentMethodBtn, paymentMethod === 'cash' && styles.paymentMethodBtnActive]}
-              onPress={() => setPaymentMethod('cash')}
-            >
-              <Ionicons name="cash" size={18} color={paymentMethod === 'cash' ? '#7A0C10' : '#64748B'} />
-              <Text style={[styles.paymentMethodText, paymentMethod === 'cash' && styles.paymentMethodTextActive]}>
-                Tiền mặt tại quầy
-              </Text>
-            </Pressable>
+          {/* Chọn chi nhánh */}
+          <Text style={styles.inputLabel}>Chọn Showroom Lieng Mobile:</Text>
+          <View style={{ gap: 8 }}>
+            {BRANCHES.map((b) => {
+              const active = selectedBranchId === b.id
+              return (
+                <Pressable
+                  key={b.id}
+                  style={[styles.branchCard, active && styles.branchCardActive]}
+                  onPress={() => setSelectedBranchId(b.id)}
+                >
+                  <Ionicons
+                    name={active ? 'radio-button-on' : 'radio-button-off'}
+                    size={18}
+                    color="#7A0C10"
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.branchName, active && styles.branchNameActive]}>{b.name}</Text>
+                    <Text style={styles.branchAddress}>{b.address}</Text>
+                  </View>
+                </Pressable>
+              )
+            })}
           </View>
 
-          {/* Nếu chọn chuyển khoản: nhập STK */}
-          {paymentMethod === 'bank' && (
-            <View style={styles.bankBox}>
-              <Text style={styles.inputLabel}>Thông tin tài khoản nhận tiền:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Tên ngân hàng (VD: Vietcombank, MBBank, Techcombank)"
-                placeholderTextColor="#94A3B8"
-                value={bankName}
-                onChangeText={setBankName}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Số tài khoản ngân hàng (*)"
-                placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                value={bankAccount}
-                onChangeText={setBankAccount}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Tên chủ tài khoản"
-                placeholderTextColor="#94A3B8"
-                value={accountHolder}
-                onChangeText={setAccountHolder}
-              />
-            </View>
-          )}
+          {/* Chọn khung giờ hẹn */}
+          <Text style={[styles.inputLabel, { marginTop: 6 }]}>Chọn thời gian bạn sẽ tới:</Text>
+          <View style={styles.timeSlotGrid}>
+            {TIME_SLOTS.map((s) => {
+              const active = selectedTimeSlotId === s.id
+              return (
+                <Pressable
+                  key={s.id}
+                  style={[styles.timeSlotBtn, active && styles.timeSlotBtnActive]}
+                  onPress={() => setSelectedTimeSlotId(s.id)}
+                >
+                  <Ionicons
+                    name="time-outline"
+                    size={14}
+                    color={active ? '#7A0C10' : '#64748B'}
+                  />
+                  <Text style={[styles.timeSlotText, active && styles.timeSlotTextActive]}>
+                    {s.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
 
           {/* Thông tin liên hệ */}
-          <Text style={styles.inputLabel}>Số điện thoại liên hệ xác nhận:</Text>
+          <Text style={[styles.inputLabel, { marginTop: 6 }]}>Số điện thoại xác nhận lịch hẹn:</Text>
           <TextInput
             style={styles.input}
             placeholder="Số điện thoại (*)"
@@ -541,27 +546,27 @@ export default function CustomerTradeInScreen() {
           />
 
           <TextInput
-            style={[styles.input, { height: 50 }]}
-            placeholder="Ghi chú thêm (VD: Máy còn hộp zin, cáp sạc zin...)"
+            style={[styles.input, { height: 48 }]}
+            placeholder="Ghi chú thêm (VD: Máy còn hộp, cáp sạc...)"
             placeholderTextColor="#94A3B8"
             value={note}
             onChangeText={setNote}
           />
 
           <Pressable style={styles.submitBtn} onPress={handleCreateTicket}>
-            <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-            <Text style={styles.submitBtnText}>TẠO PHIẾU THU CŨ & NHẬN MÃ HẸN</Text>
+            <Ionicons name="calendar" size={18} color="#FFFFFF" />
+            <Text style={styles.submitBtnText}>XÁC NHẬN ĐẶT LỊCH HẸN THU CŨ</Text>
           </Pressable>
         </View>
 
-        {/* ── Danh sách phiếu thu cũ của tôi ── */}
+        {/* ── Danh sách phiếu lịch hẹn của tôi ── */}
         <View style={styles.historyCard}>
-          <Text style={styles.historyHeader}>Phiếu Thu Cũ Của Bạn ({submittedTickets.length})</Text>
+          <Text style={styles.historyHeader}>Lịch Hẹn Thu Cũ Của Bạn ({submittedTickets.length})</Text>
           {submittedTickets.length === 0 ? (
             <View style={styles.emptyTickets}>
-              <Ionicons name="receipt-outline" size={32} color="#94A3B8" />
-              <Text style={styles.emptyTicketsText}>Bạn chưa tạo phiếu thu cũ nào.</Text>
-              <Text style={styles.emptyTicketsSub}>Chọn máy và bấm tạo phiếu ở trên để nhận mã hẹn mang máy tới quầy.</Text>
+              <Ionicons name="calendar-outline" size={32} color="#94A3B8" />
+              <Text style={styles.emptyTicketsText}>Bạn chưa có lịch hẹn thu cũ nào.</Text>
+              <Text style={styles.emptyTicketsSub}>Chọn dòng máy và đặt lịch hẹn ở trên để được hỗ trợ nhanh nhất tại quầy.</Text>
             </View>
           ) : (
             submittedTickets.map((t, idx) => (
@@ -574,7 +579,14 @@ export default function CustomerTradeInScreen() {
                 </View>
                 <Text style={styles.ticketModel}>{t.device}</Text>
                 <Text style={styles.ticketGrade}>{t.gradeLabel}</Text>
-                <Text style={styles.ticketPayment}>{t.paymentMethod}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Ionicons name="location-outline" size={13} color="#64748B" />
+                  <Text style={styles.ticketMetaText}>{t.branch}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="time-outline" size={13} color="#64748B" />
+                  <Text style={styles.ticketMetaText}>{t.timeSlot}</Text>
+                </View>
                 <View style={styles.ticketBottom}>
                   <Text style={styles.ticketPrice}>
                     {t.estimatePrice.toLocaleString('vi-VN')} đ
@@ -804,40 +816,60 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 15,
   },
-  paymentMethodRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  paymentMethodBtn: {
-    flex: 1,
+  branchCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+    gap: 10,
+    padding: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
   },
-  paymentMethodBtnActive: {
+  branchCardActive: {
     borderColor: '#7A0C10',
     backgroundColor: '#FFF8F8',
   },
-  paymentMethodText: {
-    fontSize: 11.5,
+  branchName: {
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#191C1E',
   },
-  paymentMethodTextActive: {
+  branchNameActive: {
     color: '#7A0C10',
     fontWeight: '800',
   },
-  bankBox: {
-    gap: 8,
-    backgroundColor: '#F1F5F9',
-    padding: 12,
-    borderRadius: 12,
+  branchAddress: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  timeSlotGrid: {
+    gap: 6,
+  },
+  timeSlotBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  timeSlotBtnActive: {
+    borderColor: '#7A0C10',
+    backgroundColor: '#FFF8F8',
+  },
+  timeSlotText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  timeSlotTextActive: {
+    color: '#7A0C10',
+    fontWeight: '800',
   },
   inputLabel: {
     fontSize: 12,
@@ -917,7 +949,7 @@ const styles = StyleSheet.create({
     color: '#7A0C10',
   },
   ticketStatusBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -925,7 +957,7 @@ const styles = StyleSheet.create({
   ticketStatusText: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#065F46',
   },
   ticketModel: {
     fontSize: 13,
@@ -936,16 +968,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
   },
-  ticketPayment: {
+  ticketMetaText: {
     fontSize: 11,
-    color: '#059669',
-    fontWeight: '600',
+    color: '#64748B',
   },
   ticketBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#ECEEF0',
     paddingTop: 6,
