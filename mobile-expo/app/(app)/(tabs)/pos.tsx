@@ -442,9 +442,10 @@ export default function PosScreen() {
   const [matchedCustomer, setMatchedCustomer] = useState<posApi.PosCustomer | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
 
-  // Thanh toán
-  const [discount, setDiscount] = useState<number>(1000000)
-  const [ownerDiscountInput, setOwnerDiscountInput] = useState<string>('1.000.000')
+  // Thanh toán (đồng bộ mặc định 0đ và AppMoneyInput giống Web Admin)
+  const [discount, setDiscount] = useState<number>(0)
+  const [discountInput, setDiscountInput] = useState<string>('')
+  const [ownerDiscountInput, setOwnerDiscountInput] = useState<string>('0')
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'mixed'>('transfer')
   const [cashAmount, setCashAmount] = useState<string>('')
   const [checkingOut, setCheckingOut] = useState(false)
@@ -452,6 +453,7 @@ export default function PosScreen() {
   const handleApplyOwnerDiscount = () => {
     const cleanNum = Number(ownerDiscountInput.replace(/\./g, '').replace(/,/g, '').trim()) || 0
     setDiscount(cleanNum)
+    setDiscountInput(cleanNum > 0 ? formatMoney(cleanNum) : '')
     Alert.alert(
       tr('Áp dụng đặc quyền', 'ນຳໃຊ້ສິດພິເສດ'),
       tr(
@@ -760,6 +762,8 @@ export default function PosScreen() {
 
   const clearCart = () => {
     setCart([])
+    setDiscount(0)
+    setDiscountInput('')
   }
 
   // Tính tổng giỏ hàng
@@ -938,6 +942,8 @@ export default function PosScreen() {
         setPendingCheckoutSnapshot(null)
         setPaymentModalPhase('pending')
         setCart([])
+        setDiscount(0)
+        setDiscountInput('')
         setCartModalOpen(false)
         setCustomerPhone('')
         setCustomerName('')
@@ -972,6 +978,7 @@ export default function PosScreen() {
           if (pendingCheckoutSnapshot) {
             setCart(pendingCheckoutSnapshot.cart)
             setDiscount(pendingCheckoutSnapshot.discount)
+            setDiscountInput(pendingCheckoutSnapshot.discount > 0 ? formatMoney(pendingCheckoutSnapshot.discount) : '')
             setPaymentMethod(pendingCheckoutSnapshot.paymentMethod)
             setCashAmount(pendingCheckoutSnapshot.cashAmount)
             setCustomerPhone(pendingCheckoutSnapshot.customerPhone)
@@ -1028,6 +1035,7 @@ export default function PosScreen() {
         if (pendingCheckoutSnapshot) {
           setCart(pendingCheckoutSnapshot.cart)
           setDiscount(pendingCheckoutSnapshot.discount)
+          setDiscountInput(pendingCheckoutSnapshot.discount > 0 ? formatMoney(pendingCheckoutSnapshot.discount) : '')
           setPaymentMethod('cash')
           setCashAmount(pendingCheckoutSnapshot.cashAmount)
           setCustomerPhone(pendingCheckoutSnapshot.customerPhone)
@@ -1227,6 +1235,8 @@ export default function PosScreen() {
               text: 'OK',
               onPress: () => {
                 setCart([])
+                setDiscount(0)
+                setDiscountInput('')
                 setCartModalOpen(false)
                 setCustomerPhone('')
                 setCustomerName('')
@@ -1269,6 +1279,8 @@ export default function PosScreen() {
               text: 'OK',
               onPress: () => {
                 setCart([])
+                setDiscount(0)
+                setDiscountInput('')
                 setCartModalOpen(false)
                 setCustomerPhone('')
                 setCustomerName('')
@@ -1587,7 +1599,7 @@ export default function PosScreen() {
           <View style={styles.pendingBannerLeft}>
             <View style={styles.pendingPulseDot} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.pendingBannerTitle}>Đang chờ chuyển khoản {pendingPayment.orderCode}</Text>
+              <Text style={styles.pendingBannerTitle}>Đang chờ thanh toán đơn {pendingPayment.orderCode}</Text>
               <Text style={styles.pendingBannerSub}>
                 {pendingPayment.isMixed ? 'Cần thu CK: ' : 'Số tiền: '}
                 {formatMoney(pendingPayment.transferAmount)}
@@ -1597,10 +1609,10 @@ export default function PosScreen() {
           <View style={styles.pendingBannerRight}>
             <Pressable style={styles.pendingReopenBtn} onPress={() => setQrModalOpen(true)}>
               <Ionicons name="qr-code-outline" size={14} color="#FFFFFF" />
-              <Text style={styles.pendingReopenBtnText}>Mở QR</Text>
+              <Text style={styles.pendingReopenBtnText}>Mở lại QR</Text>
             </Pressable>
             <Pressable style={styles.pendingCancelSmallBtn} onPress={handleChangePaymentMethod}>
-              <Text style={styles.pendingCancelSmallBtnText}>Hủy</Text>
+              <Text style={styles.pendingCancelSmallBtnText}>Đổi PT thanh toán</Text>
             </Pressable>
           </View>
         </View>
@@ -1875,7 +1887,7 @@ export default function PosScreen() {
                           paymentMethod === 'transfer' && styles.inlinePayBtnTextActive,
                         ]}
                       >
-                        VietQR (Tự Động)
+                        PayOS
                       </Text>
                     </Pressable>
 
@@ -2081,18 +2093,76 @@ export default function PosScreen() {
               )}
             </View>
 
-            {/* GIẢM GIÁ VOUCHER */}
+            {/* GIẢM GIÁ (ĐỒNG BỘ 100% VỚI APPMONEYINPUT BÊN WEB ADMIN) */}
             <View style={styles.cartSection}>
-              <Text style={styles.sectionTitle}>ƯU ĐÃI & CHIẾT KHẤU</Text>
+              <View style={styles.discountHeaderRow}>
+                <Text style={styles.sectionTitle}>GIẢM GIÁ</Text>
+                {discount > 0 && (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => {
+                      setDiscount(0)
+                      setDiscountInput('')
+                    }}
+                  >
+                    <Text style={styles.clearDiscountText}>Xóa giảm giá</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {/* Ô nhập tiền giảm giá tự do (giống AppMoneyInput bên web) */}
+              <View style={styles.moneyInputContainer}>
+                <TextInput
+                  style={styles.moneyTextInput}
+                  placeholder="0"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  value={discountInput || (discount > 0 ? formatMoney(discount) : '')}
+                  onFocus={() => {
+                    if (discount > 0) {
+                      setDiscountInput(String(discount))
+                    }
+                  }}
+                  onBlur={() => {
+                    const cleanNum = Number(String(discountInput || discount).replace(/\D/g, '')) || 0
+                    setDiscount(cleanNum)
+                    setDiscountInput(cleanNum > 0 ? formatMoney(cleanNum) : '')
+                  }}
+                  onChangeText={(val) => {
+                    const digits = val.replace(/\D/g, '')
+                    setDiscountInput(digits)
+                    const num = digits ? Number(digits) : 0
+                    setDiscount(num)
+                  }}
+                />
+                <Text style={styles.moneyCurrencySymbol}>₫</Text>
+                {discount > 0 && (
+                  <Pressable
+                    style={styles.moneyClearBtn}
+                    hitSlop={8}
+                    onPress={() => {
+                      setDiscount(0)
+                      setDiscountInput('')
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                  </Pressable>
+                )}
+              </View>
+
+              {/* Phím chọn nhanh chiết khấu */}
               <View style={styles.discountRow}>
                 {[0, 200000, 500000, 1000000].map((amt) => (
                   <Pressable
                     key={amt}
                     style={[styles.discountChip, discount === amt && styles.discountChipActive]}
-                    onPress={() => setDiscount(amt)}
+                    onPress={() => {
+                      setDiscount(amt)
+                      setDiscountInput(amt > 0 ? formatMoney(amt) : '')
+                    }}
                   >
                     <Text style={[styles.discountChipText, discount === amt && styles.discountChipTextActive]}>
-                      {amt === 0 ? 'Không' : `-${formatMoney(amt)}`}
+                      {amt === 0 ? 'Mặc định (0đ)' : `-${formatMoney(amt)}`}
                     </Text>
                   </Pressable>
                 ))}
@@ -2127,7 +2197,7 @@ export default function PosScreen() {
                     color={paymentMethod === 'transfer' ? Colors.primaryContainer : '#58413F'}
                   />
                   <Text style={[styles.payMethodText, paymentMethod === 'transfer' && styles.payMethodTextActive]}>
-                    VietQR
+                    PayOS
                   </Text>
                 </Pressable>
 
@@ -2173,8 +2243,8 @@ export default function PosScreen() {
               </View>
               {discount > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Ưu đãi Voucher:</Text>
-                  <Text style={[styles.summaryVal, { color: '#16A34A' }]}>-{formatMoney(discount)}</Text>
+                  <Text style={styles.summaryLabel}>Giảm giá:</Text>
+                  <Text style={[styles.summaryVal, { color: '#DC2626' }]}>-{formatMoney(discount)}</Text>
                 </View>
               )}
               <View style={styles.divider} />
@@ -2218,7 +2288,7 @@ export default function PosScreen() {
                 <View style={styles.qrHeader}>
                   <View style={styles.qrBadgePill}>
                     <Text style={styles.qrBadgeText}>
-                      {pendingPayment?.isMixed ? 'Thanh toán kết hợp' : 'Chuyển khoản PayOS / VietQR'}
+                      {pendingPayment?.isMixed ? 'Thanh toán kết hợp' : 'Chuyển khoản PayOS'}
                     </Text>
                   </View>
                   <Text style={styles.qrMainTitle}>Quét mã QR để thanh toán</Text>
@@ -3171,7 +3241,45 @@ const styles = StyleSheet.create({
     color: '#191C1E',
   },
 
-  // Discount
+  // Discount (AppMoneyInput style Web Admin)
+  discountHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  clearDiscountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  moneyInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 8,
+  },
+  moneyTextInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    padding: 0,
+  },
+  moneyCurrencySymbol: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
+    marginRight: 6,
+  },
+  moneyClearBtn: {
+    padding: 2,
+  },
   discountRow: {
     flexDirection: 'row',
     gap: 6,
