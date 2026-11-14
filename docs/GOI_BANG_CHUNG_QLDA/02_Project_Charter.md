@@ -91,11 +91,11 @@ Nhóm gồm **3 thành viên** phân công chuyên trách 5 vai trò kỹ thuậ
 
 | Thành viên | Vai trò kỹ thuật đảm nhiệm | Trách nhiệm chính trong dự án | % Đóng góp |
 |---|---|---|:---:|
-| **Phạm Quốc Bảo** (`baopham1410`) | **Trưởng nhóm / Project Lead (PM) & Technical Lead / Backend & AI Lead** | Quản lý tiến độ tổng thể, đại diện dự án, quyết định kiến trúc hệ thống, DB Neon PostgreSQL, Backend API Laravel, Dịch vụ AI AutoGrade (:8091), Chatbot RAG (:8090) và CI/CD. | **33.3%** |
+| **Phạm Quốc Bảo** (`baopham1410`) | **Trưởng nhóm / Project Lead (PM) & Technical Lead, Fullstack & AI Lead** | Quản lý tiến độ tổng thể, đại diện dự án, quyết định kiến trúc hệ thống, DB Neon PostgreSQL, Backend API Laravel, Dịch vụ AI AutoGrade (:8091), Chatbot RAG (:8090), trực tiếp tham gia phát triển Web Admin POS & Mobile App Core, thiết lập hạ tầng CI/CD. | **33.4%** |
 | **Nguyễn Thị Hồng** (`Chimsedinang605`) | **Scrum Master & Frontend Lead (Web Admin & Quán)** | Điều phối quy trình Agile/Sprint, duy trì Sprint Backlog, phát triển Web Admin POS, Phân hệ Quán nhỏ, PayOS Webhook và kiểm soát tiêu chí Definition of Done. | **33.3%** |
-| **Khổng Thị Lệ Giang** (`ktlgiang`) | **Mobile Lead / UI/UX Designer & QA Test Engineer** | Thiết kế giao diện Mobile Stitch UI/UX, phát triển các component Mobile App, xây dựng Ma trận kiểm thử QA Matrix, QA Checklist và điều phối UAT với khách hàng. | **33.4%** |
+| **Khổng Thị Lệ Giang** (`ktlgiang`) | **Mobile Lead / UI/UX Designer & QA Test Engineer** | Thiết kế giao diện Mobile Stitch UI/UX, phát triển các component Mobile App, xây dựng Ma trận kiểm thử QA Matrix, QA Checklist và điều phối UAT với khách hàng. | **33.3%** |
 
-> **Tổng tỷ lệ đóng góp:** **100% (Chia đều cả 3 thành viên: ~33.3% / người)**. Nhóm thống nhất đánh giá cả 3 thành viên đều tham gia tích cực, trách nhiệm và hoàn thành trọn vẹn khối lượng công việc được giao.
+> **Tổng tỷ lệ đóng góp:** **100% (Chia đều cả 3 thành viên: ~33.3% / người, Trưởng nhóm giữ 33.4%)**. Nhóm thống nhất đánh giá cả 3 thành viên đều tham gia tích cực, trách nhiệm và hoàn thành trọn vẹn khối lượng công việc được giao.
 
 ## 11. Quản trị Rủi ro ban đầu (Tóm tắt)
 
