@@ -403,13 +403,13 @@ onUnmounted(() => {
                 <p class="mt-0.5 text-xs text-slate-600">{{ session.notes || 'Không có ghi chú' }}</p>
               </div>
               <RouterLink
-                to="/appraisal"
+                :to="{ path: '/appraisal', query: { phone: session.customerPhone || session.callerPhone, inspect: '1' } }"
                 class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-red-700"
               >
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                Mở thẩm định AutoGrade
+                Khách đã tới quầy: Xác nhận &amp; Thẩm định máy
               </RouterLink>
             </div>
           </div>

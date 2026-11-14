@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import AppEmptyState from '@/components/common/AppEmptyState.vue'
 import AppStatCard from '@/components/common/AppStatCard.vue'
@@ -44,6 +45,7 @@ import {
   statusLabel,
 } from '@/mocks/appraisalMock'
 
+const route = useRoute()
 const keyword = ref('')
 const selectedStatus = ref('all')
 const rows = ref([])
@@ -248,6 +250,23 @@ async function loadInitialData() {
       serviceHealth.value = {
         ok: false,
         message: 'Phiên demo offline — dữ liệu lưu localStorage',
+      }
+    }
+
+    if (route.query.code || route.query.phone) {
+      const qCode = String(route.query.code || '').trim().toLowerCase()
+      const qPhone = String(route.query.phone || '').trim()
+      const target = rows.value.find((r) => {
+        if (qCode && (r.code?.toLowerCase() === qCode || r.ticketQr?.toLowerCase() === qCode)) return true
+        if (qPhone && r.customerPhone && r.customerPhone.includes(qPhone)) return true
+        return false
+      })
+      if (target) {
+        if (route.query.inspect === '1') {
+          openEdit(target)
+        } else {
+          openDetail(target)
+        }
       }
     }
   } finally {
@@ -1042,10 +1061,18 @@ onMounted(loadInitialData)
               <td class="px-6 py-4 text-right" @click.stop>
                 <button
                   type="button"
-                  class="rounded-[12px] px-3 py-1.5 text-xs font-bold text-red-600 ring-1 ring-red-200 hover:bg-red-50"
+                  class="inline-flex items-center gap-1.5 rounded-[12px] px-3.5 py-2 text-xs font-bold transition shadow-sm"
+                  :class="
+                    row.status === 'draft'
+                      ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/20 active:scale-95'
+                      : 'bg-white text-red-600 ring-1 ring-red-200 hover:bg-red-50'
+                  "
                   @click="openEdit(row)"
                 >
-                  Sửa
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  {{ row.status === 'draft' ? 'Tiếp nhận & Thẩm định' : 'Thẩm định lại' }}
                 </button>
               </td>
             </tr>
@@ -1061,18 +1088,22 @@ onMounted(loadInitialData)
       >
         <div class="shrink-0 border-b border-red-100 px-6 py-4">
           <h3 class="text-lg font-black text-[#111118]">
-            {{ editingId ? 'Sửa phiếu AutoGrade' : 'Phiếu thẩm định AutoGrade' }}
+            {{
+              (form.accessoriesNote || '').includes('[Lịch hẹn Mobile App]')
+                ? 'Tiếp nhận & Kiểm tra Thẩm định máy (Lịch hẹn Mobile App)'
+                : (editingId ? 'Sửa & Thẩm định lại phiếu AutoGrade' : 'Tạo phiếu thẩm định AutoGrade')
+            }}
           </h3>
           <p class="mt-1 text-sm text-slate-500">
-            4 bước: Thông tin → Ảnh AI → Test nội vi → Định giá
+            Quy trình tại quầy: Nhận máy & đối chiếu IMEI → Chụp ảnh 4 góc AI → Test chức năng → Chốt giá thu mua
           </p>
           <div class="mt-4 flex flex-wrap gap-2">
             <button
               v-for="s in [
-                { n: 1, t: '1. Thông tin' },
-                { n: 2, t: '2. Ảnh' },
-                { n: 3, t: '3. Nội vi' },
-                { n: 4, t: '4. Định giá' },
+                { n: 1, t: '1. Thông tin & IMEI' },
+                { n: 2, t: '2. Chụp ảnh AI' },
+                { n: 3, t: '3. Test nội vi' },
+                { n: 4, t: '4. Định giá & Chốt' },
               ]"
               :key="s.n"
               type="button"
@@ -1092,6 +1123,25 @@ onMounted(loadInitialData)
         <div class="custom-scrollbar-content space-y-5 overflow-y-auto p-6">
           <!-- Step 1 -->
           <div v-show="formStep === 1" class="space-y-4">
+            <!-- Alert banner for Online Appointments -->
+            <div
+              v-if="(form.accessoriesNote || '').includes('[Lịch hẹn Mobile App]')"
+              class="rounded-xl border border-rose-200 bg-rose-50/80 p-4 shadow-sm"
+            >
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-700">
+                  📅 Lịch hẹn đặt online từ Mobile App
+                </span>
+                <span class="text-xs font-bold text-slate-500">Mã: {{ form.code || (editingId ? `#${editingId}` : 'Phiếu hẹn') }}</span>
+              </div>
+              <p class="mt-2 text-xs font-medium text-slate-700">
+                {{ form.accessoriesNote }}
+              </p>
+              <div class="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 p-2.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200">
+                <span>👉 Thao tác cần làm:</span>
+                <span>Khách đã đem máy tới? Hãy nhận máy và nhập số IMEI máy thực tế vào ô dưới đây để quản lý kho & bảo hành.</span>
+              </div>
+            </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <div>
                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-widest text-slate-400">Khách hàng</label>
@@ -1876,6 +1926,33 @@ onMounted(loadInitialData)
                 </select>
               </div>
             </div>
+
+            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
+                Xác nhận kết quả thẩm định máy với khách:
+              </p>
+              <div class="flex flex-wrap gap-2.5">
+                <button
+                  type="button"
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/20 active:scale-95 transition"
+                  :disabled="saving"
+                  @click="form.status = 'accepted'; saveTicket()"
+                >
+                  ✓ Khách đồng ý bán — Chốt thu mua
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-4 py-3 text-xs font-black text-white hover:bg-rose-700 shadow-md shadow-rose-500/20 active:scale-95 transition"
+                  :disabled="saving"
+                  @click="form.status = 'rejected'; saveTicket()"
+                >
+                  ✗ Khách từ chối bán — Trả lại máy
+                </button>
+              </div>
+              <p class="mt-2 text-[11px] text-slate-500 text-center">
+                Nếu khách cần suy nghĩ thêm, hãy giữ trạng thái "Đã báo giá" rồi bấm "Lưu phiếu" bên dưới.
+              </p>
+            </div>
           </div>
 
           <p v-if="formError" class="text-sm font-semibold text-red-600">{{ formError }}</p>
@@ -1959,6 +2036,35 @@ onMounted(loadInitialData)
         </div>
 
         <div class="space-y-5 p-6">
+          <!-- Reception and Re-inspection Box -->
+          <div class="rounded-2xl border-2 border-red-500 bg-red-50/70 p-5 shadow-sm">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 text-xs font-extrabold text-white">
+                  ⭐ TIẾP NHẬN & KIỂM TRA MÁY THỰC TẾ
+                </span>
+                <h4 class="mt-2 text-base font-black text-slate-900">
+                  Khách đã đem điện thoại tới quầy?
+                </h4>
+                <p class="mt-1 text-xs text-slate-600">
+                  Bấm nút bên dưới để tiến hành kiểm tra: Nhận máy, đối chiếu IMEI, chụp ảnh 4 góc ngoại quan, test phần cứng và chạy AutoGrade AI để chốt giá thu mua.
+                </p>
+              </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-md shadow-red-500/25 hover:bg-red-700 active:scale-95 transition"
+                @click="openEdit(selected); closeDetail()"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                {{ selected.status === 'draft' ? 'XÁC NHẬN TIẾP NHẬN & BẮT ĐẦU THẨM ĐỊNH MÁY' : 'TIẾP NHẬN & THẨM ĐỊNH LẠI MÁY' }}
+              </button>
+            </div>
+          </div>
+
           <div
             v-if="selected.accessoriesNote"
             class="rounded-[14px] border border-rose-200 bg-rose-50/80 p-3.5 text-xs text-slate-800"
@@ -2137,10 +2243,13 @@ onMounted(loadInitialData)
           <div class="flex gap-3">
             <button
               type="button"
-              class="flex-1 rounded-[14px] bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-[14px] bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
               @click="openEdit(selected); closeDetail()"
             >
-              Sửa / chạy lại AI
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Kiểm tra &amp; Thẩm định lại AutoGrade
             </button>
             <button
               type="button"

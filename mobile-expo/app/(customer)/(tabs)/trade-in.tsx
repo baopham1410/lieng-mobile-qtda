@@ -695,6 +695,12 @@ export default function CustomerTradeInScreen() {
                   </Text>
                   <Text style={styles.ticketDate}>{t.createdAt}</Text>
                 </View>
+                <View style={{ marginTop: 8, backgroundColor: '#FEF2F2', padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="information-circle-outline" size={16} color="#B91C1C" />
+                  <Text style={{ fontSize: 11, color: '#991B1B', flex: 1, fontWeight: '500' }}>
+                    Khi đến showroom, đọc mã <Text style={{ fontWeight: '800' }}>{t.code}</Text> hoặc SĐT để kỹ thuật viên kiểm tra thẩm định máy ngay nhé.
+                  </Text>
+                </View>
               </View>
             ))
           )}
