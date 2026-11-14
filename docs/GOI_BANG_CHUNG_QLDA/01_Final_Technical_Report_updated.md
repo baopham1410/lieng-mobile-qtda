@@ -6,8 +6,8 @@
 **Đơn vị đào tạo:** Khoa Khoa học Máy tính — Trường Đại học Công nghệ Thông tin & Truyền thông Việt - Hàn (VKU)  
 **Giảng viên phụ trách:** TS. Nguyễn Thanh Tuấn  
 **Nhóm thực hiện (3 thành viên):**  
-- **Phạm Quốc Bảo** (`baopham1410`) — Technical Lead / System Architect & Backend/AI Lead (33.3%)  
-- **Nguyễn Thị Hồng** (`Chimsedinang605`) — Project Manager / Scrum Master & Frontend Lead (33.3%)  
+- **Phạm Quốc Bảo** (`baopham1410`) — Trưởng nhóm / Project Lead (PM) & Technical Lead, Backend/AI Lead (33.3%)  
+- **Nguyễn Thị Hồng** (`Chimsedinang605`) — Scrum Master & Frontend Lead (Web & Quán) (33.3%)  
 - **Khổng Thị Lệ Giang** (`ktlgiang`) — Mobile Lead / UI/UX Designer & QA Test Engineer (33.4%)  
 *(Tỷ lệ đóng góp: 100% — Chia đều cả 3 thành viên: ~33.3% / người)*  
 **GitHub Repository:** `https://github.com/baopham1410/lieng-mobile-qtda` (Public)  
@@ -60,8 +60,8 @@ Nhóm gồm **3 sinh viên**, phân công trách nhiệm theo năng lực chuyê
 
 | Thành viên | Vai trò kỹ thuật chính | Khối lượng phụ trách thực tế | Tỷ lệ đóng góp |
 |---|---|---|:---:|
-| **Phạm Quốc Bảo** (`baopham1410`) | Technical Lead, System Architect & Backend/AI Lead | Thiết kế cơ sở dữ liệu Neon PostgreSQL, Backend API Laravel, Dịch vụ AI AutoGrade (:8091), Chatbot RAG (:8090) và GitHub Actions CI/CD Pipeline. | **33.3%** |
-| **Nguyễn Thị Hồng** (`Chimsedinang605`) | Project Manager (PM), Scrum Master & Frontend Lead | Điều phối tiến độ Sprint, duy trì Product Backlog, phát triển Web Admin POS, Phân hệ Quán nhỏ, PayOS Webhook và thẩm định chất lượng các PRs. | **33.3%** |
+| **Phạm Quốc Bảo** (`baopham1410`) | Trưởng nhóm / Project Lead (PM) & Technical Lead, Backend/AI Lead | Quản lý tiến độ tổng thể, quyết định kiến trúc, DB Neon PostgreSQL, Backend API Laravel, Dịch vụ AI AutoGrade (:8091), Chatbot RAG (:8090) và CI/CD. | **33.3%** |
+| **Nguyễn Thị Hồng** (`Chimsedinang605`) | Scrum Master & Frontend Lead (Web Admin & Quán) | Điều phối quy trình Agile/Sprint, duy trì Product Backlog, phát triển Web Admin POS, Phân hệ Quán nhỏ, PayOS Webhook và kiểm soát DoD. | **33.3%** |
 | **Khổng Thị Lệ Giang** (`ktlgiang`) | Mobile Lead, UI/UX Designer & QA Test Engineer | Thiết kế giao diện Google Stitch Mobile, phát triển các component Mobile App, xây dựng Ma trận kiểm thử QA Matrix, QA Checklist và điều phối kiểm thử UAT trên thiết bị iOS/Android thật. | **33.4%** |
 
 > **Tổng tỷ lệ đóng góp:** **100% (Chia đều cả 3 thành viên: ~33.3% / người)**. Nhóm thống nhất đánh giá cả 3 thành viên đều tham gia tích cực, trách nhiệm và hoàn thành trọn vẹn khối lượng công việc được giao.

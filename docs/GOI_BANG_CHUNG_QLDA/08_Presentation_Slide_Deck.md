@@ -13,8 +13,8 @@
 - **Sourcing Pathway:** Pathway 1 — Kế thừa & song hành Đồ án chuyên ngành Web, Mobile & Kỹ thuật AI
 - **Giảng viên phụ trách:** TS. Nguyễn Thanh Tuấn — Khoa Khoa học Máy tính (VKU)
 - **Đội ngũ thực hiện (3 thành viên — Đóng góp đồng đều 100%):**
-  - **Phạm Quốc Bảo** (`baopham1410`) — Technical Lead / System Architect & Backend/AI Lead (33.3%)
-  - **Nguyễn Thị Hồng** (`Chimsedinang605`) — Project Manager / Scrum Master & Frontend Lead (33.3%)
+  - **Phạm Quốc Bảo** (`baopham1410`) — Trưởng nhóm / Project Lead (PM) & Technical Lead, Backend/AI Lead (33.3%)
+  - **Nguyễn Thị Hồng** (`Chimsedinang605`) — Scrum Master & Frontend Lead (Web Admin & Quán) (33.3%)
   - **Khổng Thị Lệ Giang** (`ktlgiang`) — Mobile Lead / UI/UX Designer & QA Test Engineer (33.4%)
 - **GitHub Repository:** `github.com/baopham1410/lieng-mobile-qtda` (Public, Branch Protection enabled)
 

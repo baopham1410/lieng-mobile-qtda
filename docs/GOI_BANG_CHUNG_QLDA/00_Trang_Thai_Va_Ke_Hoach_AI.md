@@ -2,8 +2,8 @@
 
 **Đề tài chuyên ngành song hành:** Hệ thống AI hỗ trợ thẩm định và định giá thu mua điện thoại cũ kết hợp Nền tảng Quản trị Chuỗi Cửa hàng Liêng Mobile  
 **Nhóm thực hiện (Tỷ lệ đóng góp chia đều 100%):**  
-- **Phạm Quốc Bảo** (`baopham1410`) — Technical Lead / System Architect & Backend/AI Lead (33.3%)  
-- **Nguyễn Thị Hồng** (`Chimsedinang605`) — Project Manager / Scrum Master & Frontend Lead (33.3%)  
+- **Phạm Quốc Bảo** (`baopham1410`) — Trưởng nhóm / Project Lead (PM) & Technical Lead, Backend/AI Lead (33.3%)  
+- **Nguyễn Thị Hồng** (`Chimsedinang605`) — Scrum Master & Frontend Lead (Web Admin & Quán) (33.3%)  
 - **Khổng Thị Lệ Giang** (`ktlgiang`) — Mobile Lead / UI/UX Designer & QA Test Engineer (33.4%)  
 
 ---
