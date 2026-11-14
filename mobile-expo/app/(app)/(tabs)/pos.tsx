@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import QRCode from 'qrcode'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -83,16 +84,16 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
   // ── 1. iPhone (Card 1 chuẩn Stitch ở vị trí đầu) ──
   {
     id: 1,
-    imeiCodeId: 23,
-    imei: '325160099000001',
+    imeiCodeId: 24,
+    imei: '357892110482915',
     productVariantId: 1,
     name: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
     sku: 'IP15PM-256-NAT',
-    price: 29490000,
+    price: 28990000,
     categoryName: 'iPhone',
     hasImei: true,
-    stock: 4,
-    availableImeis: ['325160099000001', '356789123456782', '356789123456783', '356789123456784'],
+    stock: 5,
+    availableImeis: ['357892110482915', '35016109177109', '35011445310920'],
     storageTag: '256GB',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuDTi2ZwSWh_Baj-fH4SMTg71UKytUkQIyaRirQ6NpANhF_hU5SsEK-BU151nzNbZqMctPS8AOnZvd-9MwyyfUmGohoUdX0oNktFVT_5S5tpopsPZwkIiBG4cQY5s_3-6fG2xaT4LFUnrfd7rFF9uLAcTeUsXtoiRUwWugOVCWdZiROZe_S_8EwJ7O7De4UhPKcMeuC9wqvEpFH4CQs9TjxP1Hg4z6E2kfc00jmlOjw',
@@ -100,8 +101,8 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
   // ── 2. Samsung (Card 2 chuẩn Stitch ở vị trí 2) ──
   {
     id: 2,
-    imeiCodeId: 102,
-    imei: '357129104829301',
+    imeiCodeId: 29,
+    imei: '35027135056014',
     productVariantId: 2,
     name: 'Samsung Galaxy S24 Ultra 512GB Xám Titan',
     sku: 'SM-S928B-512',
@@ -471,6 +472,39 @@ export default function PosScreen() {
   const [changingPaymentMethod, setChangingPaymentMethod] = useState<boolean>(false)
   const [confirmingManualPayment, setConfirmingManualPayment] = useState<boolean>(false)
   const [pendingCheckoutSnapshot, setPendingCheckoutSnapshot] = useState<CheckoutSnapshot | null>(null)
+  const [pendingPaymentQrImage, setPendingPaymentQrImage] = useState<string>('')
+
+  // Tạo ảnh QR từ chuỗi EMVCo VietQR của PayOS (giống hệt QRCode.toDataURL của Web Admin)
+  const renderPendingPaymentQr = useCallback(async (payload?: string | null) => {
+    if (!payload) {
+      setPendingPaymentQrImage('')
+      return
+    }
+    // Nếu đã là link ảnh trực tiếp
+    if (payload.startsWith('http://') || payload.startsWith('https://') || payload.startsWith('data:image/')) {
+      setPendingPaymentQrImage(payload)
+      return
+    }
+    // Nếu là chuỗi EMVCo VietQR của PayOS (000201...)
+    try {
+      const dataUrl = await QRCode.toDataURL(payload, {
+        width: 320,
+        margin: 1,
+        errorCorrectionLevel: 'M',
+      })
+      setPendingPaymentQrImage(dataUrl)
+    } catch {
+      setPendingPaymentQrImage(`https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(payload)}`)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (pendingPayment?.qrCode) {
+      renderPendingPaymentQr(pendingPayment.qrCode)
+    } else {
+      setPendingPaymentQrImage('')
+    }
+  }, [pendingPayment?.qrCode, renderPendingPaymentQr])
 
   const pollTimerRef = useRef<any>(null)
   const successTimerRef = useRef<any>(null)
@@ -611,15 +645,7 @@ export default function PosScreen() {
           }
         }
         if (mapped.length > 0) {
-          // Bổ sung các phụ kiện và iPad từ fallback nếu trong DB chưa có đủ để POS luôn phong phú
-          const existingNames = new Set(mapped.map((m) => m.name.toLowerCase()))
-          const enrichedWithFallback = [...mapped]
-          for (const fb of FALLBACK_POS_UNITS) {
-            if (!existingNames.has(fb.name.toLowerCase())) {
-              enrichedWithFallback.push(fb)
-            }
-          }
-          setCatalog(enrichedWithFallback)
+          setCatalog(mapped)
         } else {
           setCatalog(FALLBACK_POS_UNITS)
         }
@@ -1203,10 +1229,9 @@ export default function PosScreen() {
 
       if (paymentMethod === 'transfer' || (paymentMethod === 'mixed' && transferPart > 0)) {
         const qrAmount = transferPart
-        const dynamicQrUrl =
-          data?.qrCode && String(data.qrCode).startsWith('http')
-            ? data.qrCode
-            : `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${orderCode}&accountName=LIENG%20MOBILE`
+        const rawQrPayload =
+          data?.qrCode ||
+          `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${orderCode}&accountName=LIENG%20MOBILE`
 
         setPendingPayment({
           orderId,
@@ -1217,7 +1242,7 @@ export default function PosScreen() {
           isMixed: paymentMethod === 'mixed',
           paymentStatus: data?.paymentStatus || 'pending',
           checkoutUrl: data?.checkoutUrl || null,
-          qrCode: dynamicQrUrl,
+          qrCode: rawQrPayload,
           paymentReference: data?.paymentReference || null,
           paymentExpiresAt: data?.paymentExpiresAt || null,
         })
@@ -1248,49 +1273,12 @@ export default function PosScreen() {
           ]
         )
       }
-    } catch {
-      // Fallback lưu cục bộ và tạo QR động chuẩn VietQR
-      const mockCode = `HD-${Date.now().toString().slice(-6)}`
-      const cashPart = paymentMethod === 'cash' ? totalAmount : paymentMethod === 'mixed' ? numericCash : 0
-      const transferPart = paymentMethod === 'transfer' ? totalAmount : paymentMethod === 'mixed' ? remainingTransfer : 0
-
-      if (paymentMethod === 'transfer' || (paymentMethod === 'mixed' && transferPart > 0)) {
-        const dynamicQrUrl = `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${transferPart}&addInfo=Thanh%20toan%20${mockCode}&accountName=LIENG%20MOBILE`
-        setPendingPayment({
-          orderId: mockCode,
-          orderCode: mockCode,
-          total: totalAmount,
-          transferAmount: transferPart,
-          cashAmount: cashPart,
-          isMixed: paymentMethod === 'mixed',
-          paymentStatus: 'pending',
-          qrCode: dynamicQrUrl,
-        })
-        setPaymentModalPhase('pending')
-        setCartModalOpen(false)
-        setQrModalOpen(true)
+    } catch (err: any) {
+      const errMsg = getErrorMessage(err)
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(`Thanh toán thất bại:\n\n${errMsg}`)
       } else {
-        await buildAndPersistOrder(mockCode, 'cash', cashPart)
-        Alert.alert(
-          'Thanh toán thành công 🎉',
-          `Hóa đơn ${mockCode} đã được ghi nhận vào hệ thống ca trực.\nTổng thu: ${formatMoney(totalAmount)}.\nĐã cộng vào Doanh số & Sổ quỹ két.`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setCart([])
-                setDiscount(0)
-                setDiscountInput('')
-                setCartModalOpen(false)
-                setCustomerPhone('')
-                setCustomerName('')
-                setCustomerAddress('')
-                setMatchedCustomer(null)
-                setPendingCheckoutSnapshot(null)
-              },
-            },
-          ]
-        )
+        Alert.alert('Thanh toán thất bại', errMsg)
       }
     } finally {
       setCheckingOut(false)
@@ -2312,16 +2300,19 @@ export default function PosScreen() {
 
                 {/* Khung mã QR */}
                 <View style={styles.qrImgWrap}>
-                  <Image
-                    source={{
-                      uri:
-                        pendingPayment?.qrCode ||
-                        `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${pendingPayment?.transferAmount || 0}&addInfo=Thanh%20toan%20${pendingPayment?.orderCode || 'POS'}&accountName=LIENG%20MOBILE`,
-                    }}
-                    style={styles.qrImg}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.qrBankHint}>VIETCOMBANK · 9988776655 · LIENG MOBILE</Text>
+                  {pendingPaymentQrImage ? (
+                    <Image
+                      source={{ uri: pendingPaymentQrImage }}
+                      style={styles.qrImg}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={styles.qrLoadingBox}>
+                      <ActivityIndicator size="large" color={Colors.primaryContainer} />
+                      <Text style={styles.qrLoadingText}>Đang tạo mã QR PayOS...</Text>
+                    </View>
+                  )}
+                  <Text style={styles.qrBankHint}>Quét bằng ứng dụng Ngân hàng hoặc Ví điện tử bất kỳ (Napas 247)</Text>
                 </View>
 
                 {/* Trạng thái kiểm tra thời gian thực */}
@@ -3579,16 +3570,31 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   qrImg: {
-    width: 200,
-    height: 200,
+    width: 250,
+    height: 250,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
   },
+  qrLoadingBox: {
+    width: 250,
+    height: 250,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    gap: 8,
+  },
+  qrLoadingText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
   qrBankHint: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#7F1D1D',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 4,
   },
   qrStatusRow: {
     flexDirection: 'row',
