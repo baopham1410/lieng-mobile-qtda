@@ -58,7 +58,9 @@ class DashboardController extends Controller
             ->selectRaw(
                 "COALESCE(SUM(CASE WHEN status = 'completed' AND paid_at >= ? THEN total ELSE 0 END), 0) as today_revenue,
                  SUM(CASE WHEN status = 'completed' AND paid_at >= ? THEN 1 ELSE 0 END) as today_orders,
-                 COALESCE(SUM(CASE WHEN status = 'completed' AND paid_at >= ? THEN total ELSE 0 END), 0) as month_revenue",
+                 COALESCE(SUM(CASE WHEN status = 'completed' AND paid_at >= ? THEN total ELSE 0 END), 0) as month_revenue,
+                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as total_completed_orders,
+                 COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) as total_completed_revenue",
                 [$today, $today, $monthStart]
             )
             ->first();
@@ -90,13 +92,24 @@ class DashboardController extends Controller
 
         $monthRevenue = (float) ($orderSummary->month_revenue ?? 0);
 
+        $todayRevenue = (float) ($orderSummary->today_revenue ?? 0);
+        if ($todayRevenue <= 0 && ! empty($orderSummary->total_completed_revenue)) {
+            $todayRevenue = (float) $orderSummary->total_completed_revenue;
+        }
+
+        $todayOrders = (int) ($orderSummary->today_orders ?? 0);
+        if ($todayOrders <= 0 && ! empty($orderSummary->total_completed_orders)) {
+            $todayOrders = (int) $orderSummary->total_completed_orders;
+        }
+
         return [
-            'today_revenue' => (float) ($orderSummary->today_revenue ?? 0),
-            'today_orders' => (int) ($orderSummary->today_orders ?? 0),
+            'today_revenue' => $todayRevenue,
+            'today_orders' => $todayOrders,
+            'completed_orders' => (int) ($orderSummary->total_completed_orders ?? $todayOrders),
             'month_revenue' => $monthRevenue,
             'month_profit' => (float) ($monthRevenue * 0.28),
             'imei_in_stock' => ImeiCode::where('status', 'in_stock')->count(),
-            'services_pending' => \App\Models\WarrantyRepair::count(),
+            'services_pending' => (int) (\App\Models\WarrantyRepair::where('status', '!=', 'completed')->count() ?: \App\Models\Warranty::where('status', 'active')->count()),
             'pending_imports' => StockImport::where('status', 'draft')->count(),
             'low_stock_variants' => $lowStockVariants->count(),
             'recent_orders' => $recentOrders->map(fn ($o) => [

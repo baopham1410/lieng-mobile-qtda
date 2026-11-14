@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { getErrorMessage } from '@/api/client'
 import * as posApi from '@/api/pos'
+import { scanWarehouseImei } from '@/api/warehouse'
 import { ScannerModal } from '@/components/ScannerModal'
 import { WarehouseStockCenter } from '@/components/WarehouseStockCenter'
 import { Colors, Radius, Space } from '@/constants/config'
@@ -27,6 +28,8 @@ import { formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
 import { useStore } from '@/context/StoreContext'
 import { useLocale } from '@/context/LocaleContext'
+import { extractImeiFromBarcode, isCommonPhoneTac, isValidImeiFormat } from '@/utils/imeiScan'
+import { getProductImageSource } from '@/utils/productImages'
 
 export function getPosProductImage(name: string = '', categoryName: string = '', providedImage?: string | null): string {
   if (providedImage && typeof providedImage === 'string' && providedImage.startsWith('http')) {
@@ -79,8 +82,8 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
   // ── 1. iPhone (Card 1 chuẩn Stitch ở vị trí đầu) ──
   {
     id: 1,
-    imeiCodeId: 101,
-    imei: '356892110482910',
+    imeiCodeId: 23,
+    imei: '325160099000001',
     productVariantId: 1,
     name: 'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
     sku: 'IP15PM-256-NAT',
@@ -88,7 +91,7 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
     categoryName: 'iPhone',
     hasImei: true,
     stock: 4,
-    availableImeis: ['356892110482910', '356892110482911', '356892110482912', '356892110482913'],
+    availableImeis: ['325160099000001', '356789123456782', '356789123456783', '356789123456784'],
     storageTag: '256GB',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuDTi2ZwSWh_Baj-fH4SMTg71UKytUkQIyaRirQ6NpANhF_hU5SsEK-BU151nzNbZqMctPS8AOnZvd-9MwyyfUmGohoUdX0oNktFVT_5S5tpopsPZwkIiBG4cQY5s_3-6fG2xaT4LFUnrfd7rFF9uLAcTeUsXtoiRUwWugOVCWdZiROZe_S_8EwJ7O7De4UhPKcMeuC9wqvEpFH4CQs9TjxP1Hg4z6E2kfc00jmlOjw',
@@ -629,27 +632,81 @@ export default function PosScreen() {
     }
   }
 
-  // Thêm vào giỏ
-  const addToCart = (item: PosUnitItem) => {
-    const existingIndex = cart.findIndex((c) => c.productVariantId === item.productVariantId)
-    if (existingIndex > -1) {
-      const updated = [...cart]
-      updated[existingIndex].qty += 1
-      setCart(updated)
+  // Thêm vào giỏ (Đồng bộ logic IMEI chính xác từ Web POS)
+  const addToCart = (item: PosUnitItem, specificImei?: string) => {
+    // 1. Nếu là sản phẩm không quản lý theo số IMEI (phụ kiện, dịch vụ...)
+    if (!item.hasImei) {
+      const existingIndex = cart.findIndex((c) => c.productVariantId === item.productVariantId)
+      if (existingIndex > -1) {
+        const updated = [...cart]
+        updated[existingIndex].qty += 1
+        setCart(updated)
+        return
+      }
+
+      const newCartItem: CartItem = {
+        id: `acc-${item.id}-${Date.now()}`,
+        imeiCodeId: item.imeiCodeId,
+        productVariantId: item.productVariantId,
+        name: item.name,
+        sku: item.sku,
+        price: item.price,
+        qty: 1,
+        hasImei: false,
+        imageUrl: item.imageUrl,
+      }
+      setCart((prev) => [newCartItem, ...prev])
       return
     }
 
-    const assignedImei = item.availableImeis && item.availableImeis.length > 0 ? item.availableImeis[0] : item.imei
+    // 2. Nếu là máy quản lý theo số IMEI
+    const imeisInCart = new Set(cart.filter((c) => c.hasImei && c.imei).map((c) => c.imei!))
+
+    let assignedImei = specificImei
+    if (assignedImei && imeisInCart.has(assignedImei)) {
+      Alert.alert(
+        'IMEI đã có trong giỏ hàng',
+        `Thiết bị có số IMEI: ${assignedImei} đã được thêm vào đơn hàng. Mỗi máy có số IMEI duy nhất chỉ được bán 1 lần!`
+      )
+      return
+    }
+
+    if (!assignedImei) {
+      const availableList = item.availableImeis || (item.imei ? [item.imei] : [])
+      assignedImei = availableList.find((im) => !imeisInCart.has(im))
+
+      if (!assignedImei) {
+        const siblings = catalog.filter(
+          (c) => c.productVariantId === item.productVariantId && c.hasImei && c.imei
+        )
+        const sibling = siblings.find((s) => s.imei && !imeisInCart.has(s.imei))
+        if (sibling && sibling.imei) {
+          assignedImei = sibling.imei
+        }
+      }
+    }
+
+    if (!assignedImei) {
+      Alert.alert(
+        'Đã hết IMEI sẵn có',
+        `Tất cả các máy ${item.name} có sẵn trong kho đã được thêm vào giỏ hàng.`
+      )
+      return
+    }
+
+    const matchedUnit = catalog.find((c) => c.imei === assignedImei)
+    const finalImeiCodeId = matchedUnit?.imeiCodeId || item.imeiCodeId
+
     const newCartItem: CartItem = {
-      id: `${item.id}-${Date.now()}`,
-      imeiCodeId: item.imeiCodeId,
+      id: `imei-${item.productVariantId}-${assignedImei}`,
+      imeiCodeId: finalImeiCodeId,
       productVariantId: item.productVariantId,
       name: item.name,
       sku: item.sku,
       price: item.price,
       imei: assignedImei,
       qty: 1,
-      hasImei: item.hasImei,
+      hasImei: true,
       imageUrl: item.imageUrl,
     }
     setCart((prev) => [newCartItem, ...prev])
@@ -912,15 +969,103 @@ export default function PosScreen() {
     }
   }
 
-  // Quét mã Barcode
-  const handleScanCode = (code: string) => {
+  // Quét mã Barcode / Bắn IMEI POS (Đồng bộ chuẩn Web)
+  const handleScanCode = async (rawCode: string) => {
     setScannerOpen(false)
-    const found = catalog.find((c) => c.sku === code || (c.availableImeis && c.availableImeis.includes(code)))
-    if (found) {
-      addToCart(found)
-      Alert.alert('Đã thêm sản phẩm', `${found.name}\nĐã thêm vào giỏ hàng POS.`)
-    } else {
-      Alert.alert('Không tìm thấy', `Không tìm thấy sản phẩm có SKU/IMEI: ${code}`)
+    const cleanCode = extractImeiFromBarcode(rawCode)
+    if (!cleanCode) {
+      Alert.alert('Mã không hợp lệ', 'Không trích xuất được số IMEI hoặc Barcode hợp lệ từ mã vừa quét.')
+      return
+    }
+
+    // 1. Kiểm tra xem IMEI này đã nằm trong giỏ hàng chưa
+    const alreadyInCart = cart.some(
+      (c) => c.imei === cleanCode || (c.sku && c.sku.toLowerCase() === cleanCode.toLowerCase())
+    )
+    if (alreadyInCart) {
+      Alert.alert(
+        'IMEI đã có trong giỏ hàng',
+        `Thiết bị có số IMEI: ${cleanCode} đã nằm trong đơn hàng hiện tại. Mỗi số IMEI chỉ được bán 1 lần!`
+      )
+      return
+    }
+
+    // 2. Tìm trong danh mục POS đã nạp trên máy
+    const foundLocal = catalog.find(
+      (c) =>
+        c.imei === cleanCode ||
+        (c.availableImeis && c.availableImeis.includes(cleanCode)) ||
+        (c.sku && c.sku.toLowerCase() === cleanCode.toLowerCase())
+    )
+
+    if (foundLocal) {
+      addToCart(foundLocal, cleanCode)
+      Alert.alert(
+        'Quét Barcode / IMEI thành công 🎉',
+        `${foundLocal.name}\nIMEI: ${cleanCode}\nGiá bán: ${formatMoney(foundLocal.price)}\nĐã thêm vào giỏ hàng POS!`
+      )
+      return
+    }
+
+    // 3. Nếu chưa có trong danh mục cục bộ, truy vấn trực tiếp Backend Warehouse/IMEI API
+    try {
+      const imeiRes = await scanWarehouseImei(cleanCode)
+      if (imeiRes && imeiRes.found) {
+        if (imeiRes.status === 'in_stock') {
+          const unitPrice = Number(imeiRes.product?.price) || 0
+          const unitName = imeiRes.product?.name || 'Thiết bị Liêng Mobile'
+          const unitVariantId = Number(imeiRes.product?.variant_id) || 1
+
+          const newItem: PosUnitItem = {
+            id: Number(imeiRes.product?.id) || Date.now(),
+            imeiCodeId: Number(imeiRes.product?.variant_id) || Date.now(),
+            imei: cleanCode,
+            productVariantId: unitVariantId,
+            name: unitName,
+            sku: imeiRes.product?.sku || `IMEI-${cleanCode.slice(-6)}`,
+            price: unitPrice,
+            categoryName: imeiRes.product?.category || 'Điện thoại',
+            hasImei: true,
+            stock: 1,
+            availableImeis: [cleanCode],
+            storageTag: 'Kho',
+            imageUrl: '/products/iphone-15.jpg',
+          }
+
+          setCatalog((prev) => [newItem, ...prev])
+          addToCart(newItem, cleanCode)
+
+          Alert.alert(
+            'Quét IMEI thành công 🎉',
+            `${unitName}\nIMEI: ${cleanCode}\nGiá bán: ${formatMoney(unitPrice)}\nĐã tìm thấy trong kho và thêm vào đơn hàng!`
+          )
+        } else if (imeiRes.status === 'sold') {
+          Alert.alert(
+            'Không thể bán thiết bị này',
+            `Thiết bị có số IMEI ${cleanCode} ${imeiRes.status_label || 'đã xuất bán'}!\nVui lòng kiểm tra lại tem máy.`
+          )
+        } else if (imeiRes.status === 'warranty') {
+          Alert.alert(
+            'Thiết bị đang bảo hành',
+            `Thiết bị có số IMEI ${cleanCode} đang trong quy trình bảo hành/sửa chữa kỹ thuật!`
+          )
+        } else {
+          Alert.alert(
+            'Trạng thái không hợp lệ',
+            `Thiết bị có số IMEI ${cleanCode} hiện có trạng thái: "${imeiRes.status_label || imeiRes.status}".`
+          )
+        }
+      } else {
+        Alert.alert(
+          'Không tìm thấy thiết bị',
+          `Không tìm thấy sản phẩm có SKU/IMEI: "${cleanCode}" trong hệ thống kho showroom.`
+        )
+      }
+    } catch {
+      Alert.alert(
+        'Không tìm thấy thiết bị',
+        `Không tìm thấy sản phẩm có SKU/IMEI: "${cleanCode}" trong hệ thống kho showroom.`
+      )
     }
   }
 
@@ -990,10 +1135,16 @@ export default function PosScreen() {
           <Ionicons name="search" size={18} color="#8C716E" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Tìm theo tên máy, SKU, số..."
+            placeholder="Tìm theo tên hoặc quét IMEI (15 số)..."
             placeholderTextColor="#8C716E"
             value={search}
             onChangeText={setSearch}
+            onSubmitEditing={() => {
+              if (search.trim().length >= 6) {
+                handleScanCode(search.trim())
+              }
+            }}
+            returnKeyType="search"
           />
           {search !== '' ? (
             <Pressable onPress={() => setSearch('')} hitSlop={8}>
@@ -1015,7 +1166,7 @@ export default function PosScreen() {
           <Ionicons name="qr-code-outline" size={20} color={Colors.white} />
         </Pressable>
 
-        {/* Nút túi hàng có badge đỏ số 2 */}
+        {/* Nút túi hàng có badge đỏ */}
         <Pressable
           style={styles.cartSquareBtn}
           onPress={() => setCartModalOpen(true)}
@@ -1029,6 +1180,28 @@ export default function PosScreen() {
           )}
         </Pressable>
       </View>
+
+      {/* Banner phát hiện IMEI khi quét hoặc dán vào ô tìm kiếm */}
+      {search.trim().length >= 8 && (
+        <View style={styles.scannedImeiBanner}>
+          <View style={styles.scannedImeiLeft}>
+            <Ionicons name="barcode-outline" size={16} color="#7A0C10" />
+            <Text style={styles.scannedImeiText} numberOfLines={1}>
+              Quét mã: <Text style={{ fontWeight: '800' }}>{search.trim()}</Text>
+            </Text>
+          </View>
+          <Pressable
+            style={styles.scannedImeiAddBtn}
+            onPress={() => {
+              handleScanCode(search.trim())
+              setSearch('')
+            }}
+          >
+            <Ionicons name="cart" size={13} color="#FFFFFF" />
+            <Text style={styles.scannedImeiAddBtnText}>Thêm vào giỏ</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* ── BỘ LỌC DANH MỤC PHÂN MỤC RÕ RÀNG (BẤM VÀO TỪNG MỤC SẼ HIỆN RA) ── */}
       <View style={styles.categoryScrollWrap}>
@@ -1119,32 +1292,11 @@ export default function PosScreen() {
               <View style={styles.productCardExact}>
                 {/* Cột trái: Khung hình ảnh sản phẩm kèm Tag dung lượng / phiên bản */}
                 <View style={styles.productImgContainer}>
-                  <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons
-                      name={
-                        item.categoryName === 'iPhone' || item.name.toLowerCase().includes('iphone')
-                          ? 'phone-portrait'
-                          : item.categoryName === 'Samsung' || item.name.toLowerCase().includes('samsung')
-                          ? 'phone-portrait-outline'
-                          : item.categoryName === 'iPad' || item.name.toLowerCase().includes('ipad')
-                          ? 'tablet-portrait-outline'
-                          : item.categoryName === 'Âm thanh' || item.name.toLowerCase().includes('airpods')
-                          ? 'headset-outline'
-                          : item.categoryName === 'MacBook' || item.name.toLowerCase().includes('macbook')
-                          ? 'laptop-outline'
-                          : 'phone-portrait-outline'
-                      }
-                      size={36}
-                      color="#B29C99"
-                    />
-                  </View>
-                  {item.imageUrl ? (
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles.productImgThumb}
-                      resizeMode="contain"
-                    />
-                  ) : null}
+                  <Image
+                    source={getProductImageSource(item.imageUrl, item.name, item.categoryName)}
+                    style={styles.productImgThumb}
+                    resizeMode="contain"
+                  />
                   {item.storageTag && (
                     <View style={styles.storageTagBadge}>
                       <Text style={styles.storageTagText}>{item.storageTag}</Text>
@@ -1260,6 +1412,11 @@ export default function PosScreen() {
                 {/* Danh sách các món trong giỏ */}
                 {cart.map((c) => (
                   <View key={c.id} style={styles.inlineCartItemCard}>
+                    <Image
+                      source={getProductImageSource(c.imageUrl, c.name)}
+                      style={{ width: 42, height: 42, borderRadius: 6, marginRight: 10, backgroundColor: '#F8F9FA' }}
+                      resizeMode="contain"
+                    />
                     <View style={styles.inlineCartItemLeft}>
                       <Text style={styles.inlineCartItemName} numberOfLines={1}>
                         {c.name}
@@ -1433,7 +1590,7 @@ export default function PosScreen() {
                   </View>
                 </View>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}
@@ -1779,6 +1936,18 @@ export default function PosScreen() {
         onClose={() => setScannerOpen(false)}
         onScan={handleScanCode}
         title="Quét Barcode / Bắn IMEI POS"
+        hint="Đưa camera quét mã vạch trên hộp hoặc tem IMEI 15 số của máy"
+        presetBarcodes={
+          catalog.filter((c) => c.hasImei && c.imei).length > 0
+            ? catalog
+                .filter((c) => c.hasImei && c.imei)
+                .slice(0, 4)
+                .map((c) => ({
+                  label: `${c.name.split(' ').slice(0, 3).join(' ')}`,
+                  code: c.imei!,
+                }))
+            : undefined
+        }
       />
         </>
       )}
@@ -2023,6 +2192,43 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
+  },
+  scannedImeiBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF0F2',
+    borderWidth: 1,
+    borderColor: '#DFBFBC',
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  scannedImeiLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  scannedImeiText: {
+    fontSize: 12,
+    color: '#7A0C10',
+  },
+  scannedImeiAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#7A0C10',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  scannedImeiAddBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
   // Category Scroll (Phân mục chuẩn)

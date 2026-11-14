@@ -27,6 +27,7 @@ class RolePermissionSeeder extends Seeder
                 'orders.view', 'orders.create', 'orders.checkout', 'orders.cancel',
                 'customers.view', 'customers.create', 'customers.update',
                 'warranty.view', 'warranty.repair',
+                'appraisal.view', 'appraisal.create', 'appraisal.update', 'appraisal.delete', 'appraisal.appraise',
             ])->map(fn ($name) => $all[$name])->filter()->values()
         );
 

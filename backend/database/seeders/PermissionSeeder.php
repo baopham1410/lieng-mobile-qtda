@@ -41,6 +41,11 @@ class PermissionSeeder extends Seeder
             ['name' => 'quan.statements', 'module' => 'quan'],
             ['name' => 'warranty.view', 'module' => 'warranty'],
             ['name' => 'warranty.repair', 'module' => 'warranty'],
+            ['name' => 'appraisal.view', 'module' => 'appraisal'],
+            ['name' => 'appraisal.create', 'module' => 'appraisal'],
+            ['name' => 'appraisal.update', 'module' => 'appraisal'],
+            ['name' => 'appraisal.delete', 'module' => 'appraisal'],
+            ['name' => 'appraisal.appraise', 'module' => 'appraisal'],
         ];
 
         foreach ($permissions as $permission) {

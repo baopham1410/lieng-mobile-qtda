@@ -21,6 +21,7 @@ build/
 .output/
 
 # PHP / Laravel
+*.phar
 backend/storage/*.key
 backend/storage/framework/cache/*
 backend/storage/framework/sessions/*
@@ -60,9 +61,14 @@ yarn-error.log*
 ~$*.xlsx
 ~$*.docx
 
-# Assistant RAG service
+# Assistant RAG & AutoGrade services
 assistant-service/.venv/
 assistant-service/data/vectorstore/
+autograde-service/.venv/
+autograde-service/venv/
+
+# AutoGrade vision service
+autograde-service/.venv/
 
 __pycache__/
 *.py[cod]

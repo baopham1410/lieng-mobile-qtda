@@ -24,6 +24,7 @@ import { Colors, Radius } from '@/constants/config'
 import { formatDateTimeVi, formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
 import { useStore } from '@/context/StoreContext'
+import { getProductImageSource } from '@/utils/productImages'
 import { useLocale } from '@/context/LocaleContext'
 
 interface DisplayOrder {
@@ -420,10 +421,25 @@ export default function OrdersScreen() {
     return true
   })
 
-  // Shift Stats
-  const totalRevenue = 42500000
-  const completedCount = 8
-  const pendingCount = 1
+  // Shift Stats - Tính toán thống kê trực tiếp đồng bộ 100% giữa danh sách đơn và thẻ chỉ số
+  const activeOrdersList = orders.length > 0 ? orders : storeOrders
+  const completedOrdersList = activeOrdersList.filter(
+    (o) => o.status === 'completed' || o.status === 'paid'
+  )
+  const pendingOrdersList = activeOrdersList.filter(
+    (o) => o.status === 'pending' || o.status === 'pending_discount' || o.status === 'pending_payment'
+  )
+  const displayCompletedCount = Math.max(stats.completedCount, completedOrdersList.length)
+  const displayPendingCount = Math.max(stats.pendingCount, pendingOrdersList.length)
+  const displayRevenue = Math.max(
+    stats.revenueToday,
+    completedOrdersList.reduce((sum, o) => sum + Number(o.total || 0), 0)
+  )
+  const displayOwnerRevenue = Math.max(
+    stats.ownerRevenueToday,
+    completedOrdersList.reduce((sum, o) => sum + Number(o.total || 0), 0)
+  )
+  const displayTotalOrders = Math.max(stats.totalOrders || 0, activeOrdersList.length)
 
   const handleShare = async (order: DisplayOrder) => {
     try {
@@ -653,7 +669,7 @@ export default function OrdersScreen() {
                         <Text style={[styles.ownerTodayPillText, { color: '#B45309' }]}>{tr('HÔM NAY', 'ມື້ນີ້')}</Text>
                       </View>
                     </View>
-                    <Text style={styles.ownerBigAmount}>{stats.totalOrders} {tr('đơn hàng', 'ລາຍການ')}</Text>
+                    <Text style={styles.ownerBigAmount}>{displayTotalOrders} {tr('đơn hàng', 'ລາຍການ')}</Text>
                   </View>
                 </View>
                 <View style={styles.ownerShiftTargetBox}>
@@ -670,7 +686,7 @@ export default function OrdersScreen() {
                   <Text style={styles.ownerSubCardLabel}>{tr('Đã xuất giao', 'ເບີກຈ່າຍແລ້ວ')}</Text>
                   <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
                 </View>
-                <Text style={styles.ownerSubCardVal}>{stats.completedCount} {tr('đơn', 'ບິນ')}</Text>
+                <Text style={styles.ownerSubCardVal}>{displayCompletedCount} {tr('đơn', 'ບິນ')}</Text>
                 <View style={styles.ownerTrendRow}>
                   <Ionicons name="barcode-outline" size={12} color="#16A34A" />
                   <Text style={styles.ownerTrendText}>{tr('Đã kích hoạt IMEI', 'ເປີດໃຊ້ IMEI ແລ້ວ')}</Text>
@@ -682,7 +698,7 @@ export default function OrdersScreen() {
                   <Text style={styles.ownerSubCardLabel}>{tr('Chờ xuất kho', 'ລໍຖ້າເບີກຈ່າຍ')}</Text>
                   <Ionicons name="clipboard-outline" size={15} color="#D97706" />
                 </View>
-                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{stats.pendingCount} {tr('đơn', 'ບິນ')}</Text>
+                <Text style={[styles.ownerSubCardVal, { color: '#D97706' }]}>{displayPendingCount} {tr('đơn', 'ບິນ')}</Text>
                 <Text style={styles.ownerSubCardHint}>{tr('Cần kiểm IMEI', 'ຕ້ອງກວດ IMEI')}</Text>
               </View>
             </View>
@@ -697,7 +713,7 @@ export default function OrdersScreen() {
                   <Ionicons name="wallet-outline" size={12} color={Colors.primaryContainer} />
                 </View>
               </View>
-              <Text style={styles.statValRed}>{formatMoney(stats.revenueToday)}</Text>
+              <Text style={styles.statValRed}>{formatMoney(displayRevenue)}</Text>
               <Text style={styles.statSub}>Hôm nay</Text>
             </View>
 
@@ -710,7 +726,7 @@ export default function OrdersScreen() {
                 </View>
               </View>
               <Text style={styles.statValGreen}>
-                {stats.completedCount} <Text style={styles.statUnitText}>đơn</Text>
+                {displayCompletedCount} <Text style={styles.statUnitText}>đơn</Text>
               </Text>
               <Text style={styles.statSubGreen}>Tỷ lệ 92%</Text>
             </View>
@@ -724,7 +740,7 @@ export default function OrdersScreen() {
                 </View>
               </View>
               <Text style={styles.statValAmber}>
-                {stats.pendingCount} <Text style={styles.statUnitText}>đơn</Text>
+                {displayPendingCount} <Text style={styles.statUnitText}>đơn</Text>
               </Text>
               <Text style={styles.statSubAmber}>Cần thu tiền</Text>
             </View>
@@ -745,7 +761,7 @@ export default function OrdersScreen() {
               </Text>
               <View style={[styles.countBadge, filterStatus === 'all' && styles.countBadgeActive]}>
                 <Text style={[styles.countBadgeText, filterStatus === 'all' && styles.countBadgeTextActive]}>
-                  {orders.length}
+                  {activeOrdersList.length}
                 </Text>
               </View>
             </Pressable>
@@ -757,7 +773,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.greenFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'completed' && styles.statusChipTextActive]}>
-                {tr('Hoàn tất', 'ສຳເລັດ')} ({orders.filter((o) => o.status === 'completed').length})
+                {tr('Hoàn tất', 'ສຳເລັດ')} ({displayCompletedCount})
               </Text>
             </Pressable>
 
@@ -768,7 +784,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.amberFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'pending' && styles.statusChipTextActive]}>
-                {tr('Chờ xử lý', 'ລໍຖ້າດຳເນີນການ')} ({orders.filter((o) => o.status === 'pending' || o.status === 'pending_discount').length})
+                {tr('Chờ xử lý', 'ລໍຖ້າດຳເນີນການ')} ({displayPendingCount})
               </Text>
             </Pressable>
 
@@ -779,7 +795,7 @@ export default function OrdersScreen() {
             >
               <View style={styles.redFilterDot} />
               <Text style={[styles.statusChipText, filterStatus === 'cancelled' && styles.statusChipTextActive]}>
-                {tr('Đã hủy', 'ຍົກເລີກແລ້ວ')} ({orders.filter((o) => o.status === 'cancelled').length})
+                {tr('Đã hủy', 'ຍົກເລີກແລ້ວ')} ({activeOrdersList.filter((o) => o.status === 'cancelled').length})
               </Text>
             </Pressable>
           </ScrollView>
@@ -915,7 +931,7 @@ export default function OrdersScreen() {
                   <View style={styles.orderProductInnerBox}>
                     <View style={styles.orderProductThumbWrap}>
                       <Image
-                        source={{ uri: item.imageUrl || getProductMeta(item.itemsSummary).image }}
+                        source={getProductImageSource(item.imageUrl, item.itemsSummary)}
                         style={styles.orderProductThumbImg}
                         resizeMode="contain"
                       />
