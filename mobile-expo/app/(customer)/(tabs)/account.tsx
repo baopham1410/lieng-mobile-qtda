@@ -16,7 +16,12 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { fetchMyWarranties, type CustomerWarrantyItem } from '@/api/warranty'
+import {
+  fetchMyPurchases,
+  fetchMyWarranties,
+  type CustomerPurchaseItem,
+  type CustomerWarrantyItem,
+} from '@/api/warranty'
 import { Radius } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 
@@ -33,6 +38,7 @@ export default function CustomerAccountScreen() {
   const [customerName, setCustomerName] = useState(initialName)
   const [customerPhone, setCustomerPhone] = useState(initialPhone)
   const [warranties, setWarranties] = useState<CustomerWarrantyItem[]>([])
+  const [purchases, setPurchases] = useState<CustomerPurchaseItem[]>([])
   const [loadingWarranties, setLoadingWarranties] = useState(false)
 
   const [showEditModal, setShowEditModal] = useState(false)
@@ -50,8 +56,12 @@ export default function CustomerAccountScreen() {
     const p = phoneTarget || customerPhone || '0383435600'
     setLoadingWarranties(true)
     try {
-      const list = await fetchMyWarranties(p)
-      setWarranties(list)
+      const [wList, pList] = await Promise.all([
+        fetchMyWarranties(p),
+        fetchMyPurchases(p),
+      ])
+      setWarranties(wList)
+      setPurchases(pList)
     } catch (e) {
       console.warn('Lỗi tải danh sách bảo hành:', e)
     } finally {
@@ -249,6 +259,74 @@ export default function CustomerAccountScreen() {
             </View>
           )}
         </View>
+
+        {/* ── SECTION: ĐƠN HÀNG & SẢN PHẨM MỚI MUA TẠI QUẦY (POS) ── */}
+        {purchases.length > 0 ? (
+          <View style={styles.warrantySection}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="receipt" size={18} color="#7A0C10" />
+                <Text style={styles.sectionTitle}>Đơn hàng & Sản phẩm mới mua</Text>
+              </View>
+            </View>
+
+            {purchases.map((order) => (
+              <View key={order.id} style={styles.deviceCard}>
+                <View style={styles.deviceHeader}>
+                  <View style={[styles.deviceIconCircle, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="bag-check" size={20} color="#166534" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.deviceName}>Mã đơn: {order.code}</Text>
+                    <Text style={styles.deviceSub}>
+                      {order.date} · {order.notes || 'Mua tại Showroom Lieng'}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    order.status === 'completed' ? styles.statusBadgeActive : styles.statusBadgeExpired,
+                  ]}>
+                    <Text style={[
+                      styles.statusBadgeText,
+                      order.status === 'completed' ? styles.statusBadgeTextActive : styles.statusBadgeTextExpired,
+                    ]}>
+                      {order.status_label}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardDivider} />
+
+                {order.items.map((item, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 2 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E293B' }}>{item.name}</Text>
+                      <Text style={{ fontSize: 11, color: '#64748B' }}>Màu: {item.color} {item.imei ? `· IMEI: ${item.imei}` : ''}</Text>
+                    </View>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#7A0C10' }}>
+                      {item.price ? item.price.toLocaleString('vi-VN') + ' đ' : ''}
+                    </Text>
+                  </View>
+                ))}
+
+                <View style={[styles.deviceMetaRow, { marginTop: 4 }]}>
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>Thanh toán</Text>
+                    <Text style={[styles.metaValue, { color: order.payment_status === 'paid' ? '#15803D' : '#D97706' }]}>
+                      {order.payment_status_label}
+                    </Text>
+                  </View>
+                  <View style={[styles.metaCol, { alignItems: 'flex-end' }]}>
+                    <Text style={styles.metaLabel}>Tổng thanh toán</Text>
+                    <Text style={[styles.metaValue, { color: '#7A0C10', fontWeight: '900', fontSize: 14 }]}>
+                      {order.total.toLocaleString('vi-VN')} đ
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {/* Lối tắt dịch vụ */}
         <View style={styles.menuGroup}>

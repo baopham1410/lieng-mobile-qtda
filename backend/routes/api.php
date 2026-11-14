@@ -35,8 +35,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/customer-send-otp', [CustomerPortalController::class, 'sendOtp']);
     Route::post('/auth/customer-login', [CustomerPortalController::class, 'login']);
     Route::get('/customer/my-warranties', [CustomerPortalController::class, 'myWarranties']);
+    Route::get('/customer/my-purchases', [CustomerPortalController::class, 'myPurchases']);
     Route::get('/customer/my-inquiries', [CustomerPortalController::class, 'myInquiries']);
     Route::post('/payments/payos/webhook', PayOSWebhookController::class);
 

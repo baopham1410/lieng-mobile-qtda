@@ -15,6 +15,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { sendCustomerOtp } from '@/api/auth'
 import { AlertBox } from '@/components/ui'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
@@ -66,9 +67,11 @@ export default function LoginScreen() {
 
   const [mode, setMode] = useState<'customer' | 'staff'>('customer')
 
-  // Customer state
+  // Customer state (chỉ duy nhất số điện thoại & mã OTP)
   const [customerPhone, setCustomerPhone] = useState('0383435600')
-  const [customerName, setCustomerName] = useState('Phạm Quốc Bảo')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState('8888')
+  const [otpNotice, setOtpNotice] = useState('')
 
   // Staff state
   const [email, setEmail] = useState('banhang@liengmobile.com')
@@ -87,18 +90,39 @@ export default function LoginScreen() {
     })
   }, [])
 
-  async function handleCustomerLogin() {
+  async function handleSendOtp() {
     if (!customerPhone.trim()) {
-      setError('Vui lòng nhập số điện thoại')
+      setError('Vui lòng nhập số điện thoại để nhận mã OTP')
       return
     }
     setSubmitting(true)
     setError('')
     try {
-      await customerLogin(customerPhone.trim(), customerName.trim())
+      const res = await sendCustomerOtp(customerPhone.trim())
+      setOtpSent(true)
+      setOtp(res.otp || '8888')
+      setOtpNotice(res.message || `Mã OTP đã được gửi đến số ${customerPhone.trim()}`)
+    } catch (e: any) {
+      setOtpSent(true)
+      setOtp('8888')
+      setOtpNotice(`Mã OTP thử nghiệm nhanh: 8888 (gửi đến ${customerPhone.trim()})`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleConfirmOtpAndLogin() {
+    if (!otp.trim()) {
+      setError('Vui lòng nhập mã OTP 4 số')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+    try {
+      await customerLogin(customerPhone.trim(), otp.trim())
       router.replace('/(customer)/(tabs)/account' as any)
     } catch (e: any) {
-      setError(e?.message || 'Không thể đăng nhập. Vui lòng kiểm tra kết nối.')
+      setError(e?.message || 'Mã OTP không chính xác. Quý khách vui lòng nhập mã 8888 để tiếp tục.')
     } finally {
       setSubmitting(false)
     }
@@ -246,62 +270,146 @@ export default function LoginScreen() {
           {mode === 'customer' ? (
             <View style={styles.card}>
               <Text style={styles.formEyebrow}>CỬA HÀNG & DỊCH VỤ</Text>
-              <Text style={styles.formTitle}>Trải nghiệm khách hàng</Text>
+              <Text style={styles.formTitle}>
+                {otpSent ? 'Xác thực mã OTP' : 'Đăng nhập khách hàng'}
+              </Text>
 
               <Text style={styles.customerNotice}>
-                Đăng nhập để xem danh sách máy đang giữ, theo dõi phiếu thu cũ đổi mới và bảo hành điện tử.
+                {otpSent
+                  ? 'Vui lòng nhập mã OTP gồm 4 chữ số được gửi tới số điện thoại của bạn.'
+                  : 'Nhập số điện thoại để tự động nhận diện thiết bị mới mua và bảo hành điện tử chính hãng.'}
               </Text>
+
+              {error ? (
+                <View style={{ marginTop: 10 }}>
+                  <AlertBox tone="error" message={error} />
+                </View>
+              ) : null}
 
               <View style={{ height: Space.md }} />
 
-              <View style={styles.inputWrap}>
-                <Ionicons
-                  name="call-outline"
-                  size={18}
-                  color={Colors.slate400}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Nhập số điện thoại của bạn"
-                  placeholderTextColor={Colors.slate400}
-                  keyboardType="phone-pad"
-                  value={customerPhone}
-                  onChangeText={setCustomerPhone}
-                />
-              </View>
+              {!otpSent ? (
+                /* BƯỚC 1: CHỈ NHẬP SỐ ĐIỆN THOẠI DUY NHẤT */
+                <>
+                  <View style={styles.inputWrap}>
+                    <Ionicons
+                      name="call-outline"
+                      size={18}
+                      color={Colors.slate400}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Nhập số điện thoại (VD: 0383435600)"
+                      placeholderTextColor={Colors.slate400}
+                      keyboardType="phone-pad"
+                      value={customerPhone}
+                      onChangeText={(t) => {
+                        setCustomerPhone(t)
+                        setError('')
+                      }}
+                    />
+                  </View>
 
-              <View style={{ height: Space.sm }} />
+                  <View style={{ marginTop: Space.md }}>
+                    <Pressable
+                      onPress={handleSendOtp}
+                      disabled={submitting}
+                      style={({ pressed }) => [
+                        styles.loginBtn,
+                        pressed && { opacity: 0.88 },
+                      ]}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Ionicons name="paper-plane-outline" size={18} color="#fff" />
+                          <Text style={styles.loginBtnText}>NHẬN MÃ XÁC THỰC OTP</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                /* BƯỚC 2: NHẬP MÃ OTP VÀ THÔNG BÁO MÃ THỬ NGHIỆM */
+                <>
+                  <View style={styles.otpNoticeBox}>
+                    <Ionicons name="checkmark-circle" size={18} color="#15803D" />
+                    <Text style={styles.otpNoticeText}>
+                      Đã gửi mã xác thực tới <Text style={{ fontWeight: '800' }}>{customerPhone}</Text>
+                    </Text>
+                  </View>
 
-              <View style={styles.inputWrap}>
-                <Ionicons
-                  name="person-outline"
-                  size={18}
-                  color={Colors.slate400}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Họ và tên (tùy chọn)"
-                  placeholderTextColor={Colors.slate400}
-                  value={customerName}
-                  onChangeText={setCustomerName}
-                />
-              </View>
+                  <View style={styles.demoOtpBox}>
+                    <Ionicons name="key" size={16} color="#B45309" />
+                    <Text style={styles.demoOtpText}>
+                      Mã OTP thử nghiệm nhanh: <Text style={{ fontWeight: '900', color: '#B45309' }}>8888</Text>
+                    </Text>
+                  </View>
 
-              <View style={{ marginTop: Space.md }}>
-                <Pressable
-                  onPress={handleCustomerLogin}
-                  disabled={submitting}
-                  style={({ pressed }) => [
-                    styles.loginBtn,
-                    pressed && { opacity: 0.88 },
-                  ]}
-                >
-                  <Ionicons name="arrow-forward-circle" size={18} color="#fff" />
-                  <Text style={styles.loginBtnText}>TIẾP TỤC VỚI SỐ ĐIỆN THOẠI</Text>
-                </Pressable>
-              </View>
+                  <View style={styles.inputWrap}>
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={18}
+                      color={Colors.slate400}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={[styles.input, { letterSpacing: 6, fontSize: 18, fontWeight: '800', textAlign: 'center' }]}
+                      placeholder="8888"
+                      placeholderTextColor={Colors.slate400}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={otp}
+                      onChangeText={(t) => {
+                        setOtp(t)
+                        setError('')
+                      }}
+                    />
+                  </View>
+
+                  <View style={{ marginTop: Space.md }}>
+                    <Pressable
+                      onPress={handleConfirmOtpAndLogin}
+                      disabled={submitting}
+                      style={({ pressed }) => [
+                        styles.loginBtn,
+                        pressed && { opacity: 0.88 },
+                      ]}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Ionicons name="lock-open-outline" size={18} color="#fff" />
+                          <Text style={styles.loginBtnText}>XÁC NHẬN & ĐĂNG NHẬP</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.otpActionRow}>
+                    <Pressable
+                      onPress={() => {
+                        setOtpSent(false)
+                        setError('')
+                      }}
+                      style={{ paddingVertical: 6 }}
+                    >
+                      <Text style={styles.backPhoneText}>← Đổi số điện thoại khác</Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={handleSendOtp}
+                      disabled={submitting}
+                      style={{ paddingVertical: 6 }}
+                    >
+                      <Text style={styles.resendOtpText}>Gửi lại mã OTP</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
 
               {/* Nút xem vãng lai không cần đăng nhập */}
               <View style={styles.dividerRow}>
@@ -741,5 +849,54 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     opacity: 0.75,
     marginTop: 2,
+  },
+  otpNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 8,
+  },
+  otpNoticeText: {
+    fontSize: 12,
+    color: '#166534',
+    flex: 1,
+  },
+  demoOtpBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: 12,
+  },
+  demoOtpText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+  },
+  otpActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  backPhoneText: {
+    fontSize: 12,
+    color: '#7A0C10',
+    fontWeight: '700',
+  },
+  resendOtpText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
   },
 })

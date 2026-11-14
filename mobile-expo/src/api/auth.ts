@@ -14,6 +14,14 @@ export type CustomerLoginResponse = {
   }
 }
 
+export type SendOtpResponse = {
+  message: string
+  phone: string
+  otp: string
+  customer_name: string
+  is_registered: boolean
+}
+
 export async function login(email: string, password: string): Promise<AppUser> {
   const { data } = await api.post('/auth/login', {
     email: email.trim(),
@@ -26,10 +34,17 @@ export async function login(email: string, password: string): Promise<AppUser> {
   return user
 }
 
-export async function customerLogin(phone: string, name?: string): Promise<CustomerLoginResponse> {
+export async function sendCustomerOtp(phone: string): Promise<SendOtpResponse> {
+  const { data } = await api.post('/auth/customer-send-otp', {
+    phone: phone.trim(),
+  })
+  return data
+}
+
+export async function customerLogin(phone: string, otp?: string): Promise<CustomerLoginResponse> {
   const { data } = await api.post('/auth/customer-login', {
     phone: phone.trim(),
-    name: name?.trim() || undefined,
+    otp: otp?.trim() || undefined,
   })
   if (data.token) {
     await setToken(data.token)

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Alert,
   Image,
@@ -17,6 +17,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '@/api/client'
+import {
+  fetchMyPurchases,
+  fetchMyWarranties,
+  type CustomerPurchaseItem,
+  type CustomerWarrantyItem,
+} from '@/api/warranty'
 
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
@@ -82,11 +88,41 @@ const HOT_PRODUCTS = [
 export default function CustomerHomeScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, customer } = useAuth()
+  const activePhone = customer?.phone || user?.phone || '0383435600'
+  const [warranties, setWarranties] = useState<CustomerWarrantyItem[]>([])
+  const [purchases, setPurchases] = useState<CustomerPurchaseItem[]>([])
+  const [loadingCustomerData, setLoadingCustomerData] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadData() {
+      try {
+        setLoadingCustomerData(true)
+        const [wList, pList] = await Promise.all([
+          fetchMyWarranties(activePhone),
+          fetchMyPurchases(activePhone),
+        ])
+        if (isMounted) {
+          setWarranties(wList)
+          setPurchases(pList)
+        }
+      } catch (err) {
+        console.warn('Lỗi tải dữ liệu bảo hành & đơn hàng:', err)
+      } finally {
+        if (isMounted) setLoadingCustomerData(false)
+      }
+    }
+    loadData()
+    return () => {
+      isMounted = false
+    }
+  }, [activePhone])
+
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [showCallModal, setShowCallModal] = useState(false)
-  const [callerPhone, setCallerPhone] = useState('0383435600')
-  const [callerName, setCallerName] = useState(user?.name || '')
+  const [callerPhone, setCallerPhone] = useState(activePhone)
+  const [callerName, setCallerName] = useState(user?.name || customer?.name || '')
   const [callTopic, setCallTopic] = useState('Tư vấn chọn máy')
   const [calling, setCalling] = useState(false)
 
@@ -231,6 +267,118 @@ export default function CustomerHomeScreen() {
             </View>
           </Pressable>
         </View>
+
+        {/* ── SECTION KHÁCH HÀNG: THIẾT BỊ MỚI MUA & BẢO HÀNH ĐIỆN TỬ (DỮ LIỆU THẬT) ── */}
+        {warranties.length > 0 ? (
+          <View style={styles.customerHomeSection}>
+            <View style={styles.customerSectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="shield-checkmark" size={18} color="#7A0C10" />
+                <Text style={styles.customerSectionTitle}>Thiết Bị Của Bạn & Bảo Hành Điện Tử</Text>
+              </View>
+              <Pressable
+                onPress={() => router.replace('/(customer)/(tabs)/warranty' as any)}
+                hitSlop={8}
+              >
+                <Text style={styles.customerViewAllLink}>Sổ bảo hành →</Text>
+              </Pressable>
+            </View>
+
+            {warranties.map((w) => (
+              <View key={w.id || w.imei} style={styles.homeWarrantyCard}>
+                <View style={styles.homeWarrantyHeader}>
+                  <View style={styles.homeWarrantyIconWrap}>
+                    <Ionicons name="phone-portrait" size={20} color="#7A0C10" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.homeWarrantyDeviceName}>{w.deviceName}</Text>
+                    <Text style={styles.homeWarrantyImei}>
+                      IMEI: <Text style={styles.homeImeiCode}>{w.imei}</Text> · {w.color}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.homeStatusPill,
+                    w.status === 'active' ? styles.homeStatusPillActive : styles.homeStatusPillExpired,
+                  ]}>
+                    <Text style={[
+                      styles.homeStatusPillText,
+                      w.status === 'active' ? styles.homeStatusTextActive : styles.homeStatusTextExpired,
+                    ]}>
+                      {w.statusBadge}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.homeCardDivider} />
+
+                <View style={styles.homeMetaRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.homeMetaLabel}>Hạn bảo hành: <Text style={{ fontWeight: '700', color: '#1E293B' }}>{w.endDate}</Text></Text>
+                    <Text style={styles.homeMetaSub} numberOfLines={1}>{w.package}</Text>
+                  </View>
+                  <Pressable
+                    style={styles.homeDetailBtn}
+                    onPress={() => router.replace('/(customer)/(tabs)/warranty' as any)}
+                  >
+                    <Text style={styles.homeDetailBtnText}>Chi tiết</Text>
+                    <Ionicons name="chevron-forward" size={12} color="#7A0C10" />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* ── SECTION KHÁCH HÀNG: ĐƠN HÀNG VỪA MUA TẠI QUẦY POS ── */}
+        {purchases.length > 0 ? (
+          <View style={styles.customerHomeSection}>
+            <View style={styles.customerSectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="receipt" size={18} color="#7A0C10" />
+                <Text style={styles.customerSectionTitle}>Đơn Hàng Mới Mua Tại Cửa Hàng</Text>
+              </View>
+              <Pressable
+                onPress={() => router.replace('/(customer)/(tabs)/account' as any)}
+                hitSlop={8}
+              >
+                <Text style={styles.customerViewAllLink}>Lịch sử mua →</Text>
+              </Pressable>
+            </View>
+
+            {purchases.slice(0, 2).map((order) => (
+              <View key={order.id} style={styles.homeOrderCard}>
+                <View style={styles.homeOrderHeader}>
+                  <Text style={styles.homeOrderCode}>Hóa đơn: {order.code}</Text>
+                  <View style={[
+                    styles.homeOrderBadge,
+                    order.status === 'completed' ? styles.orderBadgeCompleted : styles.orderBadgePending,
+                  ]}>
+                    <Text style={styles.orderBadgeText}>{order.status_label}</Text>
+                  </View>
+                </View>
+
+                {order.items.map((item, idx) => (
+                  <View key={idx} style={styles.homeOrderItemRow}>
+                    <Ionicons name="phone-portrait-outline" size={14} color="#64748B" />
+                    <Text style={styles.homeOrderItemName} numberOfLines={1}>
+                      {item.name} ({item.color})
+                    </Text>
+                    <Text style={styles.homeOrderItemPrice}>
+                      {item.price ? item.price.toLocaleString('vi-VN') + ' đ' : ''}
+                    </Text>
+                  </View>
+                ))}
+
+                <View style={styles.homeOrderFooter}>
+                  <Text style={styles.homeOrderDate}>Ngày mua: {order.date}</Text>
+                  <Text style={styles.homeOrderTotal}>
+                    Tổng: <Text style={{ color: '#7A0C10', fontWeight: '900' }}>{order.total.toLocaleString('vi-VN')} đ</Text>
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {/* ── Dịch vụ nổi bật (3 Card lớn) ── */}
         <View style={styles.sectionHeader}>
@@ -928,5 +1076,191 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  // Customer Home Sections
+  customerHomeSection: {
+    gap: 10,
+    marginTop: 4,
+  },
+  customerSectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  customerSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191C1E',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  customerViewAllLink: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  homeWarrantyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  homeWarrantyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  homeWarrantyIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#FFF1F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeWarrantyDeviceName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#191C1E',
+  },
+  homeWarrantyImei: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  homeImeiCode: {
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  homeStatusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  homeStatusPillActive: {
+    backgroundColor: '#DCFCE7',
+  },
+  homeStatusPillExpired: {
+    backgroundColor: '#F1F5F9',
+  },
+  homeStatusPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  homeStatusTextActive: {
+    color: '#15803D',
+  },
+  homeStatusTextExpired: {
+    color: '#64748B',
+  },
+  homeCardDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
+  homeMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  homeMetaLabel: {
+    fontSize: 11,
+    color: '#475569',
+  },
+  homeMetaSub: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  homeDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFF8F8',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  homeDetailBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  homeOrderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+    gap: 8,
+  },
+  homeOrderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  homeOrderCode: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  homeOrderBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  orderBadgeCompleted: {
+    backgroundColor: '#DCFCE7',
+  },
+  orderBadgePending: {
+    backgroundColor: '#FEF3C7',
+  },
+  orderBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  homeOrderItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 2,
+  },
+  homeOrderItemName: {
+    flex: 1,
+    fontSize: 12,
+    color: '#334155',
+  },
+  homeOrderItemPrice: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  homeOrderFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+    marginTop: 2,
+  },
+  homeOrderDate: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  homeOrderTotal: {
+    fontSize: 12,
+    color: '#475569',
   },
 })

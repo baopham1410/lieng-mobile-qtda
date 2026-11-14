@@ -30,7 +30,7 @@ type AuthContextValue = {
   customer: CustomerProfile | null
   loading: boolean
   login: (email: string, password: string) => Promise<AppUser>
-  customerLogin: (phone: string, name?: string) => Promise<authApi.CustomerLoginResponse>
+  customerLogin: (phone: string, otp?: string) => Promise<authApi.CustomerLoginResponse>
   logout: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -79,9 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })()
   }, [refresh])
 
-  const customerLogin = useCallback(async (phone: string, name?: string) => {
+  const customerLogin = useCallback(async (phone: string, otp?: string) => {
     try {
-      const res = await authApi.customerLogin(phone, name)
+      const res = await authApi.customerLogin(phone, otp)
       const cust = res.customer
       const u: AppUser = {
         id: cust.id,
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const cleanPhone = phone.replace(/\D/g, '')
       const fallbackCust: CustomerProfile = {
         id: 7,
-        name: name || 'phạm quốc bảo',
+        name: 'phạm quốc bảo',
         phone,
         loyalty_points: 0,
         tier: 'Thành viên Bạc',

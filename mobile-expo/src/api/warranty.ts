@@ -48,6 +48,33 @@ export async function fetchMyWarranties(phone?: string): Promise<CustomerWarrant
   return data.data || []
 }
 
+export interface CustomerPurchaseItem {
+  id: number
+  code: string
+  total: number
+  subtotal: number
+  discount: number
+  status: string
+  status_label: string
+  payment_status: string
+  payment_status_label: string
+  date: string
+  notes?: string
+  items: Array<{
+    name: string
+    color: string
+    price: number
+    total: number
+    imei?: string | null
+  }>
+}
+
+export async function fetchMyPurchases(phone?: string): Promise<CustomerPurchaseItem[]> {
+  const url = phone ? `/customer/my-purchases?phone=${encodeURIComponent(phone)}` : '/customer/my-purchases'
+  const { data } = await api.get(url)
+  return data.orders || []
+}
+
 export async function fetchMyInquiries(phone?: string) {
   const url = phone ? `/customer/my-inquiries?phone=${encodeURIComponent(phone)}` : '/customer/my-inquiries'
   const { data } = await api.get(url)

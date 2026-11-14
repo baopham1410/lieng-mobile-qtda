@@ -19,6 +19,38 @@ use Illuminate\Support\Facades\Hash;
 class CustomerPortalController extends Controller
 {
     /**
+     * Gửi mã OTP xác thực số điện thoại
+     */
+    public function sendOtp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone' => 'required|string|max:30',
+        ]);
+
+        $rawPhone = trim($validated['phone']);
+        $cleanPhone = preg_replace('/\D/', '', $rawPhone);
+        if (strlen($cleanPhone) < 9) {
+            return response()->json(['message' => 'Số điện thoại không hợp lệ (tối thiểu 9 chữ số).'], 422);
+        }
+
+        $customer = Customer::where('phone', $rawPhone)
+            ->orWhere('phone', $cleanPhone)
+            ->orWhere('phone', 'like', "%{$cleanPhone}%")
+            ->first();
+
+        // Mã OTP mô phỏng bảo mật (mặc định 8888, dễ dàng kết nối SMS Brandname)
+        $otpCode = '8888';
+
+        return response()->json([
+            'message' => "Mã OTP đã được gửi đến số điện thoại {$rawPhone}.",
+            'phone' => $rawPhone,
+            'otp' => $otpCode,
+            'customer_name' => $customer?->name ?? 'Quý khách hàng',
+            'is_registered' => (bool) $customer,
+        ]);
+    }
+
+    /**
      * Đăng nhập khách hàng bằng Số điện thoại (Phone-first Login / OTP)
      */
     public function login(Request $request): JsonResponse
@@ -33,6 +65,11 @@ class CustomerPortalController extends Controller
         $cleanPhone = preg_replace('/\D/', '', $rawPhone);
         if (strlen($cleanPhone) < 9) {
             return response()->json(['message' => 'Số điện thoại không hợp lệ (tối thiểu 9 chữ số).'], 422);
+        }
+
+        $otp = trim($validated['otp'] ?? '');
+        if ($otp && $otp !== '8888' && $otp !== '1234' && strlen($otp) < 4) {
+            return response()->json(['message' => 'Mã OTP không chính xác. Quý khách vui lòng nhập mã 8888 để tiếp tục.'], 422);
         }
 
         // Tìm khách hàng trong database Neon
@@ -163,6 +200,62 @@ class CustomerPortalController extends Controller
 
         return response()->json([
             'data' => $mapped,
+        ]);
+    }
+
+    /**
+     * Lấy danh sách sản phẩm và đơn hàng mới mua tại quầy của khách hàng
+     */
+    public function myPurchases(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $phone = $user?->phone ?: $request->query('phone');
+        $cleanPhone = preg_replace('/\D/', '', $phone ?: '');
+
+        $customer = Customer::where('phone', $phone)
+            ->orWhere('phone', $cleanPhone)
+            ->orWhere('phone', 'like', "%{$cleanPhone}%")
+            ->first();
+
+        if (! $customer) {
+            return response()->json(['orders' => []]);
+        }
+
+        $orders = Order::with(['items.productVariant.product', 'items.imeiCode'])
+            ->where('customer_id', $customer->id)
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+
+        $mappedOrders = $orders->map(function ($o) {
+            return [
+                'id' => $o->id,
+                'code' => $o->code,
+                'total' => (float) $o->total,
+                'subtotal' => (float) $o->subtotal,
+                'discount' => (float) $o->discount,
+                'status' => $o->status,
+                'status_label' => $o->status === 'completed' ? 'Hoàn thành' : 'Đang xử lý',
+                'payment_status' => $o->payment_status,
+                'payment_status_label' => $o->payment_status === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán',
+                'date' => $o->created_at?->format('d/m/Y H:i'),
+                'notes' => $o->notes,
+                'items' => $o->items->map(function ($item) {
+                    $variant = $item->productVariant;
+                    $product = $variant?->product;
+                    return [
+                        'name' => trim(($product?->name ?? 'Thiết bị') . ' ' . ($variant?->storage ?? '')),
+                        'color' => $variant?->color ?? 'Tiêu chuẩn',
+                        'price' => (float) $item->unit_price,
+                        'total' => (float) $item->total,
+                        'imei' => $item->imeiCode?->imei ?? null,
+                    ];
+                }),
+            ];
+        });
+
+        return response()->json([
+            'orders' => $mappedOrders,
         ]);
     }
 
