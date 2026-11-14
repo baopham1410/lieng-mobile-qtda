@@ -406,7 +406,7 @@ export default function HomeScreen() {
               {/* 1. Doanh số hôm nay */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>DOANH SỐ HÔM NAY</Text>
+                  <Text style={styles.kpiLabel}>{tr('DOANH SỐ HÔM NAY', 'ຍອດຂາຍມື້ນີ້')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#FFECEF' }]}>
                     <Ionicons name="wallet-outline" size={16} color={Colors.primaryContainer} />
                   </View>
@@ -423,7 +423,7 @@ export default function HomeScreen() {
               {/* 2. Tiền mặt tại két */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>TIỀN MẶT TẠI KÉT</Text>
+                  <Text style={styles.kpiLabel}>{tr('TIỀN MẶT TẠI KÉT', 'ເງິນສົດໃນເຊບ')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#F3F4F6' }]}>
                     <MaterialIcons name="point-of-sale" size={16} color="#374151" />
                   </View>
@@ -434,7 +434,7 @@ export default function HomeScreen() {
                 <View style={styles.kpiFooterTrend}>
                   <Ionicons name="shield-checkmark" size={12} color="#D97706" />
                   <Text style={[styles.kpiHintText, { color: '#D97706', fontWeight: '600' }]}>
-                    Sẵn sàng giao ca
+                    {tr('Sẵn sàng giao ca', 'ພ້ອມມອບໂອນກະ')}
                   </Text>
                 </View>
               </View>
@@ -442,31 +442,31 @@ export default function HomeScreen() {
               {/* 3. Đơn toàn shop */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>ĐƠN TOÀN SHOP</Text>
+                  <Text style={styles.kpiLabel}>{tr('ĐƠN TOÀN SHOP', 'ບິນທົ່ວຮ້ານ')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#FEE2E2' }]}>
                     <Ionicons name="phone-portrait-outline" size={16} color="#DC2626" />
                   </View>
                 </View>
-                <Text style={styles.kpiValueLarge}>{stats.ownerOrdersCount} đơn</Text>
+                <Text style={styles.kpiValueLarge}>{stats.ownerOrdersCount} {tr('đơn', 'ບິນ')}</Text>
                 <View style={styles.kpiFooterTrend}>
-                  <Text style={styles.kpiHintText}>100% hoàn tất</Text>
+                  <Text style={styles.kpiHintText}>{tr('100% hoàn tất', '100% ສຳເລັດ')}</Text>
                 </View>
               </View>
 
               {/* 4. Chờ duyệt */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>CHỜ DUYỆT</Text>
+                  <Text style={styles.kpiLabel}>{tr('CHỜ DUYỆT', 'ລໍຖ້າອະນຸມັດ')}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#FEE2E2' }]}>
                     <Ionicons name="clipboard-outline" size={16} color="#DC2626" />
                   </View>
                 </View>
                 <Text style={[styles.kpiValueLarge, { color: '#DC2626' }]}>
-                  0{stats.ownerPendingCount} phiếu
+                  {stats.ownerPendingCount} {tr('phiếu', 'ໃບ')}
                 </Text>
                 <View style={styles.kpiFooterTrend}>
                   <Text style={[styles.kpiHintText, { color: '#DC2626', fontWeight: '600' }]}>
-                    Cần xử lý ngay
+                    {tr('Cần xử lý ngay', 'ຕ້ອງແກ້ໄຂດ່ວນ')}
                   </Text>
                 </View>
               </View>
@@ -604,10 +604,10 @@ export default function HomeScreen() {
             <View style={styles.sectionHeaderRow}>
               <View style={styles.sectionTitleWithDot}>
                 <View style={styles.ownerAmberDot} />
-                <Text style={styles.sectionTitle}>Yêu cầu cần Chủ quán duyệt</Text>
+                <Text style={styles.sectionTitle}>{tr('Yêu cầu cần Chủ quán duyệt', 'ຄຳຮ້ອງທີ່ຕ້ອງໃຫ້ເຈົ້າຂອງຮ້ານອະນຸມັດ')}</Text>
               </View>
               <View style={styles.pendingBadgePill}>
-                <Text style={styles.pendingBadgePillText}>{pendingApprovals.length} chờ</Text>
+                <Text style={styles.pendingBadgePillText}>{pendingApprovals.length} {tr('chờ', 'ລໍຖ້າ')}</Text>
               </View>
             </View>
 
@@ -615,10 +615,10 @@ export default function HomeScreen() {
               <View style={[styles.approvalCard, { alignItems: 'center', paddingVertical: 24 }]}>
                 <Ionicons name="checkmark-done-circle" size={42} color="#16A34A" />
                 <Text style={{ fontSize: 14, fontWeight: '700', color: '#16A34A', marginTop: 8 }}>
-                  Tất cả yêu cầu đã được duyệt!
+                  {tr('Tất cả yêu cầu đã được duyệt!', 'ທຸກໆຄຳຮ້ອງໄດ້ຖືກອະນຸມັດແລ້ວ!')}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 3, textAlign: 'center' }}>
-                  Không còn phiếu chiết khấu hay Trade-in nào đang chờ xử lý.
+                  {tr('Không còn phiếu chiết khấu hay Trade-in nào đang chờ xử lý.', 'ບໍ່ມີໃບຫຼຸດລາຄາ ຫຼື Trade-in ທີ່ຄ້າງລໍຖ້າ.')}
                 </Text>
               </View>
             ) : (
@@ -651,14 +651,14 @@ export default function HomeScreen() {
                           onPress={() => handleRejectDiscount(item.id)}
                           style={styles.approvalRejectBtn}
                         >
-                          <Text style={styles.approvalRejectBtnText}>Từ chối</Text>
+                          <Text style={styles.approvalRejectBtnText}>{tr('Từ chối', 'ປະຕິເສດ')}</Text>
                         </Pressable>
                         <Pressable
                           onPress={() => handleApproveDiscount(item.id)}
                           style={styles.approvalAcceptBtn}
                         >
                           <Ionicons name="checkmark" size={15} color="#FFFFFF" />
-                          <Text style={styles.approvalAcceptBtnText}>Duyệt ngay</Text>
+                          <Text style={styles.approvalAcceptBtnText}>{tr('Duyệt ngay', 'ອະນຸມັດທັນທີ')}</Text>
                         </Pressable>
                       </View>
                     ) : (
@@ -667,7 +667,7 @@ export default function HomeScreen() {
                         style={styles.approvalFullBtn}
                       >
                         <Ionicons name="checkmark-circle-outline" size={16} color={Colors.primaryContainer} />
-                        <Text style={styles.approvalFullBtnText}>Duyệt giá bù {item.amountText}</Text>
+                        <Text style={styles.approvalFullBtnText}>{tr(`Duyệt giá bù ${item.amountText}`, `ອະນຸມັດລາຄາຕື່ມ ${item.amountText}`)}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -689,7 +689,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#FFD9DD' }]}>
                   <MaterialIcons name="point-of-sale" size={22} color={Colors.primaryContainer} />
                 </View>
-                <Text style={styles.actionBtnLabel}>Bán hàng POS</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Bán hàng POS', 'ຂາຍໜ້າເຄົາເຕີ້')}</Text>
               </Pressable>
 
               {/* Chủ quán: Sổ quỹ két */}
@@ -700,7 +700,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#F2F4F6' }]}>
                   <Ionicons name="wallet-outline" size={20} color="#374151" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Sổ quỹ két</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Sổ quỹ két', 'ປຶ້ມບັນຊີເຊບ')}</Text>
               </Pressable>
 
               {/* Chủ quán: Tra IMEI */}
@@ -711,15 +711,18 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#F2F4F6' }]}>
                   <Ionicons name="qr-code-outline" size={20} color="#374151" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Tra IMEI</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Tra IMEI', 'ກວດ IMEI')}</Text>
               </Pressable>
 
               {/* Chủ quán: Kiểm kê kho */}
               <Pressable
                 onPress={() =>
                   Alert.alert(
-                    'Kiểm kê kho',
-                    `Hệ thống kho đang đồng bộ ${stats.imeiInStock} thiết bị tại Showroom.`,
+                    tr('Kiểm kê kho', 'ກວດນັບສາງ'),
+                    tr(
+                      `Hệ thống kho đang đồng bộ ${stats.imeiInStock} thiết bị tại Showroom.`,
+                      `ລະບົບສາງກຳລັງຊິງຄ໌ ${stats.imeiInStock} ອຸປະກອນທີ່ໜ້າຮ້ານ.`
+                    )
                   )
                 }
                 style={styles.quickActionBtn}
@@ -727,7 +730,7 @@ export default function HomeScreen() {
                 <View style={[styles.actionCircle, { backgroundColor: '#F2F4F6' }]}>
                   <Ionicons name="cube-outline" size={20} color="#374151" />
                 </View>
-                <Text style={styles.actionBtnLabel}>Kiểm kê kho</Text>
+                <Text style={styles.actionBtnLabel}>{tr('Kiểm kê kho', 'ກວດນັບສາງ')}</Text>
               </Pressable>
             </>
           ) : isWarehouseStaff ? (

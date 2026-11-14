@@ -592,16 +592,18 @@ export default function OrdersScreen() {
                   </View>
                   <View>
                     <View style={styles.ownerShiftTitleRow}>
-                      <Text style={styles.ownerShiftTitle}>DOANH SỐ CA TRỰC</Text>
+                      <Text style={styles.ownerShiftTitle}>{tr('DOANH SỐ CA TRỰC', 'ຍອດຂາຍປະຈຳກະ')}</Text>
                       <View style={styles.ownerTodayPill}>
-                        <Text style={styles.ownerTodayPillText}>HÔM NAY</Text>
+                        <Text style={styles.ownerTodayPillText}>{tr('HÔM NAY', 'ມື້ນີ້')}</Text>
                       </View>
                     </View>
-                    <Text style={styles.ownerBigAmount}>{formatMoney(stats.ownerRevenueToday)}</Text>
+                    <Text style={styles.ownerBigAmount}>
+                      {formatMoney(stats.ownerRevenueToday)}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.ownerShiftTargetBox}>
-                  <Text style={styles.ownerTargetLabel}>Mục tiêu ca</Text>
+                  <Text style={styles.ownerTargetLabel}>{tr('Mục tiêu ca', 'ເປົ້າໝາຍກະ')}</Text>
                   <Text style={styles.ownerTargetPercent}>85%</Text>
                 </View>
               </View>
@@ -611,23 +613,27 @@ export default function OrdersScreen() {
             <View style={styles.ownerSubStatsRow}>
               <View style={styles.ownerSubCard}>
                 <View style={styles.ownerSubCardHeader}>
-                  <Text style={styles.ownerSubCardLabel}>Hoàn tất</Text>
+                  <Text style={styles.ownerSubCardLabel}>{tr('Hoàn tất', 'ສຳເລັດ')}</Text>
                   <Ionicons name="checkmark-circle-outline" size={15} color="#16A34A" />
                 </View>
-                <Text style={styles.ownerSubCardVal}>{stats.completedCount} đơn</Text>
+                <Text style={styles.ownerSubCardVal}>
+                  {stats.completedCount} {tr('đơn', 'ບິນ')}
+                </Text>
                 <View style={styles.ownerTrendRow}>
                   <Ionicons name="trending-up" size={12} color="#16A34A" />
-                  <Text style={styles.ownerTrendText}>Tỷ lệ 92%</Text>
+                  <Text style={styles.ownerTrendText}>{tr('Tỷ lệ 92%', 'ອັດຕາ 92%')}</Text>
                 </View>
               </View>
 
               <View style={styles.ownerSubCard}>
                 <View style={styles.ownerSubCardHeader}>
-                  <Text style={styles.ownerSubCardLabel}>Chờ xử lý</Text>
+                  <Text style={styles.ownerSubCardLabel}>{tr('Chờ xử lý', 'ລໍຖ້າດຳເນີນການ')}</Text>
                   <Ionicons name="clipboard-outline" size={15} color="#D97706" />
                 </View>
-                <Text style={[styles.ownerSubCardVal, { color: '#DC2626' }]}>{stats.pendingCount} đơn</Text>
-                <Text style={styles.ownerSubCardHint}>Cần duyệt / thu tiền</Text>
+                <Text style={[styles.ownerSubCardVal, { color: '#DC2626' }]}>
+                  {orders.filter((o) => o.status === 'pending' || o.status === 'pending_discount').length} {tr('đơn', 'ບິນ')}
+                </Text>
+                <Text style={styles.ownerSubCardHint}>{tr('Cần duyệt / thu tiền', 'ຕ້ອງອະນຸມັດ / ເກັບເງິນ')}</Text>
               </View>
             </View>
           </View>

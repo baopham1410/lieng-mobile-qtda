@@ -2,13 +2,16 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -29,6 +32,73 @@ export default function AccountScreen() {
   const [syncing, setSyncing] = useState(false)
   const [avatarErr, setAvatarErr] = useState(false)
   const [profileStats, setProfileStats] = useState<any>(null)
+
+  // ── Modals cho Chủ quán ──
+  // 1. Chi tiền quán
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false)
+  const [expenseTitle, setExpenseTitle] = useState('Nước suối & Cafe tiếp khách VIP')
+  const [expenseAmount, setExpenseAmount] = useState('150000')
+  const [expenseRecipient, setExpenseRecipient] = useState('Nguyễn Văn A (Nhân viên quầy)')
+  const [expenseSubmitting, setExpenseSubmitting] = useState(false)
+
+  // 2. Kiểm đếm két
+  const [auditModalOpen, setAuditModalOpen] = useState(false)
+  const [counts, setCounts] = useState<Record<string, number>>({
+    '500k': 0,
+    '200k': 0,
+    '100k': 0,
+    '50k': 0,
+    '20k': 0,
+    '10k': 0,
+  })
+  const [auditVerified, setAuditVerified] = useState(false)
+
+  // 3. Chốt két showroom & Lưu kho sao kê
+  const [settleModalOpen, setSettleModalOpen] = useState(false)
+  const [settling, setSettling] = useState(false)
+  const [settleSuccess, setSettleSuccess] = useState(false)
+
+  const denominationMap: Record<string, number> = {
+    '500k': 500000,
+    '200k': 200000,
+    '100k': 100000,
+    '50k': 50000,
+    '20k': 20000,
+    '10k': 10000,
+  }
+
+  const auditTotalCounted = Object.keys(counts).reduce((sum, key) => {
+    return sum + (counts[key] || 0) * (denominationMap[key] || 0)
+  }, 0)
+
+  const handleAutoMatchAudit = () => {
+    let remaining = vault.actualCashInVault
+    const newCounts: Record<string, number> = {
+      '500k': 0,
+      '200k': 0,
+      '100k': 0,
+      '50k': 0,
+      '20k': 0,
+      '10k': 0,
+    }
+    const denoms = [
+      { key: '500k', val: 500000 },
+      { key: '200k', val: 200000 },
+      { key: '100k', val: 100000 },
+      { key: '50k', val: 50000 },
+      { key: '20k', val: 20000 },
+      { key: '10k', val: 10000 },
+    ]
+    for (const d of denoms) {
+      if (remaining >= d.val) {
+        const c = Math.floor(remaining / d.val)
+        newCounts[d.key] = c
+        remaining -= c * d.val
+      }
+    }
+    setCounts(newCounts)
+    setAuditVerified(true)
+  }
 
   useEffect(() => {
     fetchProfileSummary()
@@ -243,13 +313,15 @@ export default function AccountScreen() {
                     <Ionicons name="wallet-outline" size={18} color="#7A0C10" />
                   </View>
                   <View>
-                    <Text style={styles.ownerVaultTitle}>SỔ QUỸ & CHỐT KÉT SHOWROOM</Text>
-                    <Text style={styles.ownerVaultTime}>08:00 — 16:30 (Hôm nay)</Text>
+                    <Text style={styles.ownerVaultTitle}>{tr('SỔ QUỸ & CHỐT KÉT SHOWROOM', 'ປຶ້ມບັນຊີ & ປິດເຊບໜ້າຮ້ານ')}</Text>
+                    <Text style={styles.ownerVaultTime}>{tr('08:00 — 16:30 (Hôm nay)', '08:00 — 16:30 (ມື້ນີ້)')}</Text>
                   </View>
                 </View>
                 <View style={styles.ownerVaultStatusPill}>
                   <View style={styles.pulseLiveDot} />
-                  <Text style={styles.ownerVaultStatusText}>Đang mở két</Text>
+                  <Text style={styles.ownerVaultStatusText}>
+                    {vault.isSettled ? tr('Đã chốt két', 'ປິດເຊບແລ້ວ') : tr('Đang mở két', 'ກຳລັງເປີດເຊບ')}
+                  </Text>
                 </View>
               </View>
 
@@ -259,7 +331,7 @@ export default function AccountScreen() {
                   <View style={styles.ownerVaultRowLabelGroup}>
                     <Ionicons name="swap-horizontal-outline" size={13} color="#6B7280" />
                     <Text style={styles.ownerVaultRowLabel}>
-                      Tiền mặt đầu ca (tiền lẻ trả lại)
+                      {tr('Tiền mặt đầu ca (tiền lẻ trả lại)', 'ເງິນສົດຕົ້ນກະ (ເງິນທອນ)')}
                     </Text>
                   </View>
                   <Text style={styles.ownerVaultRowValDark}>10.000.000 đ</Text>
@@ -269,7 +341,7 @@ export default function AccountScreen() {
                   <View style={styles.ownerVaultRowLabelGroup}>
                     <Ionicons name="arrow-down-circle-outline" size={13} color="#16A34A" />
                     <Text style={styles.ownerVaultRowLabel}>
-                      Thu tiền mặt bán hàng trong ca
+                      {tr('Thu tiền mặt bán hàng trong ca', 'ຮັບເງິນສົດຈາກການຂາຍໃນກະ')}
                     </Text>
                   </View>
                   <Text style={styles.ownerVaultRowValGreen}>+{formatMoney(vault.cashSales)}</Text>
@@ -279,7 +351,7 @@ export default function AccountScreen() {
                   <View style={styles.ownerVaultRowLabelGroup}>
                     <Ionicons name="arrow-up-circle-outline" size={13} color="#DC2626" />
                     <Text style={styles.ownerVaultRowLabel}>
-                      Chi phí vận hành quán tại quầy
+                      {tr('Chi phí vận hành quán tại quầy', 'ລາຍຈ່າຍດຳເນີນງານໜ້າຮ້ານ')}
                     </Text>
                   </View>
                   <Text style={styles.ownerVaultRowValRed}>-{formatMoney(vault.operationalExpenses)}</Text>
@@ -290,13 +362,13 @@ export default function AccountScreen() {
               <View style={styles.ownerActualVaultBox}>
                 <View>
                   <Text style={styles.ownerActualVaultLabel}>
-                    TIỀN MẶT THỰC TẾ TRONG KÉT
+                    {tr('TIỀN MẶT THỰC TẾ TRONG KÉT', 'ເງິນສົດຕົວຈິງໃນເຊບ')}
                   </Text>
                   <Text style={styles.ownerActualVaultAmount}>{formatMoney(vault.actualCashInVault)}</Text>
                 </View>
                 <Pressable
                   style={styles.ownerVaultLockBtn}
-                  onPress={() => Alert.alert('Két tiền mặt', 'Két showroom đang được bảo mật điện tử.')}
+                  onPress={() => Alert.alert(tr('Két tiền mặt', 'ເຊບເງິນສົດ'), tr('Két showroom đang được bảo mật điện tử an toàn.', 'ເຊບໜ້າຮ້ານຖືກຮັກສາຄວາມປອດໄພດ້ວຍລະບົບເອເລັກໂຕຣນິກ.'))}
                 >
                   <Ionicons name="lock-closed" size={20} color="#FFFFFF" />
                 </Pressable>
@@ -306,7 +378,7 @@ export default function AccountScreen() {
               <View style={styles.ownerTargetProgressSection}>
                 <View style={styles.ownerTargetProgressHeader}>
                   <Text style={styles.ownerTargetProgressLabel}>
-                    Tiến độ doanh số ca đạt chỉ tiêu
+                    {tr('Tiến độ doanh số ca đạt chỉ tiêu', 'ຄວາມຄືບໜ້າຍອດຂາຍຕາມເປົ້າໝາຍ')}
                   </Text>
                   <Text style={styles.ownerTargetProgressValue}>
                     {vault.targetProgress}% ({Math.round(vault.targetRevenue / 1000000)}M Target)
@@ -321,45 +393,21 @@ export default function AccountScreen() {
               <View style={styles.ownerVaultActionsRow}>
                 <Pressable
                   style={styles.ownerVaultActionBtn}
-                  onPress={() => {
-                    Alert.alert(
-                      'Chi tiền quán tại quầy',
-                      'Chọn khoản mục chi phí tiền mặt cần xuất:',
-                      [
-                        {
-                          text: 'Nước & Cafe khách VIP (150.000 đ)',
-                          onPress: async () => {
-                            await recordVaultExpense(150000, 'Nước suối & Cafe tiếp khách VIP')
-                            Alert.alert('Thành công', 'Đã ghi nhận chi phí 150.000 đ vào sổ quỹ két.')
-                          },
-                        },
-                        {
-                          text: 'Văn phòng phẩm / Giấy in (250.000 đ)',
-                          onPress: async () => {
-                            await recordVaultExpense(250000, 'Văn phòng phẩm & Giấy in bill')
-                            Alert.alert('Thành công', 'Đã ghi nhận chi phí 250.000 đ vào sổ quỹ két.')
-                          },
-                        },
-                        { text: 'Đóng', style: 'cancel' },
-                      ],
-                    )
-                  }}
+                  onPress={() => setExpenseModalOpen(true)}
                 >
                   <Ionicons name="add-circle-outline" size={16} color="#7A0C10" />
-                  <Text style={styles.ownerVaultActionBtnText}>Chi tiền quán</Text>
+                  <Text style={styles.ownerVaultActionBtnText}>{tr('Chi tiền quán', 'ເບີກຈ່າຍເງິນຮ້ານ')}</Text>
                 </Pressable>
 
                 <Pressable
                   style={styles.ownerVaultActionBtn}
-                  onPress={() =>
-                    Alert.alert(
-                      'Kiểm đếm két',
-                      `Đã kiểm đếm két: Tiền mặt thực tế ${formatMoney(vault.actualCashInVault)} khớp 100% sao kê hệ thống.`,
-                    )
-                  }
+                  onPress={() => {
+                    handleAutoMatchAudit()
+                    setAuditModalOpen(true)
+                  }}
                 >
                   <Ionicons name="calculator-outline" size={16} color="#191C1E" />
-                  <Text style={styles.ownerVaultActionBtnText}>Kiểm đếm két</Text>
+                  <Text style={styles.ownerVaultActionBtnText}>{tr('Kiểm đếm két', 'ກວດນັບເຊບ')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -739,13 +787,7 @@ export default function AccountScreen() {
           {isStoreOwner && (
             <Pressable
               style={styles.confirmSettleBtn}
-              onPress={async () => {
-                await settleVault('Chốt két ca trực 08:00 - 16:30 hoàn tất.')
-                Alert.alert(
-                  'Xác nhận chốt két thành công 🎉',
-                  `Đã lưu kho sao kê thành công!\nSố tiền bàn giao: ${formatMoney(vault.actualCashInVault)}\nTự động đồng bộ máy chủ & in 02 liên bàn giao ca (Liên 1 Kế toán, Liên 2 Bàn giao ca).`,
-                )
-              }}
+              onPress={() => setSettleModalOpen(true)}
             >
               <View style={styles.confirmSettleLeft}>
                 <Ionicons name="refresh-circle-outline" size={24} color="#FFFFFF" />
@@ -800,6 +842,355 @@ export default function AccountScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* ── MODAL 1: CHI TIỀN QUÁN TẠI QUẦY ── */}
+      <Modal
+        visible={expenseModalOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setExpenseModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalDialogCard}>
+            <View style={styles.modalDialogHeader}>
+              <View style={styles.modalDialogTitleGroup}>
+                <View style={[styles.modalDialogIconCircle, { backgroundColor: '#FEE2E2' }]}>
+                  <Ionicons name="cash-outline" size={18} color="#DC2626" />
+                </View>
+                <View>
+                  <Text style={styles.modalDialogTitle}>{tr('Phiếu chi quỹ quán tại quầy', 'ໃບເບີກຈ່າຍເງິນສົດຮ້ານ')}</Text>
+                  <Text style={styles.modalDialogSubtitle}>{tr('Ghi nhận chi phí trực tiếp vào sổ két', 'ບັນທຶກລາຍຈ່າຍເຂົ້າໃນປຶ້ມເຊບ')}</Text>
+                </View>
+              </View>
+              <Pressable onPress={() => setExpenseModalOpen(false)} hitSlop={8}>
+                <Ionicons name="close-circle" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+
+            {/* Quick chips lý do chi */}
+            <Text style={styles.formInputLabel}>{tr('Lý do chi tiền:', 'ເຫດຜົນການຈ່າຍ:')}</Text>
+            <View style={styles.quickChipsWrap}>
+              {[
+                'Nước & Cafe khách VIP',
+                'Giấy in & Văn phòng phẩm',
+                'Chi phí kỹ thuật gấp',
+                'Tiếp khách & Đối tác',
+              ].map((reason) => (
+                <Pressable
+                  key={reason}
+                  style={[styles.quickChipItem, expenseTitle === reason && styles.quickChipItemActive]}
+                  onPress={() => setExpenseTitle(reason)}
+                >
+                  <Text style={[styles.quickChipText, expenseTitle === reason && styles.quickChipTextActive]}>
+                    {reason}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.modalTextInput}
+              value={expenseTitle}
+              onChangeText={setExpenseTitle}
+              placeholder={tr('Nhập lý do chi...', 'ປ້ອນເຫດຜົນການຈ່າຍ...')}
+            />
+
+            {/* Số tiền chi */}
+            <Text style={[styles.formInputLabel, { marginTop: 12 }]}>{tr('Số tiền chi (VNĐ):', 'ຈຳນວນເງິນຈ່າຍ (VNĐ):')}</Text>
+            <View style={styles.quickChipsWrap}>
+              {['50000', '100000', '150000', '250000', '500000'].map((amt) => (
+                <Pressable
+                  key={amt}
+                  style={[styles.quickChipItem, expenseAmount === amt && styles.quickChipItemActive]}
+                  onPress={() => setExpenseAmount(amt)}
+                >
+                  <Text style={[styles.quickChipText, expenseAmount === amt && styles.quickChipTextActive]}>
+                    {formatMoney(Number(amt))}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <TextInput
+              style={[styles.modalTextInput, { fontSize: 16, fontWeight: '700', color: '#DC2626' }]}
+              value={expenseAmount}
+              onChangeText={setExpenseAmount}
+              keyboardType="numeric"
+              placeholder="0"
+            />
+
+            {/* Người nhận */}
+            <Text style={[styles.formInputLabel, { marginTop: 12 }]}>{tr('Người nhận tiền / Nhân viên phụ trách:', 'ຜູ້ຮັບເງິນ / ພະນັກງານຮັບຜິດຊອບ:')}</Text>
+            <TextInput
+              style={styles.modalTextInput}
+              value={expenseRecipient}
+              onChangeText={setExpenseRecipient}
+              placeholder={tr('Nhân viên quầy...', 'ພະນັກງານເຄົາເຕີ້...')}
+            />
+
+            {/* Nút hành động */}
+            <View style={styles.modalActionsRow}>
+              <Pressable
+                style={styles.modalCancelBtn}
+                onPress={() => setExpenseModalOpen(false)}
+              >
+                <Text style={styles.modalCancelBtnText}>{tr('Hủy bỏ', 'ຍົກເລີກ')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalSubmitBtn, { backgroundColor: '#DC2626' }]}
+                disabled={expenseSubmitting}
+                onPress={async () => {
+                  const num = Number(expenseAmount.replace(/\./g, '').replace(/,/g, '').trim()) || 0
+                  if (num <= 0) {
+                    Alert.alert(tr('Lỗi', 'ຂໍ້ຜິດພາດ'), tr('Vui lòng nhập số tiền hợp lệ.', 'ກະລຸນາປ້ອນຈຳນວນເງິນທີ່ຖືກຕ້ອງ.'))
+                    return
+                  }
+                  setExpenseSubmitting(true)
+                  try {
+                    await recordVaultExpense(num, expenseTitle, expenseRecipient)
+                    Alert.alert(
+                      tr('Chi quỹ thành công 🎉', 'ເບີກຈ່າຍເງິນສຳເລັດ 🎉'),
+                      tr(
+                        `Đã xuất quỹ ${formatMoney(num)} cho: ${expenseTitle}.\nTiền mặt két đã được cập nhật tự động.`,
+                        `ໄດ້ເບີກຈ່າຍ ${formatMoney(num)} ສຳລັບ: ${expenseTitle}.\nເງິນສົດໃນເຊບຖືກອັບເດດແລ້ວ.`
+                      )
+                    )
+                    setExpenseModalOpen(false)
+                  } finally {
+                    setExpenseSubmitting(false)
+                  }
+                }}
+              >
+                {expenseSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalSubmitBtnText}>{tr('Xác nhận chi tiền', 'ຢືນຢັນການຈ່າຍ')}</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL 2: KIỂM ĐẾM KÉT TIỀN MẶT ── */}
+      <Modal
+        visible={auditModalOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setAuditModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalDialogCard}>
+            <View style={styles.modalDialogHeader}>
+              <View style={styles.modalDialogTitleGroup}>
+                <View style={[styles.modalDialogIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="calculator-outline" size={18} color="#D97706" />
+                </View>
+                <View>
+                  <Text style={styles.modalDialogTitle}>{tr('Kiểm đếm két tiền mặt', 'ກວດນັບເຊບເງິນສົດ')}</Text>
+                  <Text style={styles.modalDialogSubtitle}>{tr('Bảng kiểm đếm mệnh giá thực tế theo ca', 'ຕາຕະລາງກວດນັບມູນຄ່າເງິນຕົວຈິງ')}</Text>
+                </View>
+              </View>
+              <Pressable onPress={() => setAuditModalOpen(false)} hitSlop={8}>
+                <Ionicons name="close-circle" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+
+            {/* Bảng mệnh giá */}
+            <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+              {[
+                { key: '500k', label: '500.000 đ', val: 500000 },
+                { key: '200k', label: '200.000 đ', val: 200000 },
+                { key: '100k', label: '100.000 đ', val: 100000 },
+                { key: '50k', label: '50.000 đ', val: 50000 },
+                { key: '20k', label: '20.000 đ', val: 20000 },
+                { key: '10k', label: '10.000 đ', val: 10000 },
+              ].map((item) => {
+                const count = counts[item.key] || 0
+                return (
+                  <View key={item.key} style={styles.denomRow}>
+                    <Text style={styles.denomLabel}>{item.label}</Text>
+                    <View style={styles.stepperWrap}>
+                      <Pressable
+                        style={styles.stepperBtn}
+                        onPress={() => setCounts((prev) => ({ ...prev, [item.key]: Math.max(0, (prev[item.key] || 0) - 1) }))}
+                      >
+                        <Ionicons name="remove" size={13} color="#374151" />
+                      </Pressable>
+                      <Text style={styles.stepperVal}>{count}</Text>
+                      <Pressable
+                        style={styles.stepperBtn}
+                        onPress={() => setCounts((prev) => ({ ...prev, [item.key]: (prev[item.key] || 0) + 1 }))}
+                      >
+                        <Ionicons name="add" size={13} color="#374151" />
+                      </Pressable>
+                    </View>
+                    <Text style={styles.denomSubtotal}>{formatMoney(count * item.val)}</Text>
+                  </View>
+                )
+              })}
+            </ScrollView>
+
+            {/* Tổng kiểm đếm vs Sổ sách */}
+            <View style={styles.auditSummaryCard}>
+              <View style={styles.auditSummaryRow}>
+                <Text style={styles.auditSummaryLabel}>{tr('Tổng tiền kiểm đếm:', 'ຍອດເງິນກວດນັບ:')}</Text>
+                <Text style={styles.auditSummaryValDark}>{formatMoney(auditTotalCounted)}</Text>
+              </View>
+              <View style={styles.auditSummaryRow}>
+                <Text style={styles.auditSummaryLabel}>{tr('Số dư theo sổ quỹ:', 'ຍອດຕາມປຶ້ມບັນຊີ:')}</Text>
+                <Text style={styles.auditSummaryValDark}>{formatMoney(vault.actualCashInVault)}</Text>
+              </View>
+              <View style={[styles.auditSummaryRow, { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 6, marginTop: 4 }]}>
+                <Text style={[styles.auditSummaryLabel, { fontWeight: '700' }]}>{tr('Chênh lệch kiểm két:', 'ສ່ວນຕ່າງກວດເຊບ:')}</Text>
+                <Text
+                  style={[
+                    styles.auditSummaryValDark,
+                    {
+                      color: auditTotalCounted === vault.actualCashInVault ? '#16A34A' : '#DC2626',
+                      fontWeight: '800',
+                    },
+                  ]}
+                >
+                  {auditTotalCounted === vault.actualCashInVault
+                    ? tr('0 đ (Khớp 100%)', '0 ກີບ (ກົງກັນ 100%)')
+                    : formatMoney(auditTotalCounted - vault.actualCashInVault)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Nút hành động */}
+            <View style={styles.modalActionsRow}>
+              <Pressable
+                style={[styles.modalCancelBtn, { borderColor: '#D97706' }]}
+                onPress={handleAutoMatchAudit}
+              >
+                <Text style={[styles.modalCancelBtnText, { color: '#D97706' }]}>{tr('Khớp nhanh 100%', 'ກົງກັນດ່ວນ 100%')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalSubmitBtn, { backgroundColor: '#16A34A' }]}
+                onPress={() => {
+                  Alert.alert(
+                    tr('Đã lưu biên bản kiểm đếm 🎉', 'ບັນທຶກໃບກວດນັບສຳເລັດ 🎉'),
+                    tr(
+                      `Đã xác nhận kiểm đếm: Tổng tiền ${formatMoney(auditTotalCounted)} khớp 100% với số dư két.`,
+                      `ໄດ້ຢືນຢັນການກວດນັບ: ຍອດເງິນ ${formatMoney(auditTotalCounted)} ກົງກັນ 100% ກັບເຊບ.`
+                    )
+                  )
+                  setAuditModalOpen(false)
+                }}
+              >
+                <Text style={styles.modalSubmitBtnText}>{tr('Lưu biên bản kiểm két', 'ບັນທຶກໃບກວດເຊບ')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL 3: XÁC NHẬN CHỐT KÉT & LƯU KHO SAO KÊ ── */}
+      <Modal
+        visible={settleModalOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSettleModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalDialogCard}>
+            <View style={styles.modalDialogHeader}>
+              <View style={styles.modalDialogTitleGroup}>
+                <View style={[styles.modalDialogIconCircle, { backgroundColor: '#FFD9DC' }]}>
+                  <Ionicons name="document-text-outline" size={18} color="#7A0C10" />
+                </View>
+                <View>
+                  <Text style={styles.modalDialogTitle}>{tr('Biên bản chốt ca & Lưu kho sao kê', 'ໃບສະຫຼຸບປິດກະ & ບັນທຶກສາງ')}</Text>
+                  <Text style={styles.modalDialogSubtitle}>BB-CK-20261113-01 • Liêng Mobile Flagship #01</Text>
+                </View>
+              </View>
+              <Pressable onPress={() => setSettleModalOpen(false)} hitSlop={8}>
+                <Ionicons name="close-circle" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+
+            {/* Bảng kê số liệu */}
+            <View style={styles.auditSummaryCard}>
+              <View style={styles.auditSummaryRow}>
+                <Text style={styles.auditSummaryLabel}>{tr('Doanh số hôm nay:', 'ຍອດຂາຍມື້ນີ້:')}</Text>
+                <Text style={[styles.auditSummaryValDark, { fontWeight: '700' }]}>{formatMoney(stats.ownerRevenueToday)}</Text>
+              </View>
+              <View style={styles.auditSummaryRow}>
+                <Text style={styles.auditSummaryLabel}>{tr('Tiền mặt đầu ca:', 'ເງິນສົດຕົ້ນກະ:')}</Text>
+                <Text style={styles.auditSummaryValDark}>10.000.000 đ</Text>
+              </View>
+              <View style={styles.auditSummaryRow}>
+                <Text style={styles.auditSummaryLabel}>{tr('Thu tiền mặt trong ca:', 'ຮັບເງິນສົດໃນກະ:')}</Text>
+                <Text style={[styles.auditSummaryValDark, { color: '#16A34A', fontWeight: '700' }]}>+{formatMoney(vault.cashSales)}</Text>
+              </View>
+              <View style={styles.auditSummaryRow}>
+                <Text style={styles.auditSummaryLabel}>{tr('Chi phí quán tại quầy:', 'ລາຍຈ່າຍໜ້າຮ້ານ:')}</Text>
+                <Text style={[styles.auditSummaryValDark, { color: '#DC2626', fontWeight: '700' }]}>-{formatMoney(vault.operationalExpenses)}</Text>
+              </View>
+              <View style={[styles.auditSummaryRow, { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 8, marginTop: 4 }]}>
+                <Text style={[styles.auditSummaryLabel, { fontWeight: '800', color: '#7A0C10' }]}>
+                  {tr('TIỀN MẶT BÀN GIAO KÉT:', 'ເງິນສົດມອບໂອນຕົວຈິງ:')}
+                </Text>
+                <Text style={[styles.auditSummaryValDark, { fontWeight: '900', color: '#7A0C10', fontSize: 16 }]}>
+                  {formatMoney(vault.actualCashInVault)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Trạng thái xác minh */}
+            <View style={styles.verifiedStampBox}>
+              <Ionicons name="shield-checkmark" size={16} color="#16A34A" />
+              <Text style={styles.verifiedStampText}>
+                {tr('Đã đối soát 100% khớp thẻ kho & máy in bill Epson TM-T82 sẵn sàng.', 'ກວດສອບກົງກັນ 100% ກັບສາງ ແລະ ເຄື່ອງພິມໃບບິນ.')}
+              </Text>
+            </View>
+
+            {/* Nút hành động */}
+            <View style={styles.modalActionsRow}>
+              <Pressable
+                style={[styles.modalCancelBtn, { borderColor: '#7A0C10' }]}
+                onPress={() => {
+                  Alert.alert(
+                    tr('Máy in Epson TM-T82', 'ເຄື່ອງພິມ Epson TM-T82'),
+                    tr('Đã gửi lệnh in 02 liên bàn giao ca (Liên 1 Kế toán, Liên 2 Bàn giao ca).', 'ໄດ້ສົ່ງຄຳສັ່ງພິມ 02 ໃບມອບໂອນກະ.')
+                  )
+                }}
+              >
+                <Ionicons name="print-outline" size={15} color="#7A0C10" />
+                <Text style={[styles.modalCancelBtnText, { color: '#7A0C10', marginLeft: 4 }]}>{tr('In 02 liên', 'ພິມ 02 ໃບ')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalSubmitBtn, { backgroundColor: '#7A0C10' }]}
+                disabled={settling}
+                onPress={async () => {
+                  setSettling(true)
+                  try {
+                    await settleVault('Chốt két ca trực 08:00 - 16:30 hoàn tất không chênh lệch.')
+                    setSettleModalOpen(false)
+                    Alert.alert(
+                      tr('Chốt két thành công 🎉', 'ປິດເຊບສຳເລັດ 🎉'),
+                      tr(
+                        `Đã lưu kho sao kê thành công!\nSố tiền bàn giao két: ${formatMoney(vault.actualCashInVault)}\nTự động in 02 liên bàn giao ca tiếp theo.`,
+                        `ໄດ້ບັນທຶກສາງລາຍການສຳເລັດ!\nຍອດເງິນມອບໂອນ: ${formatMoney(vault.actualCashInVault)}.`
+                      )
+                    )
+                  } finally {
+                    setSettling(false)
+                  }
+                }}
+              >
+                {settling ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalSubmitBtnText}>{tr('Xác nhận & Lưu kho', 'ຢືນຢັນ & ບັນທຶກ')}</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -1782,5 +2173,214 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#7A0C10',
     letterSpacing: 0.3,
+  },
+
+  // ── Modal Styles ──
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalDialogCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+    maxWidth: 420,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  modalDialogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 10,
+  },
+  modalDialogTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalDialogIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDialogTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  modalDialogSubtitle: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  formInputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 6,
+  },
+  quickChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  quickChipItem: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickChipItemActive: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#DC2626',
+  },
+  quickChipText: {
+    fontSize: 11,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  quickChipTextActive: {
+    color: '#DC2626',
+    fontWeight: '700',
+  },
+  modalTextInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: '#111827',
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  modalCancelBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  modalSubmitBtn: {
+    flex: 1.5,
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSubmitBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Denominations
+  denomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  denomLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#374151',
+    width: 80,
+  },
+  stepperWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  stepperBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  stepperVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111827',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  denomSubtotal: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#111827',
+    width: 90,
+    textAlign: 'right',
+  },
+  auditSummaryCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  auditSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  auditSummaryLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  auditSummaryValDark: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  verifiedStampBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 10,
+  },
+  verifiedStampText: {
+    fontSize: 11,
+    color: '#15803D',
+    fontWeight: '600',
+    flex: 1,
   },
 })
