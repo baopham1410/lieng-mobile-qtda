@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/pos/categories', [PosController::class, 'categories']);
     Route::post('/pos/checkout', [PosController::class, 'checkout']);
     Route::post('/pos/orders/{order}/confirm-payment', [PosController::class, 'confirmPayment']);
+    Route::post('/pos/orders/{order}/cancel', [PosController::class, 'cancel']);
     Route::get('/orders/{order}/payment-status', [PosController::class, 'paymentStatus']);
     Route::get('/orders', [OrderController::class, 'index']);
 

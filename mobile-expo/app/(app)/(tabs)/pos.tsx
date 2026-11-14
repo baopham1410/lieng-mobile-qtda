@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -377,6 +378,31 @@ interface CartItem {
   imageUrl?: string
 }
 
+export interface PendingPaymentInfo {
+  orderId: number | string
+  orderCode: string
+  total: number
+  transferAmount: number
+  cashAmount: number
+  isMixed: boolean
+  paymentStatus: string
+  checkoutUrl?: string | null
+  qrCode?: string | null
+  paymentReference?: string | number | null
+  paymentExpiresAt?: string | null
+}
+
+export interface CheckoutSnapshot {
+  cart: CartItem[]
+  discount: number
+  paymentMethod: 'cash' | 'transfer' | 'mixed'
+  cashAmount: string
+  customerPhone: string
+  customerName: string
+  customerAddress: string
+  matchedCustomer: posApi.PosCustomer | null
+}
+
 export default function PosScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -435,9 +461,17 @@ export default function PosScreen() {
     )
   }
 
-  // Modal QR chuyển khoản
+  // Quản lý trạng thái thanh toán Chuyển khoản VietQR / PayOS chuẩn Web Admin
   const [qrModalOpen, setQrModalOpen] = useState(false)
-  const [orderSuccessData, setOrderSuccessData] = useState<{ orderId?: number | string; orderCode: string; total: number; qrUrl?: string } | null>(null)
+  const [pendingPayment, setPendingPayment] = useState<PendingPaymentInfo | null>(null)
+  const [paymentModalPhase, setPaymentModalPhase] = useState<'pending' | 'success'>('pending')
+  const [checkingPaymentStatus, setCheckingPaymentStatus] = useState<boolean>(false)
+  const [changingPaymentMethod, setChangingPaymentMethod] = useState<boolean>(false)
+  const [confirmingManualPayment, setConfirmingManualPayment] = useState<boolean>(false)
+  const [pendingCheckoutSnapshot, setPendingCheckoutSnapshot] = useState<CheckoutSnapshot | null>(null)
+
+  const pollTimerRef = useRef<any>(null)
+  const successTimerRef = useRef<any>(null)
 
   // Tải dữ liệu POS
   const loadData = useCallback(async () => {
@@ -826,40 +860,273 @@ export default function PosScreen() {
     })
   }, [catalog, search, selectedCat, subFilter])
 
-  // Đồng bộ hóa đơn vào StoreContext và lưu trữ bền vững
-  const buildAndPersistOrder = async (orderCode: string, pMethod: string) => {
-    if (cart.length === 0) return
-    const firstCartItem = cart[0]
-    const summary =
-      cart.length === 1 ? firstCartItem.name : `${firstCartItem.name} (+${cart.length - 1} món)`
-    const subtitle = firstCartItem.hasImei
-      ? `IMEI: ${firstCartItem.imei || '357892110482914'}`
-      : 'Phụ kiện chính hãng • Mới 100%'
+  // Dọn dẹp timer
+  const clearPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
+  }, [])
 
-    await addPosOrder({
-      code: orderCode,
-      customerName: customerName || matchedCustomer?.name || 'Khách vãng lai',
-      customerPhone: customerPhone || matchedCustomer?.phone || '0988.xxx.456',
-      total: totalAmount,
-      itemCount: cart.reduce((acc, i) => acc + i.qty, 0),
-      itemsSummary: summary,
-      productSubtitle: subtitle,
-      paymentMethod: pMethod,
-      status: 'completed',
-      cashier: employeeName || 'Nguyễn Văn A',
-      imei: firstCartItem.imei,
-      imageUrl: firstCartItem.imageUrl,
-      discountInfo: discount > 0 ? `Chiết khấu ${formatMoney(discount)}` : undefined,
-      isVipCustomer: isStoreOwner || !!matchedCustomer,
-      items: cart.map((i) => ({
-        name: i.name,
-        qty: i.qty,
-        price: i.price,
-        imeis: i.imei ? [i.imei] : [],
-      })),
-    })
-    await refreshStoreData()
-  }
+  const clearSuccessTimer = useCallback(() => {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current)
+      successTimerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      clearPolling()
+      clearSuccessTimer()
+    }
+  }, [clearPolling, clearSuccessTimer])
+
+  // Đồng bộ hóa đơn vào StoreContext và lưu trữ bền vững
+  const buildAndPersistOrder = useCallback(
+    async (orderCode: string, pMethod: string, cashPortion?: number) => {
+      if (cart.length === 0) return
+      const firstCartItem = cart[0]
+      const summary =
+        cart.length === 1 ? firstCartItem.name : `${firstCartItem.name} (+${cart.length - 1} món)`
+      const subtitle = firstCartItem.hasImei
+        ? `IMEI: ${firstCartItem.imei || '357892110482914'}`
+        : 'Phụ kiện chính hãng • Mới 100%'
+
+      await addPosOrder({
+        code: orderCode,
+        customerName: customerName || matchedCustomer?.name || 'Khách vãng lai',
+        customerPhone: customerPhone || matchedCustomer?.phone || '0988.xxx.456',
+        total: totalAmount,
+        cashAmount: cashPortion,
+        itemCount: cart.reduce((acc, i) => acc + i.qty, 0),
+        itemsSummary: summary,
+        productSubtitle: subtitle,
+        paymentMethod: pMethod,
+        status: 'completed',
+        cashier: employeeName || 'Nguyễn Văn A',
+        imei: firstCartItem.imei,
+        imageUrl: firstCartItem.imageUrl,
+        discountInfo: discount > 0 ? `Chiết khấu ${formatMoney(discount)}` : undefined,
+        isVipCustomer: isStoreOwner || !!matchedCustomer,
+        items: cart.map((i) => ({
+          name: i.name,
+          qty: i.qty,
+          price: i.price,
+          imeis: i.imei ? [i.imei] : [],
+        })),
+      })
+      await refreshStoreData()
+    },
+    [cart, customerName, matchedCustomer, customerPhone, totalAmount, employeeName, discount, isStoreOwner, addPosOrder, refreshStoreData],
+  )
+
+  // Hoàn tất thanh toán thành công (hiện card thành công rồi dọn giỏ sau 2.8s)
+  const completePaymentSuccess = useCallback(
+    async (orderCode: string, orderId?: number | string, isMixed?: boolean, cashPortion?: number) => {
+      clearPolling()
+      setPaymentModalPhase('success')
+      setQrModalOpen(true)
+
+      const pMethod = isMixed ? 'mixed' : 'transfer'
+      await buildAndPersistOrder(orderCode, pMethod, cashPortion || 0)
+
+      clearSuccessTimer()
+      successTimerRef.current = setTimeout(() => {
+        setQrModalOpen(false)
+        setPendingPayment(null)
+        setPendingCheckoutSnapshot(null)
+        setPaymentModalPhase('pending')
+        setCart([])
+        setCartModalOpen(false)
+        setCustomerPhone('')
+        setCustomerName('')
+        setCustomerAddress('')
+        setMatchedCustomer(null)
+      }, 2800)
+    },
+    [buildAndPersistOrder, clearPolling, clearSuccessTimer],
+  )
+
+  // Kiểm tra trạng thái thanh toán từ PayOS / Backend
+  const checkPaymentStatus = useCallback(
+    async (targetOrderId?: number | string, silent: boolean = false) => {
+      const id = targetOrderId || pendingPayment?.orderId
+      if (!id) return
+
+      if (!silent) setCheckingPaymentStatus(true)
+      try {
+        const data = await posApi.fetchOrderPaymentStatus(id)
+        if (data && (data.paymentStatus === 'paid' || data.status === 'completed')) {
+          const orderCode = pendingPayment?.orderCode || data.orderCode || `HD-${id}`
+          await completePaymentSuccess(orderCode, id, pendingPayment?.isMixed, pendingPayment?.cashAmount)
+          return
+        }
+
+        if (data && (data.paymentStatus === 'failed' || data.paymentStatus === 'expired')) {
+          clearPolling()
+          Alert.alert(
+            'Thanh toán không thành công',
+            `Đơn ${pendingPayment?.orderCode || id} ${data.paymentStatus === 'expired' ? 'đã hết hạn' : 'thất bại'}. Giỏ hàng đã được khôi phục.`,
+          )
+          if (pendingCheckoutSnapshot) {
+            setCart(pendingCheckoutSnapshot.cart)
+            setDiscount(pendingCheckoutSnapshot.discount)
+            setPaymentMethod(pendingCheckoutSnapshot.paymentMethod)
+            setCashAmount(pendingCheckoutSnapshot.cashAmount)
+            setCustomerPhone(pendingCheckoutSnapshot.customerPhone)
+            setCustomerName(pendingCheckoutSnapshot.customerName)
+            setCustomerAddress(pendingCheckoutSnapshot.customerAddress)
+            setMatchedCustomer(pendingCheckoutSnapshot.matchedCustomer)
+          }
+          setQrModalOpen(false)
+          setPendingPayment(null)
+          setPendingCheckoutSnapshot(null)
+          return
+        }
+
+        if (!silent) {
+          Alert.alert(
+            'Chưa có giao dịch',
+            `Hệ thống chưa nhận được thanh toán cho đơn ${pendingPayment?.orderCode || id}.\nNhắc khách kiểm tra app ngân hàng, hoặc bấm "Xác nhận đã nhận tiền" nếu tài khoản đã cộng số dư.`
+          )
+        }
+      } catch {
+        // Bỏ qua lỗi kết nối khi poll ngầm
+      } finally {
+        if (!silent) setCheckingPaymentStatus(false)
+      }
+    },
+    [completePaymentSuccess, pendingPayment, pendingCheckoutSnapshot, clearPolling],
+  )
+
+  // Tự động Polling kiểm tra thanh toán mỗi 4.5 giây giống Web Admin
+  useEffect(() => {
+    if (!qrModalOpen || paymentModalPhase !== 'pending' || !pendingPayment?.orderId) {
+      clearPolling()
+      return
+    }
+
+    const interval = setInterval(() => {
+      checkPaymentStatus(pendingPayment.orderId, true)
+    }, 4500)
+    pollTimerRef.current = interval
+
+    return () => clearInterval(interval)
+  }, [qrModalOpen, paymentModalPhase, pendingPayment?.orderId, checkPaymentStatus, clearPolling])
+
+  // Đổi phương thức / Hủy QR (giống Web Admin)
+  const handleChangePaymentMethod = useCallback(async () => {
+    if (!pendingPayment?.orderId || changingPaymentMethod) return
+
+    const orderCode = pendingPayment.orderCode
+    const proceedCancel = async () => {
+      setChangingPaymentMethod(true)
+      try {
+        clearPolling()
+        await posApi.cancelPosOrder(pendingPayment.orderId).catch(() => null)
+        if (pendingCheckoutSnapshot) {
+          setCart(pendingCheckoutSnapshot.cart)
+          setDiscount(pendingCheckoutSnapshot.discount)
+          setPaymentMethod('cash')
+          setCashAmount(pendingCheckoutSnapshot.cashAmount)
+          setCustomerPhone(pendingCheckoutSnapshot.customerPhone)
+          setCustomerName(pendingCheckoutSnapshot.customerName)
+          setCustomerAddress(pendingCheckoutSnapshot.customerAddress)
+          setMatchedCustomer(pendingCheckoutSnapshot.matchedCustomer)
+        }
+        setQrModalOpen(false)
+        setPendingPayment(null)
+        setPendingCheckoutSnapshot(null)
+        setCartModalOpen(true)
+      } catch {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('Đã khôi phục giỏ hàng.')
+        } else {
+          Alert.alert('Thông báo', 'Đã khôi phục giỏ hàng.')
+        }
+        setQrModalOpen(false)
+        setCartModalOpen(true)
+      } finally {
+        setChangingPaymentMethod(false)
+      }
+    }
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `Hủy QR và quay lại chọn phương thức thanh toán khác?\n\nĐơn ${orderCode} sẽ bị hủy, giỏ hàng được giữ nguyên.`
+      )
+      if (confirmed) {
+        await proceedCancel()
+      }
+      return
+    }
+
+    Alert.alert(
+      'Hủy QR & Đổi phương thức',
+      `Hủy QR và quay lại chọn phương thức thanh toán khác?\n\nĐơn ${orderCode} sẽ bị hủy, giỏ hàng được giữ nguyên.`,
+      [
+        { text: 'Quay lại', style: 'cancel' },
+        {
+          text: 'Đồng ý hủy',
+          style: 'destructive',
+          onPress: proceedCancel,
+        },
+      ]
+    )
+  }, [pendingPayment, changingPaymentMethod, pendingCheckoutSnapshot, clearPolling])
+
+  // Xác nhận đã nhận tiền (Thủ công)
+  const handleManualConfirmPayment = useCallback(async () => {
+    if (!pendingPayment || confirmingManualPayment) return
+    const orderCode = pendingPayment.orderCode
+    const orderId = pendingPayment.orderId
+
+    const proceedConfirm = async () => {
+      setConfirmingManualPayment(true)
+      try {
+        if (orderId) {
+          await posApi.confirmPosPayment(orderId).catch(() => null)
+        }
+        await completePaymentSuccess(orderCode, orderId, pendingPayment.isMixed, pendingPayment.cashAmount)
+      } catch {
+        await completePaymentSuccess(orderCode, orderId, pendingPayment.isMixed, pendingPayment.cashAmount)
+      } finally {
+        setConfirmingManualPayment(false)
+      }
+    }
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `Xác nhận bạn đã thấy tiền vào tài khoản ngân hàng cho đơn ${orderCode} (${formatMoney(pendingPayment.transferAmount)})?`
+      )
+      if (confirmed) {
+        await proceedConfirm()
+      }
+      return
+    }
+
+    Alert.alert(
+      'Xác nhận đã nhận tiền',
+      `Xác nhận bạn đã thấy tiền vào tài khoản ngân hàng cho đơn ${orderCode} (${formatMoney(pendingPayment.transferAmount)})?`,
+      [
+        { text: 'Chưa', style: 'cancel' },
+        {
+          text: 'Đã nhận tiền',
+          onPress: proceedConfirm,
+        },
+      ]
+    )
+  }, [pendingPayment, confirmingManualPayment, completePaymentSuccess])
+
+  // Mở PayOS cổng thanh toán ngoài
+  const handleOpenPayOS = useCallback(() => {
+    if (pendingPayment?.checkoutUrl) {
+      Linking.openURL(pendingPayment.checkoutUrl).catch(() => {
+        Alert.alert('Lỗi', 'Không thể mở liên kết PayOS.')
+      })
+    }
+  }, [pendingPayment?.checkoutUrl])
 
   // Xử lý thanh toán
   const handleCheckout = async () => {
@@ -868,8 +1135,15 @@ export default function PosScreen() {
       return
     }
 
-    if (paymentMethod === 'mixed' && (!cashAmount || numericCash >= totalAmount)) {
-      Alert.alert('Lỗi thanh toán', 'Hình thức kết hợp yêu cầu nhập số tiền mặt nhỏ hơn tổng đơn.')
+    if (paymentMethod === 'mixed' && (!cashAmount || numericCash <= 0 || numericCash >= totalAmount)) {
+      Alert.alert('Lỗi thanh toán', 'Hình thức kết hợp yêu cầu nhập số tiền mặt lớn hơn 0 và nhỏ hơn tổng đơn.')
+      return
+    }
+
+    // Kiểm tra bán máy cần SĐT để lập bảo hành (khớp Web Admin)
+    const cartHasDevice = cart.some((item) => item.hasImei)
+    if (cartHasDevice && !customerPhone && !matchedCustomer) {
+      Alert.alert('Yêu cầu thông tin', 'Bán máy/thiết bị cần SĐT khách hàng để lập bảo hành điện tử.')
       return
     }
 
@@ -877,45 +1151,74 @@ export default function PosScreen() {
     try {
       const checkoutItems = cart.map((item) => ({
         imei_code_id: item.imeiCodeId,
-        quantity: item.qty,
+        quantity: item.qty || 1,
         price: item.price,
       }))
 
-      const qrAmount = paymentMethod === 'mixed' ? remainingTransfer : totalAmount
+      const cashPart = paymentMethod === 'cash' ? totalAmount : paymentMethod === 'mixed' ? numericCash : 0
+      const transferPart = paymentMethod === 'transfer' ? totalAmount : paymentMethod === 'mixed' ? remainingTransfer : 0
 
       const payload = {
         customer_id: matchedCustomer ? matchedCustomer.id : null,
         customer:
           !matchedCustomer && customerPhone
             ? {
-                phone: customerPhone,
-                name: customerName || 'Khách vãng lai POS',
-                address: customerAddress || undefined,
+                phone: customerPhone.trim(),
+                name: (customerName || 'Khách vãng lai POS').trim(),
+                address: customerAddress ? customerAddress.trim() : undefined,
               }
             : undefined,
         items: checkoutItems,
         discount: discount,
         payment_method: paymentMethod,
-        cash_amount: paymentMethod === 'cash' ? totalAmount : paymentMethod === 'mixed' ? numericCash : 0,
-        transfer_amount: paymentMethod === 'transfer' ? totalAmount : paymentMethod === 'mixed' ? remainingTransfer : 0,
+        cash_amount: cashPart,
+        transfer_amount: transferPart,
         notes: 'Đơn xuất quầy POS Flagship Liêng Mobile',
       }
+
+      // Lưu snapshot trước khi gửi checkout
+      setPendingCheckoutSnapshot({
+        cart: [...cart],
+        discount,
+        paymentMethod,
+        cashAmount,
+        customerPhone,
+        customerName,
+        customerAddress,
+        matchedCustomer,
+      })
 
       const res = await posApi.submitPosCheckout(payload)
       const data = res?.data ?? res
       const orderCode = data?.orderCode || data?.code || `HD-${Date.now().toString().slice(-6)}`
       const orderId = data?.orderId || data?.id
 
-      if (paymentMethod === 'transfer' || paymentMethod === 'mixed') {
+      if (paymentMethod === 'transfer' || (paymentMethod === 'mixed' && transferPart > 0)) {
+        const qrAmount = transferPart
         const dynamicQrUrl =
           data?.qrCode && String(data.qrCode).startsWith('http')
             ? data.qrCode
-            : `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${orderCode}`
-        setOrderSuccessData({ orderId, orderCode, total: qrAmount, qrUrl: dynamicQrUrl })
+            : `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${orderCode}&accountName=LIENG%20MOBILE`
+
+        setPendingPayment({
+          orderId,
+          orderCode,
+          total: totalAmount,
+          transferAmount: qrAmount,
+          cashAmount: cashPart,
+          isMixed: paymentMethod === 'mixed',
+          paymentStatus: data?.paymentStatus || 'pending',
+          checkoutUrl: data?.checkoutUrl || null,
+          qrCode: dynamicQrUrl,
+          paymentReference: data?.paymentReference || null,
+          paymentExpiresAt: data?.paymentExpiresAt || null,
+        })
+        setPaymentModalPhase('pending')
+        setCartModalOpen(false)
         setQrModalOpen(true)
       } else {
         // Lưu và đồng bộ hóa đơn tiền mặt vào hệ thống ngay lập tức
-        await buildAndPersistOrder(orderCode, 'cash')
+        await buildAndPersistOrder(orderCode, 'cash', cashPart)
         Alert.alert(
           'Thanh toán thành công 🎉',
           `Đã tạo hóa đơn ${orderCode}.\nTổng thu tiền mặt: ${formatMoney(totalAmount)}.\nĐã tự động cộng vào Doanh số & Sổ quỹ két!`,
@@ -927,7 +1230,9 @@ export default function PosScreen() {
                 setCartModalOpen(false)
                 setCustomerPhone('')
                 setCustomerName('')
+                setCustomerAddress('')
                 setMatchedCustomer(null)
+                setPendingCheckoutSnapshot(null)
               },
             },
           ]
@@ -936,17 +1241,26 @@ export default function PosScreen() {
     } catch {
       // Fallback lưu cục bộ và tạo QR động chuẩn VietQR
       const mockCode = `HD-${Date.now().toString().slice(-6)}`
-      const qrAmount = paymentMethod === 'mixed' ? remainingTransfer : totalAmount
-      if (paymentMethod === 'transfer' || paymentMethod === 'mixed') {
-        const dynamicQrUrl = `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${mockCode}`
-        setOrderSuccessData({
+      const cashPart = paymentMethod === 'cash' ? totalAmount : paymentMethod === 'mixed' ? numericCash : 0
+      const transferPart = paymentMethod === 'transfer' ? totalAmount : paymentMethod === 'mixed' ? remainingTransfer : 0
+
+      if (paymentMethod === 'transfer' || (paymentMethod === 'mixed' && transferPart > 0)) {
+        const dynamicQrUrl = `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${transferPart}&addInfo=Thanh%20toan%20${mockCode}&accountName=LIENG%20MOBILE`
+        setPendingPayment({
+          orderId: mockCode,
           orderCode: mockCode,
-          total: qrAmount,
-          qrUrl: dynamicQrUrl,
+          total: totalAmount,
+          transferAmount: transferPart,
+          cashAmount: cashPart,
+          isMixed: paymentMethod === 'mixed',
+          paymentStatus: 'pending',
+          qrCode: dynamicQrUrl,
         })
+        setPaymentModalPhase('pending')
+        setCartModalOpen(false)
         setQrModalOpen(true)
       } else {
-        await buildAndPersistOrder(mockCode, 'cash')
+        await buildAndPersistOrder(mockCode, 'cash', cashPart)
         Alert.alert(
           'Thanh toán thành công 🎉',
           `Hóa đơn ${mockCode} đã được ghi nhận vào hệ thống ca trực.\nTổng thu: ${formatMoney(totalAmount)}.\nĐã cộng vào Doanh số & Sổ quỹ két.`,
@@ -958,7 +1272,9 @@ export default function PosScreen() {
                 setCartModalOpen(false)
                 setCustomerPhone('')
                 setCustomerName('')
+                setCustomerAddress('')
                 setMatchedCustomer(null)
+                setPendingCheckoutSnapshot(null)
               },
             },
           ]
@@ -1264,6 +1580,31 @@ export default function PosScreen() {
 
         <Text style={styles.resultCountText}>{filteredCatalog.length} {tr('kết quả', 'ລາຍການ')}</Text>
       </View>
+
+      {/* ── BANNER THU NHỎ KHI CHỜ CHUYỂN KHOẢN (GIỐNG WEB ADMIN) ── */}
+      {pendingPayment && !qrModalOpen && paymentModalPhase === 'pending' && (
+        <View style={styles.pendingFloatingBanner}>
+          <View style={styles.pendingBannerLeft}>
+            <View style={styles.pendingPulseDot} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pendingBannerTitle}>Đang chờ chuyển khoản {pendingPayment.orderCode}</Text>
+              <Text style={styles.pendingBannerSub}>
+                {pendingPayment.isMixed ? 'Cần thu CK: ' : 'Số tiền: '}
+                {formatMoney(pendingPayment.transferAmount)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.pendingBannerRight}>
+            <Pressable style={styles.pendingReopenBtn} onPress={() => setQrModalOpen(true)}>
+              <Ionicons name="qr-code-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.pendingReopenBtnText}>Mở QR</Text>
+            </Pressable>
+            <Pressable style={styles.pendingCancelSmallBtn} onPress={handleChangePaymentMethod}>
+              <Text style={styles.pendingCancelSmallBtnText}>Hủy</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       {/* ── DANH SÁCH SẢN PHẨM CÓ HÌNH ẢNH (KHỚP 100% IMAGE 2) ── */}
       {loading ? (
@@ -1864,68 +2205,143 @@ export default function PosScreen() {
         </View>
       </Modal>
 
-      {/* ── MODAL HIỂN THỊ VIETQR CHUYỂN KHOẢN ── */}
-      <Modal visible={qrModalOpen} transparent={true} animationType="fade">
+      {/* ── MODAL THANH TOÁN CHUYỂN KHOẢN PAYOS / VIETQR (ĐỒNG BỘ 100% WEB ADMIN) ── */}
+      <Modal visible={qrModalOpen} transparent={true} animationType="fade" onRequestClose={() => {
+        if (paymentModalPhase !== 'success') {
+          setQrModalOpen(false)
+        }
+      }}>
         <View style={styles.qrModalBackdrop}>
           <View style={styles.qrModalCard}>
-            <View style={styles.qrHeader}>
-              <Text style={styles.qrTitle}>MÃ THANH TOÁN VIETQR PRO</Text>
-              <Text style={styles.qrSubtitle}>Đơn hàng {orderSuccessData?.orderCode}</Text>
-            </View>
+            {paymentModalPhase === 'pending' ? (
+              <>
+                <View style={styles.qrHeader}>
+                  <View style={styles.qrBadgePill}>
+                    <Text style={styles.qrBadgeText}>
+                      {pendingPayment?.isMixed ? 'Thanh toán kết hợp' : 'Chuyển khoản PayOS / VietQR'}
+                    </Text>
+                  </View>
+                  <Text style={styles.qrMainTitle}>Quét mã QR để thanh toán</Text>
+                  <Text style={styles.qrSubtitle}>
+                    Đơn hàng <Text style={{ fontWeight: '700', color: '#111827' }}>{pendingPayment?.orderCode}</Text>
+                  </Text>
+                  {pendingPayment?.isMixed && pendingPayment.cashAmount > 0 && (
+                    <Text style={styles.qrMixedCashNote}>
+                      Đã thu tiền mặt: {formatMoney(pendingPayment.cashAmount)}
+                    </Text>
+                  )}
+                  <Text style={styles.qrMainAmount}>
+                    {formatMoney(pendingPayment?.transferAmount || 0)}
+                  </Text>
+                  {pendingPayment?.isMixed && (
+                    <Text style={styles.qrMixedTotalNote}>
+                      Tổng đơn: {formatMoney(pendingPayment?.total || 0)}
+                    </Text>
+                  )}
+                </View>
 
-            <View style={styles.qrImgWrap}>
-              <Image
-                source={{
-                  uri:
-                    orderSuccessData?.qrUrl ||
-                    `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${orderSuccessData?.total || 0}&addInfo=Thanh%20toan%20${orderSuccessData?.orderCode || 'POS'}`,
-                }}
-                style={styles.qrImg}
-                resizeMode="contain"
-              />
-              <Text style={styles.qrBankHint}>VIETCOMBANK · 9988776655 · LIENG MOBILE</Text>
-            </View>
+                {/* Khung mã QR */}
+                <View style={styles.qrImgWrap}>
+                  <Image
+                    source={{
+                      uri:
+                        pendingPayment?.qrCode ||
+                        `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${pendingPayment?.transferAmount || 0}&addInfo=Thanh%20toan%20${pendingPayment?.orderCode || 'POS'}&accountName=LIENG%20MOBILE`,
+                    }}
+                    style={styles.qrImg}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.qrBankHint}>VIETCOMBANK · 9988776655 · LIENG MOBILE</Text>
+                </View>
 
-            <View style={styles.qrInfoList}>
-              <View style={styles.qrInfoRow}>
-                <Text style={styles.qrInfoLabel}>Số tiền:</Text>
-                <Text style={[styles.qrInfoVal, { color: '#7A0C10', fontSize: 16 }]}>
-                  {formatMoney(orderSuccessData?.total || 0)}
+                {/* Trạng thái kiểm tra thời gian thực */}
+                <View style={styles.qrStatusRow}>
+                  <View style={[styles.qrStatusDot, checkingPaymentStatus && { backgroundColor: '#3B82F6' }]} />
+                  <Text style={styles.qrStatusText}>
+                    {checkingPaymentStatus ? 'Đang kiểm tra giao dịch…' : 'Chờ thanh toán (Tự động kiểm tra)'}
+                  </Text>
+                </View>
+
+                {/* Các nút hành động */}
+                <View style={styles.qrActionRow}>
+                  <Pressable
+                    style={[styles.qrSecondaryBtn, checkingPaymentStatus && { opacity: 0.6 }]}
+                    onPress={() => checkPaymentStatus(pendingPayment?.orderId, false)}
+                    disabled={checkingPaymentStatus}
+                  >
+                    {checkingPaymentStatus ? (
+                      <ActivityIndicator size="small" color="#1E293B" />
+                    ) : (
+                      <Ionicons name="refresh-outline" size={16} color="#1E293B" />
+                    )}
+                    <Text style={styles.qrSecondaryBtnText}>
+                      {checkingPaymentStatus ? 'Đang kiểm tra...' : 'Kiểm tra ngay'}
+                    </Text>
+                  </Pressable>
+
+                  {pendingPayment?.checkoutUrl && (
+                    <Pressable style={styles.qrPayOsBtn} onPress={handleOpenPayOS}>
+                      <Ionicons name="open-outline" size={16} color="#DC2626" />
+                      <Text style={styles.qrPayOsBtnText}>Mở PayOS</Text>
+                    </Pressable>
+                  )}
+                </View>
+
+                {/* Nút xác nhận thủ công nếu khách đã CK mà mạng trễ */}
+                <Pressable
+                  style={[styles.qrConfirmBtn, confirmingManualPayment && { opacity: 0.6 }]}
+                  onPress={handleManualConfirmPayment}
+                  disabled={confirmingManualPayment}
+                >
+                  {confirmingManualPayment ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                  )}
+                  <Text style={styles.qrConfirmBtnText}>
+                    {confirmingManualPayment ? 'Đang xác nhận…' : 'Xác nhận đã nhận tiền (Thủ công)'}
+                  </Text>
+                </Pressable>
+
+                {/* Nút đổi phương thức / Hủy đơn */}
+                <Pressable
+                  style={[styles.qrCancelBtn, changingPaymentMethod && { opacity: 0.6 }]}
+                  onPress={handleChangePaymentMethod}
+                  disabled={changingPaymentMethod}
+                >
+                  {changingPaymentMethod ? (
+                    <ActivityIndicator size="small" color="#64748B" />
+                  ) : (
+                    <Ionicons name="swap-horizontal-outline" size={16} color="#64748B" />
+                  )}
+                  <Text style={styles.qrCancelBtnText}>
+                    {changingPaymentMethod ? 'Đang hủy đơn…' : 'Đổi phương thức / Hủy QR'}
+                  </Text>
+                </Pressable>
+
+                {/* Nút thu nhỏ */}
+                <Pressable style={styles.qrMinimizeBtn} onPress={() => setQrModalOpen(false)}>
+                  <Text style={styles.qrMinimizeBtnText}>Thu nhỏ (Tiếp tục bán hàng)</Text>
+                </Pressable>
+              </>
+            ) : (
+              /* Giao diện Thanh toán thành công ăn mừng (khớp Web Admin) */
+              <View style={styles.qrSuccessCard}>
+                <View style={styles.qrSuccessIconCircle}>
+                  <Ionicons name="checkmark" size={40} color="#FFFFFF" />
+                </View>
+                <Text style={styles.qrSuccessTitle}>Thanh toán thành công! 🎉</Text>
+                <Text style={styles.qrSuccessSub}>
+                  Đơn <Text style={{ fontWeight: '800', color: '#111827' }}>{pendingPayment?.orderCode}</Text> đã được xác nhận.
+                </Text>
+                <Text style={styles.qrSuccessAmount}>
+                  {formatMoney(pendingPayment?.total || totalAmount)}
+                </Text>
+                <Text style={styles.qrSuccessNote}>
+                  Đã tự động cộng vào Doanh số & Sổ quỹ két hôm nay.
                 </Text>
               </View>
-              <View style={styles.qrInfoRow}>
-                <Text style={styles.qrInfoLabel}>Nội dung:</Text>
-                <Text style={styles.qrInfoVal}>{orderSuccessData?.orderCode}</Text>
-              </View>
-            </View>
-
-            <Pressable
-              style={styles.qrConfirmBtn}
-              onPress={async () => {
-                const finalCode = orderSuccessData?.orderCode || `HD-${Date.now().toString().slice(-6)}`
-                if (orderSuccessData?.orderId) {
-                  await posApi.confirmPosPayment(orderSuccessData.orderId).catch(() => null)
-                }
-                await buildAndPersistOrder(finalCode, paymentMethod)
-                setQrModalOpen(false)
-                setCart([])
-                setCartModalOpen(false)
-                setCustomerPhone('')
-                setCustomerName('')
-                setMatchedCustomer(null)
-                Alert.alert(
-                  'Thanh toán thành công 🎉',
-                  `Đã nhận tiền chuyển khoản đơn ${finalCode}.\nĐơn hàng đã được thêm vào Sổ đơn & Doanh số hôm nay!`,
-                )
-              }}
-            >
-              <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
-              <Text style={styles.qrConfirmBtnText}>Xác nhận đã nhận tiền</Text>
-            </Pressable>
-
-            <Pressable style={styles.qrCloseBtn} onPress={() => setQrModalOpen(false)}>
-              <Text style={styles.qrCloseBtnText}>Đóng</Text>
-            </Pressable>
+            )}
           </View>
         </View>
       </Modal>
@@ -2903,72 +3319,222 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 
-  // QR Modal
+  // Banner thu nhỏ khi chờ chuyển khoản
+  pendingFloatingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    shadowColor: '#D97706',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  pendingBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+  },
+  pendingPulseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#D97706',
+  },
+  pendingBannerTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  pendingBannerSub: {
+    fontSize: 11.5,
+    color: '#B45309',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  pendingBannerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pendingReopenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D97706',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  pendingReopenBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  pendingCancelSmallBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  pendingCancelSmallBtnText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+
+  // QR Modal chuẩn Web Admin
   qrModalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
   },
   qrModalCard: {
     width: '100%',
+    maxWidth: 380,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    shadowColor: '#000000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   qrHeader: {
     alignItems: 'center',
-    gap: 2,
+    gap: 3,
+    width: '100%',
   },
-  qrTitle: {
-    fontSize: 14,
+  qrBadgePill: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginBottom: 2,
+  },
+  qrBadgeText: {
+    fontSize: 10.5,
     fontWeight: '800',
-    color: '#7A0C10',
+    color: '#B45309',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  qrMainTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#111827',
+  },
   qrSubtitle: {
+    fontSize: 12.5,
+    color: '#6B7280',
+  },
+  qrMixedCashNote: {
     fontSize: 12,
-    color: '#58413F',
+    fontWeight: '700',
+    color: '#16A34A',
+    marginTop: 2,
+  },
+  qrMainAmount: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#B91C1C',
+    marginVertical: 2,
+  },
+  qrMixedTotalNote: {
+    fontSize: 11,
+    color: '#9CA3AF',
   },
   qrImgWrap: {
     alignItems: 'center',
     gap: 6,
-    padding: 8,
-    backgroundColor: '#F7F9FB',
-    borderRadius: 12,
+    padding: 10,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    width: '100%',
   },
   qrImg: {
     width: 200,
     height: 200,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
   },
   qrBankHint: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#58413F',
-  },
-  qrInfoList: {
-    width: '100%',
-    backgroundColor: '#F2F4F6',
-    borderRadius: 10,
-    padding: 10,
-    gap: 6,
-  },
-  qrInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  qrInfoLabel: {
-    fontSize: 12,
-    color: '#58413F',
-  },
-  qrInfoVal: {
-    fontSize: 12,
     fontWeight: '800',
-    color: '#191C1E',
+    color: '#7F1D1D',
+    letterSpacing: 0.5,
+  },
+  qrStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 2,
+  },
+  qrStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F59E0B',
+  },
+  qrStatusText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  qrActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  qrSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  qrSecondaryBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  qrPayOsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FEE2E2',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  qrPayOsBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   qrConfirmBtn: {
     flexDirection: 'row',
@@ -2977,21 +3543,81 @@ const styles = StyleSheet.create({
     gap: 6,
     width: '100%',
     backgroundColor: '#16A34A',
-    borderRadius: Radius.full,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 11,
   },
   qrConfirmBtnText: {
     color: '#FFFFFF',
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '700',
   },
-  qrCloseBtn: {
+  qrCancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  qrCancelBtnText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  qrMinimizeBtn: {
     paddingVertical: 4,
   },
-  qrCloseBtnText: {
-    fontSize: 12,
-    color: '#8C716E',
+  qrMinimizeBtnText: {
+    fontSize: 11.5,
+    color: '#94A3B8',
     fontWeight: '600',
+  },
+
+  // Giao diện ăn mừng thành công (khớp Web Admin)
+  qrSuccessCard: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 10,
+    width: '100%',
+  },
+  qrSuccessIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    marginBottom: 6,
+  },
+  qrSuccessTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#065F46',
+  },
+  qrSuccessSub: {
+    fontSize: 13.5,
+    color: '#374151',
+    textAlign: 'center',
+  },
+  qrSuccessAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#B91C1C',
+    marginVertical: 4,
+  },
+  qrSuccessNote: {
+    fontSize: 11.5,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 16,
   },
 
   centerLoading: {

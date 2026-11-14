@@ -84,7 +84,7 @@ interface StoreContextValue {
   vault: StoreVault
   stats: StoreStats
   recentOrders: StoreOrder[]
-  addPosOrder: (order: Partial<StoreOrder> & { total: number; paymentMethod: string }) => Promise<StoreOrder>
+  addPosOrder: (order: Partial<StoreOrder> & { total: number; paymentMethod: string; cashAmount?: number }) => Promise<StoreOrder>
   approveOwnerRequest: (id: string) => Promise<void>
   rejectOwnerRequest: (id: string, reason?: string) => Promise<void>
   approveOrderDiscount: (orderCode: string) => Promise<void>
@@ -467,11 +467,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // 1. Add new order from POS
   const addPosOrder = useCallback(
-    async (orderInput: Partial<StoreOrder> & { total: number; paymentMethod: string }) => {
+    async (orderInput: Partial<StoreOrder> & { total: number; paymentMethod: string; cashAmount?: number }) => {
       const code = orderInput.code || `HD-${Date.now().toString().slice(-6)}`
       const isCash = orderInput.paymentMethod === 'cash'
       const isMixed = orderInput.paymentMethod === 'mixed'
-      const cashPortion = isCash ? orderInput.total : isMixed ? (orderInput.total * 0.5) : 0
+      const cashPortion = orderInput.cashAmount !== undefined
+        ? Number(orderInput.cashAmount) || 0
+        : (isCash ? orderInput.total : isMixed ? (orderInput.total * 0.5) : 0)
 
       const newOrder: StoreOrder = {
         id: `pos-${Date.now()}`,

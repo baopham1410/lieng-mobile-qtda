@@ -360,6 +360,35 @@ class PosController extends Controller
         ]);
     }
 
+    public function cancel(Order $order, Request $request): JsonResponse
+    {
+        if (! in_array($order->status, ['draft', 'pending_payment', 'pending_discount'], true)) {
+            return response()->json(['message' => 'Không thể hủy đơn ở trạng thái này.'], 422);
+        }
+
+        if ($order->status === 'pending_payment') {
+            $this->finalizeOrderPaymentService->release($order, 'failed', $order->payment_payload);
+        }
+
+        foreach ($order->items as $item) {
+            $item->imeiCode?->update([
+                'status' => 'in_stock',
+                'order_item_id' => null,
+            ]);
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+            'payment_status' => $order->payment_status === 'pending' ? 'failed' : $order->payment_status,
+            'notes' => trim(($order->notes ?? '').' [Hủy quầy POS: '.now()->format('d/m/Y H:i').']'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã hủy đơn {$order->code} thành công.",
+        ]);
+    }
+
     private function createOrderWithItems(
         array $validated,
         string $paymentMethod,
