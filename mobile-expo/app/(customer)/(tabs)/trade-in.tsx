@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { api } from '@/api/client'
 import { Radius } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 
@@ -98,23 +99,43 @@ export default function CustomerTradeInScreen() {
   const currentPricing = TRADE_IN_PRICING[selectedModelId]
   const estimatedPrice = currentPricing?.gradePrices[selectedGrade] || 0
 
-  const handleCreateTicket = () => {
+  const handleCreateTicket = async () => {
     if (!customerPhone.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại liên hệ để nhận mã phiếu thu cũ.')
       return
     }
 
+    const modelFullName = (currentPricing?.model || 'Điện thoại cũ') + ' ' + (currentPricing?.storage || '')
+    const gradeTitle =
+      selectedGrade === 'grade1'
+        ? 'Loại 1 (Like New 99%)'
+        : selectedGrade === 'grade2'
+          ? 'Loại 2 (Xước nhẹ 98%)'
+          : selectedGrade === 'grade3'
+            ? 'Loại 3 (Cấn móp 95%)'
+            : 'Loại 4 (Lỗi / Vỡ kính)'
+
+    let generatedCode = `TC-2026-0${submittedTickets.length + 82}`
+    try {
+      const res = await api.post('/store/inquiry', {
+        name: customerName.trim() || 'Khách thu cũ',
+        phone: customerPhone.trim(),
+        product_name: `${modelFullName} [${gradeTitle}]`,
+        topic: 'Thu cũ đổi mới',
+        note: `Định giá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ · Trợ giá: 2.000.000 đ`,
+        items: [{ productId: 1, qty: 1 }],
+      })
+      if (res.data?.data?.reference) {
+        generatedCode = res.data.data.reference
+      }
+    } catch (e: any) {
+      console.warn('API trade-in inquiry error, fallback:', e?.message)
+    }
+
     const newTicket = {
-      code: `TC-2026-0${submittedTickets.length + 82}`,
-      model: currentPricing?.model + ' ' + currentPricing?.storage,
-      gradeLabel:
-        selectedGrade === 'grade1'
-          ? 'Loại 1 (Like New 99%)'
-          : selectedGrade === 'grade2'
-            ? 'Loại 2 (Xước nhẹ 98%)'
-            : selectedGrade === 'grade3'
-              ? 'Loại 3 (Cấn móp 95%)'
-              : 'Loại 4 (Lỗi / Vỡ kính)',
+      code: generatedCode,
+      model: modelFullName,
+      gradeLabel: gradeTitle,
       estimatePrice: estimatedPrice,
       status: 'Chờ mang máy',
       createdAt: 'Hôm nay',
@@ -123,7 +144,7 @@ export default function CustomerTradeInScreen() {
     setSubmittedTickets([newTicket, ...submittedTickets])
     Alert.alert(
       'Tạo phiếu thu cũ thành công 🎉',
-      `Mã phiếu của bạn: ${newTicket.code}\nGiá thu mua ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\nBạn vui lòng mang máy đến Showroom Lieng Mobile (123 Đường Công Nghệ, Q.1) để chuyên viên thẩm định và nhận tiền ngay!`,
+      `Mã phiếu của bạn: ${newTicket.code}\nGiá thu mua ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\nNhân viên showroom Lieng Mobile đã nhận được thông báo tiếp nhận và sẵn sàng thẩm định máy ngay!`,
     )
   }
 

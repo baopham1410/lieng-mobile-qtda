@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\QuanCostController;
 use App\Http\Controllers\Api\QuanStatementController;
 use App\Http\Controllers\Api\CatalogMediaController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
@@ -38,6 +39,7 @@ Route::prefix('v1')->group(function () {
     // Cửa hàng online (public)
     Route::get('/store/catalog', [StoreController::class, 'catalog']);
     Route::post('/store/inquiry', [StoreController::class, 'inquiry']);
+    Route::get('/store/warranty-lookup/{imei}', [WarrantyController::class, 'lookup']);
     Route::get('/media/catalog/{path}', [CatalogMediaController::class, 'show'])->where('path', '.*');
 
     // Chatbot RAG (public bot khách)
@@ -59,6 +61,12 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/search', [SearchController::class, 'index']);
         Route::get('/notifications', [NotificationController::class, 'index']);
+
+        // Consultations & Inquiries (Bàn tiếp nhận hotline & Đặt giữ máy từ Mobile App)
+        Route::get('/consultations', [ConsultationController::class, 'index']);
+        Route::post('/consultations', [ConsultationController::class, 'store']);
+        Route::put('/consultations/{id}', [ConsultationController::class, 'update']);
+        Route::delete('/consultations/{id}', [ConsultationController::class, 'destroy']);
 
         // Dashboard & Reports
         Route::get('/reports/dashboard', [DashboardController::class, 'index']);

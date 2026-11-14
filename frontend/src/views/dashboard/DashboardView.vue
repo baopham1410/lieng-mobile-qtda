@@ -46,8 +46,17 @@ const visibleActions = computed(() =>
     .map((a) => ({ ...a, label: locale.t(actionLabelKeys[a.to] ?? a.label) })),
 )
 
-const stats = ref({ ...mockStats })
-const recentOrders = ref([...mockRecentOrders])
+const emptyStats = {
+  revenueToday: 0,
+  ordersToday: 0,
+  imeiInStock: 0,
+  revenueMonth: 0,
+  pendingImports: 0,
+  lowStockVariants: 0,
+}
+
+const stats = ref({ ...emptyStats })
+const recentOrders = ref([])
 const staffActivity = ref([])
 const revenueCostChart = ref(null)
 const deviceShareChart = ref(null)

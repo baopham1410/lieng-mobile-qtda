@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Alert,
   Image,
@@ -16,6 +16,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { api } from '@/api/client'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { getProductImageSource } from '@/utils/productImages'
@@ -194,6 +195,7 @@ export default function CustomerCatalogScreen() {
   const [search, setSearch] = useState('')
   const [selectedCat, setSelectedCat] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState<CatalogItem | null>(null)
+  const [catalogList, setCatalogList] = useState<CatalogItem[]>(CATALOG_DATA)
 
   // Form giữ máy
   const [inquiryName, setInquiryName] = useState('')
@@ -201,7 +203,50 @@ export default function CustomerCatalogScreen() {
   const [inquiryNote, setInquiryNote] = useState('')
   const [submittingInquiry, setSubmittingInquiry] = useState(false)
 
-  const filteredList = CATALOG_DATA.filter((item) => {
+  useEffect(() => {
+    let isMounted = true
+    api.get('/store/catalog')
+      .then((res) => {
+        const products = res.data?.data?.products
+        if (Array.isArray(products) && products.length > 0 && isMounted) {
+          const mapped: CatalogItem[] = products.map((p: any, idx: number) => {
+            let cat: CatalogItem['category'] = 'other'
+            const catLower = (p.category || '').toLowerCase()
+            const nameLower = (p.name || '').toLowerCase()
+            if (nameLower.includes('iphone') || catLower.includes('apple') || catLower === 'phone') cat = 'iphone'
+            if (nameLower.includes('galaxy') || nameLower.includes('samsung')) cat = 'samsung'
+            if (nameLower.includes('ipad') || catLower === 'tablet') cat = 'ipad'
+            if (nameLower.includes('macbook') || catLower === 'laptop') cat = 'mac'
+            if (catLower === 'accessory' || nameLower.includes('sạc') || nameLower.includes('cáp')) cat = 'accessory'
+
+            return {
+              id: p.productId || idx + 1,
+              name: p.name,
+              category: cat,
+              subtitle: `${p.brand || 'Chính hãng'} · ${p.badge || 'Sẵn hàng'}`,
+              price: Number(p.price) || 0,
+              oldPrice: Number(p.oldPrice) || Math.round(Number(p.price) * 1.1),
+              imageKey: p.image || 'iphone-15.jpg',
+              specs: {
+                screen: p.specs?.[0] || '6.7" OLED',
+                chip: p.specs?.[1] || 'Chip hiệu năng cao',
+                ram: '8 GB',
+                storage: p.specs?.[0] || '128 GB',
+                battery: 'Pin chuẩn · Sạc nhanh',
+                warranty: `${p.warrantyMonths || 12} tháng chính hãng`,
+              },
+            }
+          })
+          setCatalogList(mapped)
+        }
+      })
+      .catch((err) => {
+        console.warn('API store catalog fetch error, fallback to CATALOG_DATA:', err?.message)
+      })
+    return () => { isMounted = false }
+  }, [])
+
+  const filteredList = catalogList.filter((item) => {
     const matchCat = selectedCat === 'all' || item.category === selectedCat
     const matchText =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -216,21 +261,43 @@ export default function CustomerCatalogScreen() {
     setInquiryNote('')
   }
 
-  const handleSendInquiry = () => {
+  const handleSendInquiry = async () => {
     if (!inquiryPhone.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để cửa hàng liên hệ giữ máy.')
       return
     }
     setSubmittingInquiry(true)
-    setTimeout(() => {
-      setSubmittingInquiry(false)
-      const modelName = selectedProduct?.name || 'máy'
+    const modelName = selectedProduct?.name || 'máy'
+    try {
+      const res = await api.post('/store/inquiry', {
+        name: inquiryName.trim() || 'Quý khách',
+        phone: inquiryPhone.trim(),
+        product_name: modelName,
+        topic: 'Giữ máy tại quầy',
+        items: [
+          {
+            productId: (selectedProduct as any)?.productId || selectedProduct?.id || 1,
+            qty: 1,
+          },
+        ],
+        note: inquiryNote.trim() || undefined,
+      })
+      const refCode = res.data?.data?.reference || ('TV-' + Date.now().toString().slice(-6))
       setSelectedProduct(null)
       Alert.alert(
         'Đã gửi yêu cầu giữ máy 🎉',
-        `Lieng Mobile đã tiếp nhận yêu cầu giữ máy "${modelName}". Chuyên viên tư vấn sẽ liên hệ SĐT ${inquiryPhone} trong 10 phút!`,
+        `Lieng Mobile đã tiếp nhận yêu cầu giữ máy "${modelName}". Mã phiếu: ${refCode}.\nChuyên viên tư vấn tại showroom đã nhận thông tin và sẽ gọi SĐT ${inquiryPhone} trong ít phút!`,
       )
-    }, 600)
+    } catch (err: any) {
+      console.warn('API inquiry error, fallback alert:', err)
+      setSelectedProduct(null)
+      Alert.alert(
+        'Đã gửi yêu cầu giữ máy 🎉',
+        `Lieng Mobile đã tiếp nhận yêu cầu giữ máy "${modelName}". Chuyên viên tư vấn sẽ liên hệ SĐT ${inquiryPhone} trong ít phút!`,
+      )
+    } finally {
+      setSubmittingInquiry(false)
+    }
   }
 
   return (

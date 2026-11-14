@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Models\CustomerInquiry;
 use App\Models\ImeiCode;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\ProductImageResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -90,20 +93,66 @@ class StoreController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
-            'items' => 'required|array|min:1',
-            'items.*.productId' => 'required|integer',
-            'items.*.qty' => 'required|integer|min:1',
-            'note' => 'nullable|string|max:500',
+            'phone' => 'required|string|max:30',
+            'items' => 'nullable|array',
+            'items.*.productId' => 'nullable|integer',
+            'items.*.qty' => 'nullable|integer|min:1',
+            'product_name' => 'nullable|string|max:255',
+            'topic' => 'nullable|string|max:100',
+            'note' => 'nullable|string|max:1000',
         ]);
 
+        $productId = $validated['items'][0]['productId'] ?? null;
+        $productName = $request->input('product_name');
+        if ($productId && ! $productName) {
+            $productName = Product::find($productId)?->name;
+        }
+
+        $todayPrefix = 'TV-'.now()->format('ymd').'-';
+        $lastInquiry = CustomerInquiry::where('code', 'like', $todayPrefix.'%')->orderByDesc('id')->first();
+        $seq = 1;
+        if ($lastInquiry && preg_match('/-(\d+)$/', $lastInquiry->code, $m)) {
+            $seq = ((int) $m[1]) + 1;
+        }
+        $code = $todayPrefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+
+        $topic = $request->input('topic', 'Giữ máy tại quầy');
+        $inquiry = CustomerInquiry::create([
+            'code' => $code,
+            'customer_name' => $validated['name'],
+            'customer_phone' => $validated['phone'],
+            'product_id' => $productId,
+            'product_name' => $productName ?: 'Sản phẩm tại quầy',
+            'topic' => $topic,
+            'notes' => $validated['note'] ?? null,
+            'status' => 'ringing',
+        ]);
+
+        try {
+            $admin = User::first();
+            if ($admin) {
+                ActivityLog::create([
+                    'user_id' => $admin->id,
+                    'action' => 'customer_inquiry',
+                    'module' => 'consult',
+                    'title' => 'Khách hàng đặt giữ máy: '.$validated['name'],
+                    'description' => ($productName ? "Mẫu: {$productName} · " : '')."SĐT: {$validated['phone']}".(! empty($validated['note']) ? " · Ghi chú: {$validated['note']}" : ''),
+                    'link' => '/consult',
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
         return response()->json([
-            'message' => 'Đã ghi nhận yêu cầu tư vấn. Nhân viên sẽ liên hệ trong ít phút.',
+            'message' => 'Đã ghi nhận yêu cầu tư vấn & giữ máy. Nhân viên sẽ liên hệ trong ít phút.',
             'data' => [
-                'reference' => 'INQ-'.now()->format('YmdHis'),
-                'customer' => $validated['name'],
-                'phone' => $validated['phone'],
-                'itemCount' => collect($validated['items'])->sum('qty'),
+                'id' => $inquiry->id,
+                'reference' => $inquiry->code,
+                'customer' => $inquiry->customer_name,
+                'phone' => $inquiry->customer_phone,
+                'productName' => $inquiry->product_name,
+                'topic' => $inquiry->topic,
+                'status' => $inquiry->status,
+                'itemCount' => collect($validated['items'] ?? [])->sum('qty') ?: 1,
             ],
         ], 201);
     }

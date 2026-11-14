@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import { storeInfo } from '@/data/storeIntro'
+import { fetchConsultations, createConsultation, updateConsultation } from '@/api/consult'
 import {
   CONSULT_TOPICS,
   consultStatusClass,
@@ -64,7 +65,18 @@ const filteredHistory = computed(() => {
   })
 })
 
-function loadRows() {
+let pollTimer = null
+
+async function loadRows() {
+  try {
+    const data = await fetchConsultations()
+    if (Array.isArray(data)) {
+      rows.value = data
+      return
+    }
+  } catch (e) {
+    console.warn('API consultations fetch error, using local fallback', e)
+  }
   rows.value = getConsultRows()
 }
 
@@ -183,7 +195,7 @@ function clearRecording() {
   session.value.durationSec = null
 }
 
-function persistSession(finalStatus) {
+async function persistSession(finalStatus) {
   error.value = ''
   if (!session.value.customerPhone.trim() && !session.value.callerPhone.trim()) {
     error.value = 'Nhập SĐT người gọi hoặc SĐT khách trước khi kết thúc.'
@@ -212,28 +224,35 @@ function persistSession(finalStatus) {
       startedAt: session.value.startedAt,
       endedAt: ended,
       durationSec: session.value.durationSec,
-      staffName: 'Nhân viên demo',
+      staffName: 'Nhân viên hotline',
     }
 
-    if (activeId.value) {
-      rows.value = rows.value.map((r) =>
-        r.id === activeId.value
-          ? { ...r, ...payload, code: r.code, recordingDataUrl: payload.recordingDataUrl }
-          : r,
-      )
-    } else {
-      const id = Math.max(0, ...rows.value.map((r) => r.id)) + 1
-      rows.value = [
-        {
-          id,
-          code: nextConsultCode(rows.value),
-          ...payload,
-        },
-        ...rows.value,
-      ]
+    try {
+      if (activeId.value) {
+        await updateConsultation(activeId.value, {
+          customer_name: payload.customerName,
+          customer_phone: payload.customerPhone,
+          topic: payload.topic,
+          interest_product: payload.interestProduct,
+          notes: payload.notes,
+          status: payload.status,
+          staff_name: payload.staffName,
+        })
+      } else {
+        await createConsultation({
+          customer_name: payload.customerName,
+          customer_phone: payload.customerPhone,
+          topic: payload.topic,
+          interest_product: payload.interestProduct,
+          notes: payload.notes,
+          status: payload.status,
+        })
+      }
+    } catch (e) {
+      console.warn('Could not persist consultation to backend, saving locally', e)
     }
 
-    saveConsultRows(rows.value)
+    await loadRows()
     statusMsg.value = `Đã lưu — ${statusLabel(finalStatus)}`
     resetSession()
     return true
@@ -254,9 +273,13 @@ function finishCallback() {
   persistSession('callback')
 }
 
-onMounted(loadRows)
+onMounted(() => {
+  loadRows()
+  pollTimer = setInterval(loadRows, 8000)
+})
 onUnmounted(() => {
   stopRecording()
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 

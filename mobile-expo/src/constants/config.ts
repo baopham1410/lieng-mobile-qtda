@@ -1,25 +1,26 @@
 import Constants from 'expo-constants'
 
 function resolveApiBaseUrl(): string {
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname
-    if (host.includes('trycloudflare.com') || host.includes('on.expo.app') || host.includes('exp.direct')) {
-      return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
-    }
-    return `http://${host}:8080/api/v1`
-  }
   const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+  if (envUrl && !envUrl.includes('depot-seasons')) {
     return envUrl
   }
-  const host = Constants.expoConfig?.hostUri?.split(':')[0]
-  if (host) {
-    if (host.includes('on.expo.app') || host.includes('exp.direct') || host.includes('trycloudflare.com')) {
-      return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://127.0.0.1:8080/api/v1'
     }
+    // Khi chạy qua Cloudflare tunnel Web Admin
+    if (host.includes('trycloudflare.com') && window.location.port === '5173') {
+      return `${window.location.origin}/api/v1`
+    }
+    return 'https://get-genre-continuity-kim.trycloudflare.com/api/v1'
+  }
+  const host = Constants.expoConfig?.hostUri?.split(':')[0]
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('on.expo.app')) {
     return `http://${host}:8080/api/v1`
   }
-  return 'https://depot-seasons-mom-gene.trycloudflare.com/api/v1'
+  return 'https://get-genre-continuity-kim.trycloudflare.com/api/v1'
 }
 
 /**

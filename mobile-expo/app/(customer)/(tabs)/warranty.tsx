@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { api } from '@/api/client'
 import { Radius } from '@/constants/config'
 
 interface WarrantyInfo {
@@ -85,8 +86,9 @@ export default function CustomerWarrantyScreen() {
   const [keyword, setKeyword] = useState('')
   const [searchResult, setSearchResult] = useState<WarrantyInfo | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [searching, setSearching] = useState(false)
 
-  const handleSearch = (query?: string) => {
+  const handleSearch = async (query?: string) => {
     const q = (query ?? keyword).trim()
     if (!q) {
       Alert.alert('Chưa nhập thông tin', 'Vui lòng nhập số IMEI (15 số) hoặc Số điện thoại để tra cứu.')
@@ -94,6 +96,38 @@ export default function CustomerWarrantyScreen() {
     }
 
     setHasSearched(true)
+    setSearching(true)
+    try {
+      const res = await api.get(`/store/warranty-lookup/${encodeURIComponent(q)}`)
+      const d = res.data?.data
+      if (d) {
+        setSearchResult({
+          imei: d.imei || q,
+          model: d.deviceName || 'Thiết bị di động',
+          color: d.color || 'Màu tiêu chuẩn',
+          customerName: d.customer?.name || 'Khách hàng',
+          customerPhone: d.customer?.phone || 'Liên hệ tại quầy',
+          purchaseDate: d.activatedAt || 'Đang cập nhật',
+          warrantyExpiry: d.statusBadge || 'Đang bảo hành',
+          remainingDays: typeof d.daysRemaining === 'number' ? d.daysRemaining : 365,
+          status: (d.daysRemaining > 0) ? 'active' : 'expired',
+          warrantyPackage: d.package || 'Gói Bảo Hành Chính Hãng 12 Tháng',
+          repairHistory: Array.isArray(d.repairs)
+            ? d.repairs.map((r: any) => ({
+                date: r.date || 'Gần đây',
+                issue: r.description || 'Bảo dưỡng / Kiểm tra',
+                result: `KTV ${r.technician || ''} · ${r.cost ? r.cost.toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}`,
+              }))
+            : [],
+        })
+        return
+      }
+    } catch (e: any) {
+      console.warn('API warranty lookup error, check sample:', e?.message)
+    } finally {
+      setSearching(false)
+    }
+
     const result = SAMPLE_WARRANTIES[q]
     if (result) {
       setSearchResult(result)
