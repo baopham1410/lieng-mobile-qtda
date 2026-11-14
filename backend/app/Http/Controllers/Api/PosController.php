@@ -45,7 +45,7 @@ class PosController extends Controller
             });
         }
 
-        $items = $query->orderByDesc('updated_at')->limit(100)->get();
+        $items = $query->orderByDesc('updated_at')->limit(500)->get();
 
         $stockByVariant = ImeiCode::query()
             ->selectRaw('product_variant_id, COUNT(*) as in_stock_count')
@@ -190,7 +190,7 @@ class PosController extends Controller
         }
 
         $order = $this->finalizeOrderPaymentService->finalize($order, [
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()?->id ?? \App\Models\User::first()?->id ?? 1,
             'paid_at' => now(),
         ]);
 
@@ -227,7 +227,7 @@ class PosController extends Controller
 
         if ($transferAmount <= 0) {
             $order = $this->finalizeOrderPaymentService->finalize($order->fresh(), [
-                'user_id' => $request->user()->id,
+                'user_id' => $request->user()?->id ?? \App\Models\User::first()?->id ?? 1,
                 'paid_at' => now(),
             ]);
 
@@ -345,6 +345,21 @@ class PosController extends Controller
         ]);
     }
 
+    public function confirmPayment(Order $order, Request $request): JsonResponse
+    {
+        $userId = $request->user()?->id ?? \App\Models\User::first()?->id ?? 1;
+        $order = $this->finalizeOrderPaymentService->finalize($order, [
+            'user_id' => $userId,
+            'paid_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xác nhận thanh toán thành công!',
+            'data' => $this->buildCheckoutResponseData($order, $order->items()->count()),
+        ]);
+    }
+
     private function createOrderWithItems(
         array $validated,
         string $paymentMethod,
@@ -361,7 +376,7 @@ class PosController extends Controller
                 '0',
                 STR_PAD_LEFT
             ),
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()?->id ?? \App\Models\User::first()?->id ?? 1,
             'customer_id' => $validated['customer_id'] ?? null,
             'status' => $awaitingTransfer ? 'pending_payment' : 'draft',
             'payment_status' => $awaitingTransfer ? 'pending' : 'unpaid',

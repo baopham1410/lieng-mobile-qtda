@@ -88,3 +88,8 @@ export async function fetchOrderPaymentStatus(orderId: number | string) {
   const { data } = await api.get(`/orders/${orderId}/payment-status`)
   return data?.data ?? data
 }
+
+export async function confirmPosPayment(orderId: number | string) {
+  const { data } = await api.post(`/pos/orders/${orderId}/confirm-payment`)
+  return data?.data ?? data
+}

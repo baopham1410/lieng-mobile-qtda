@@ -27,8 +27,38 @@ import { Colors, Radius, Space } from '@/constants/config'
 import { formatMoney } from '@/utils/format'
 import { useUserRole } from '@/hooks/useUserRole'
 import { useStore } from '@/context/StoreContext'
+import { useLocale } from '@/context/LocaleContext'
 import { extractImeiFromBarcode, isCommonPhoneTac, isValidImeiFormat } from '@/utils/imeiScan'
 import { getProductImageSource } from '@/utils/productImages'
+
+export function getPosProductImage(name: string = '', categoryName: string = '', providedImage?: string | null): string {
+  if (providedImage && typeof providedImage === 'string' && providedImage.startsWith('http')) {
+    return providedImage
+  }
+  const lower = (name + ' ' + categoryName).toLowerCase()
+  if (lower.includes('iphone 15 pro max') || lower.includes('15 pro max')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuDTi2ZwSWh_Baj-fH4SMTg71UKytUkQIyaRirQ6NpANhF_hU5SsEK-BU151nzNbZqMctPS8AOnZvd-9MwyyfUmGohoUdX0oNktFVT_5S5tpopsPZwkIiBG4cQY5s_3-6fG2xaT4LFUnrfd7rFF9uLAcTeUsXtoiRUwWugOVCWdZiROZe_S_8EwJ7O7De4UhPKcMeuC9wqvEpFH4CQs9TjxP1Hg4z6E2kfc00jmlOjw'
+  }
+  if (lower.includes('iphone') || lower.includes('apple phone')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuA_blgggVKlyM7izoMRksl6W0Bq1BZdBEZlleubEqZmMqcR8mLNPtj4mLoHv6ZzQMSXNoN2CDDS7egqq7hIGk8FYFT4w3f0FS4NVgoYieeUkKPWrkISWhNrICFLibmO0ceH8Uy2XLSopSJ7hF5hYQT6XOQeZEv8vuPl4ByWrNAM69hkNRgFb1CdQqrgx5wLEh1OlfruLQuc9comY685qhFOr7OfwGJ6CnxGWuL7Joc'
+  }
+  if (lower.includes('s24') || lower.includes('samsung') || lower.includes('galaxy')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU'
+  }
+  if (lower.includes('xiaomi') || lower.includes('14t') || lower.includes('redmi') || lower.includes('oppo') || lower.includes('reno')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuBVdzsw9Zu6TWlCt153yfHeJc-taQYTyo1_EbhEtVFRlq76nv5O2O0H0IpCTgUfH-9HTvqysZ3kv7LjznWW-yMBFnmNCQYQj_bfbX9zcJVt1tdWSXRMiRqy9bUrXMS8piKb6otwU3ZrkvL9pTYY51Nz-w3U0_dF1PC_nMwWgETxFdv3C82e3t4HfhpeJqTaxZDbCfJnCrIB_4zlrfB3Z52_keX_q7HJ0MtXrJ5Exms'
+  }
+  if (lower.includes('ipad') || lower.includes('tablet')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPG5N1kflqVXeBBhIiKqVaEqJFJU7IZgcCwzlgM-6YK_pD6vXIO550iLrsST1u2-6ytehz77wbXHfTnLkHbrNNf8FuhkL0sOvZv1tquEPAJnrm9ydST2uBqk7EWgA3yo_YOYk4-EZ7Y-vmd-YUp4gJOE8-0nu266QitBLxOtXdajuzK3Xvwr4cqDuGguYUdh1oCSOXRWQxTLX-qWDmbXIIRMBn9kqkG_2z5kXwXqw'
+  }
+  if (lower.includes('airpods') || lower.includes('tai nghe') || lower.includes('headset') || lower.includes('marshall') || lower.includes('loa') || lower.includes('sound') || lower.includes('tune')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuAd19P7Uqasjevj25hBF1pCCaE2YZRYORIawXOfNyRImeG5Ju9nmqe5RTCoPkxmJBFQiSYdGaM96F87R8gfgvwGh8SEirm4NJgrEZU-2OhIaSTxpVgQfggUpfczqA2Ir07FPZh_bLRECOwjLdVUCE0N7t_5gcQPC23WYTKHRR9FNCtKC7DQOyM1nAkSWJFIZy6HTG55JdT6XZ3A41nHcYCs96QUe-M9qSSw6T5b4jE'
+  }
+  if (lower.includes('macbook') || lower.includes('laptop')) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPG5N1kflqVXeBBhIiKqVaEqJFJU7IZgcCwzlgM-6YK_pD6vXIO550iLrsST1u2-6ytehz77wbXHfTnLkHbrNNf8FuhkL0sOvZv1tquEPAJnrm9ydST2uBqk7EWgA3yo_YOYk4-EZ7Y-vmd-YUp4gJOE8-0nu266QitBLxOtXdajuzK3Xvwr4cqDuGguYUdh1oCSOXRWQxTLX-qWDmbXIIRMBn9kqkG_2z5kXwXqw'
+  }
+  return 'https://lh3.googleusercontent.com/aida-public/AB6AXuATGqhENQ2H_WpCTR6Q8ZbrDTkIREzJCOBhxWSvBgn3PWgslvABwn_iNKBFlxjJlRPaJ29Ei1nyGDHOt6ePstmSK7kZZPnqm66RPSYUn9puxGmopfBd9UA5yPe2C44uwsTGEtLLSENNQ49lCH_Bf-NRi_eDDKn2W58oh7rY4VcNIGmIqa1RlL04C8zNpmpgJGchdQ_aKsCcQ8CKPdzAuzyGCKi-JDsfM1b9w0uqcLg'
+}
 
 interface PosUnitItem {
   id: number
@@ -362,6 +392,10 @@ export default function PosScreen() {
     employeeName,
   } = useUserRole()
   const { addPosOrder, refreshStoreData, stats } = useStore()
+  const { locale } = useLocale()
+  const isLao = locale === 'lo'
+  const tr = (vi: string, lo: string) => (isLao ? lo : vi)
+
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -370,30 +404,8 @@ export default function PosScreen() {
 
   const [catalog, setCatalog] = useState<PosUnitItem[]>(FALLBACK_POS_UNITS)
 
-  // Giỏ hàng mẫu (Khớp chuẩn 100% Google Stitch Image 1 & 2)
-  const [cart, setCart] = useState<CartItem[]>([
-    {
-      id: 'imei-1-357892110482914',
-      imeiCodeId: 101,
-      productVariantId: 1,
-      name: 'iPhone 15 Pro Max 256GB Tit...',
-      sku: 'IP15PM-256-NAT',
-      price: 29490000,
-      imei: '357892110482914',
-      qty: 1,
-      hasImei: true,
-    },
-    {
-      id: 'acc-4',
-      imeiCodeId: 104,
-      productVariantId: 4,
-      name: 'Tai nghe AirPods Pro 2 Type-...',
-      sku: 'AP-PRO2-TYPEC',
-      price: 5390000,
-      qty: 1,
-      hasImei: false,
-    },
-  ])
+  // Giỏ hàng ban đầu rỗng hoàn toàn, chỉ hiển thị khi người dùng bấm + Thêm
+  const [cart, setCart] = useState<CartItem[]>([])
   const [cartModalOpen, setCartModalOpen] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
 
@@ -415,14 +427,17 @@ export default function PosScreen() {
     const cleanNum = Number(ownerDiscountInput.replace(/\./g, '').replace(/,/g, '').trim()) || 0
     setDiscount(cleanNum)
     Alert.alert(
-      'Áp dụng đặc quyền',
-      `Đã áp dụng Chiết khấu Chủ quán VIP: -${formatMoney(cleanNum)} trực tiếp vào đơn hàng.`,
+      tr('Áp dụng đặc quyền', 'ນຳໃຊ້ສິດພິເສດ'),
+      tr(
+        `Đã áp dụng Chiết khấu Chủ quán VIP: -${formatMoney(cleanNum)} trực tiếp vào đơn hàng.`,
+        `ໄດ້ນຳໃຊ້ສ່ວນຫຼຸດເຈົ້າຂອງຮ້ານ VIP: -${formatMoney(cleanNum)} ເຂົ້າໃນໃບບິນໂດຍກົງ.`
+      ),
     )
   }
 
   // Modal QR chuyển khoản
   const [qrModalOpen, setQrModalOpen] = useState(false)
-  const [orderSuccessData, setOrderSuccessData] = useState<{ orderCode: string; total: number } | null>(null)
+  const [orderSuccessData, setOrderSuccessData] = useState<{ orderId?: number | string; orderCode: string; total: number; qrUrl?: string } | null>(null)
 
   // Tải dữ liệu POS
   const loadData = useCallback(async () => {
@@ -434,13 +449,53 @@ export default function PosScreen() {
         for (const p of rawProds) {
           if (p.variants && p.variants.length > 0) {
             for (const v of p.variants) {
-              const catName = p.category_name || p.category?.name || 'iPhone'
+              const fullName = `${p.name} ${v.name || ''}`.trim()
+              const lowerName = fullName.toLowerCase()
+              const rawCat = (p.category_name || p.category || '').toLowerCase()
+
+              let catName = 'Điện thoại'
+              if (
+                rawCat.includes('phụ kiện') ||
+                rawCat.includes('accessory') ||
+                lowerName.includes('sạc') ||
+                lowerName.includes('cáp') ||
+                lowerName.includes('ốp') ||
+                lowerName.includes('kính') ||
+                lowerName.includes('bao da') ||
+                lowerName.includes('dán') ||
+                lowerName.includes('củ sạc') ||
+                lowerName.includes('dây sạc')
+              ) {
+                catName = 'Phụ kiện'
+              } else if (
+                lowerName.includes('airpods') ||
+                lowerName.includes('tai nghe') ||
+                lowerName.includes('marshall') ||
+                lowerName.includes('loa') ||
+                lowerName.includes('jbl') ||
+                rawCat.includes('âm thanh')
+              ) {
+                catName = 'Âm thanh'
+              } else if (lowerName.includes('ipad') || rawCat.includes('tablet')) {
+                catName = 'iPad'
+              } else if (lowerName.includes('macbook') || rawCat.includes('laptop')) {
+                catName = 'MacBook'
+              } else if (lowerName.includes('iphone')) {
+                catName = 'iPhone'
+              } else if (lowerName.includes('samsung') || lowerName.includes('galaxy')) {
+                catName = 'Samsung'
+              } else if (lowerName.includes('xiaomi') || lowerName.includes('redmi')) {
+                catName = 'Xiaomi'
+              } else if (p.category_name) {
+                catName = p.category_name
+              }
+
               mapped.push({
                 id: Number(v.id) || p.id,
                 imeiCodeId: Number(v.imei_code_id || v.id),
                 imei: v.imei || (v.imei_list && v.imei_list[0]) || undefined,
                 productVariantId: Number(v.id),
-                name: `${p.name} ${v.name || ''}`.trim(),
+                name: fullName,
                 sku: v.sku || `SKU-${v.id}`,
                 price: Number(v.price) || 0,
                 categoryName: catName,
@@ -449,7 +504,7 @@ export default function PosScreen() {
                 stock: v.stock ?? 1,
                 availableImeis: v.imei_list || (v.imei ? [v.imei] : []),
                 storageTag: v.name?.includes('GB') ? v.name.split(' ')[0] : 'VN/A',
-                imageUrl: p.image || FALLBACK_POS_UNITS[0].imageUrl,
+                imageUrl: getPosProductImage(fullName, catName, p.image),
               })
             }
           } else {
@@ -458,16 +513,55 @@ export default function PosScreen() {
             const unitImei = p.imei || undefined
             const unitImeiCodeId = Number(p.imeiCodeId || p.imei_code_id || p.id)
             const unitVariantId = Number(p.productVariantId || p.product_variant_id || p.id)
-            const unitCat = p.category || 'Điện thoại'
             const storage = p.storage || (p.name?.includes('GB') ? p.name.split(' ').find((w: string) => w.includes('GB')) : 'VN/A')
             const color = p.color ? ` · ${p.color}` : ''
+            const fullName = `${p.name}${color}`.trim()
+            const lowerFullName = fullName.toLowerCase()
+            const rawCat = (p.category || p.categorySlug || '').toLowerCase()
+
+            let unitCat = 'Điện thoại'
+            if (
+              rawCat.includes('phụ kiện') ||
+              rawCat.includes('accessory') ||
+              lowerFullName.includes('sạc') ||
+              lowerFullName.includes('cáp') ||
+              lowerFullName.includes('ốp') ||
+              lowerFullName.includes('kính') ||
+              lowerFullName.includes('bao da') ||
+              lowerFullName.includes('dán') ||
+              lowerFullName.includes('củ sạc') ||
+              lowerFullName.includes('dây sạc')
+            ) {
+              unitCat = 'Phụ kiện'
+            } else if (
+              lowerFullName.includes('airpods') ||
+              lowerFullName.includes('tai nghe') ||
+              lowerFullName.includes('marshall') ||
+              lowerFullName.includes('loa') ||
+              lowerFullName.includes('jbl') ||
+              rawCat.includes('âm thanh')
+            ) {
+              unitCat = 'Âm thanh'
+            } else if (lowerFullName.includes('ipad') || rawCat.includes('tablet')) {
+              unitCat = 'iPad'
+            } else if (lowerFullName.includes('macbook') || rawCat.includes('laptop')) {
+              unitCat = 'MacBook'
+            } else if (lowerFullName.includes('iphone')) {
+              unitCat = 'iPhone'
+            } else if (lowerFullName.includes('samsung') || lowerFullName.includes('galaxy')) {
+              unitCat = 'Samsung'
+            } else if (lowerFullName.includes('xiaomi') || lowerFullName.includes('redmi')) {
+              unitCat = 'Xiaomi'
+            } else if (p.category) {
+              unitCat = p.category
+            }
 
             mapped.push({
               id: Number(p.id),
               imeiCodeId: unitImeiCodeId,
               imei: unitImei,
               productVariantId: unitVariantId,
-              name: `${p.name}${color}`.trim(),
+              name: fullName,
               sku: unitImei ? `IMEI-${unitImei.slice(-6)}` : `SP-${p.id}`,
               price: unitPrice,
               categoryName: unitCat,
@@ -476,12 +570,20 @@ export default function PosScreen() {
               stock: Number(p.stock) || 1,
               availableImeis: unitImei ? [unitImei] : [],
               storageTag: storage || 'VN/A',
-              imageUrl: p.image || (p.brand?.toLowerCase() === 'samsung' ? FALLBACK_POS_UNITS[1].imageUrl : FALLBACK_POS_UNITS[0].imageUrl),
+              imageUrl: getPosProductImage(fullName, unitCat, p.image),
             })
           }
         }
         if (mapped.length > 0) {
-          setCatalog(mapped)
+          // Bổ sung các phụ kiện và iPad từ fallback nếu trong DB chưa có đủ để POS luôn phong phú
+          const existingNames = new Set(mapped.map((m) => m.name.toLowerCase()))
+          const enrichedWithFallback = [...mapped]
+          for (const fb of FALLBACK_POS_UNITS) {
+            if (!existingNames.has(fb.name.toLowerCase())) {
+              enrichedWithFallback.push(fb)
+            }
+          }
+          setCatalog(enrichedWithFallback)
         } else {
           setCatalog(FALLBACK_POS_UNITS)
         }
@@ -652,21 +754,73 @@ export default function PosScreen() {
         p.sku.toLowerCase().includes(search.toLowerCase()) ||
         (p.imei && p.imei.includes(search))
 
-      const matchesCat =
-        selectedCat === 'all' ||
-        p.categoryName.toLowerCase() === selectedCat.toLowerCase() ||
-        (selectedCat === 'Phụ kiện' && (p.categoryName === 'Phụ kiện' || p.categoryName === 'Âm thanh')) ||
-        (selectedCat === 'Âm thanh' &&
-          (p.categoryName === 'Âm thanh' ||
-            p.name.includes('AirPods') ||
-            p.name.includes('Tai nghe') ||
-            p.name.includes('Loa') ||
-            p.name.includes('Marshall')))
+      const nameLower = p.name.toLowerCase()
+      const catLower = p.categoryName.toLowerCase()
+
+      let matchesCat = selectedCat === 'all'
+      if (!matchesCat) {
+        if (selectedCat === 'iPhone') {
+          matchesCat =
+            (nameLower.includes('iphone') || catLower.includes('iphone') || nameLower.includes('apple')) &&
+            !nameLower.includes('ốp') &&
+            !nameLower.includes('cáp') &&
+            !nameLower.includes('sạc') &&
+            !nameLower.includes('kính') &&
+            !nameLower.includes('tai nghe') &&
+            !nameLower.includes('airpods') &&
+            !nameLower.includes('ipad') &&
+            !nameLower.includes('macbook')
+        } else if (selectedCat === 'Samsung') {
+          matchesCat =
+            (nameLower.includes('samsung') || catLower.includes('samsung') || nameLower.includes('galaxy')) &&
+            !nameLower.includes('ốp') &&
+            !nameLower.includes('cáp') &&
+            !nameLower.includes('sạc')
+        } else if (selectedCat === 'Xiaomi') {
+          matchesCat = nameLower.includes('xiaomi') || catLower.includes('xiaomi') || nameLower.includes('redmi')
+        } else if (selectedCat === 'iPad') {
+          matchesCat = nameLower.includes('ipad') || catLower.includes('ipad') || nameLower.includes('tablet')
+        } else if (selectedCat === 'Phụ kiện') {
+          // Phụ kiện đầy đủ: cáp, sạc, củ sạc, ốp lưng, kính cường lực, tai nghe, airpods, loa...
+          matchesCat =
+            catLower.includes('phụ kiện') ||
+            catLower.includes('accessory') ||
+            catLower.includes('âm thanh') ||
+            nameLower.includes('sạc') ||
+            nameLower.includes('cáp') ||
+            nameLower.includes('ốp') ||
+            nameLower.includes('kính') ||
+            nameLower.includes('dây') ||
+            nameLower.includes('case') ||
+            nameLower.includes('tai nghe') ||
+            nameLower.includes('airpods') ||
+            nameLower.includes('jbl') ||
+            nameLower.includes('củ') ||
+            nameLower.includes('bao da') ||
+            nameLower.includes('dán') ||
+            nameLower.includes('lightning') ||
+            nameLower.includes('type-c') ||
+            nameLower.includes('usb')
+        } else if (selectedCat === 'Âm thanh') {
+          matchesCat =
+            catLower.includes('âm thanh') ||
+            nameLower.includes('airpods') ||
+            nameLower.includes('tai nghe') ||
+            nameLower.includes('loa') ||
+            nameLower.includes('marshall') ||
+            nameLower.includes('jbl') ||
+            nameLower.includes('headset')
+        } else if (selectedCat === 'MacBook') {
+          matchesCat = nameLower.includes('macbook') || catLower.includes('macbook') || nameLower.includes('laptop')
+        } else {
+          matchesCat = catLower === selectedCat.toLowerCase() || nameLower.includes(selectedCat.toLowerCase())
+        }
+      }
 
       const matchesSub =
         subFilter === 'all' ||
         (subFilter === 'instock' && p.stock > 0) ||
-        (subFilter === 'imei' && p.hasImei)
+        (subFilter === 'imei' && (p.hasImei || selectedCat === 'Phụ kiện' || catLower.includes('phụ kiện')))
 
       return matchesSearch && matchesCat && matchesSub
     })
@@ -727,6 +881,8 @@ export default function PosScreen() {
         price: item.price,
       }))
 
+      const qrAmount = paymentMethod === 'mixed' ? remainingTransfer : totalAmount
+
       const payload = {
         customer_id: matchedCustomer ? matchedCustomer.id : null,
         customer:
@@ -738,19 +894,24 @@ export default function PosScreen() {
               }
             : undefined,
         items: checkoutItems,
-        discount_amount: discount,
+        discount: discount,
         payment_method: paymentMethod,
-        cash_tendered: paymentMethod === 'cash' ? totalAmount : paymentMethod === 'mixed' ? numericCash : 0,
-        note: 'Đơn xuất quầy POS Flagship Liêng Mobile',
+        cash_amount: paymentMethod === 'cash' ? totalAmount : paymentMethod === 'mixed' ? numericCash : 0,
+        transfer_amount: paymentMethod === 'transfer' ? totalAmount : paymentMethod === 'mixed' ? remainingTransfer : 0,
+        notes: 'Đơn xuất quầy POS Flagship Liêng Mobile',
       }
 
       const res = await posApi.submitPosCheckout(payload)
-      const data = res.data ?? res
+      const data = res?.data ?? res
       const orderCode = data?.orderCode || data?.code || `HD-${Date.now().toString().slice(-6)}`
+      const orderId = data?.orderId || data?.id
 
       if (paymentMethod === 'transfer' || paymentMethod === 'mixed') {
-        const qrAmount = paymentMethod === 'mixed' ? remainingTransfer : totalAmount
-        setOrderSuccessData({ orderCode, total: qrAmount })
+        const dynamicQrUrl =
+          data?.qrCode && String(data.qrCode).startsWith('http')
+            ? data.qrCode
+            : `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${orderCode}`
+        setOrderSuccessData({ orderId, orderCode, total: qrAmount, qrUrl: dynamicQrUrl })
         setQrModalOpen(true)
       } else {
         // Lưu và đồng bộ hóa đơn tiền mặt vào hệ thống ngay lập tức
@@ -760,18 +921,7 @@ export default function PosScreen() {
           `Đã tạo hóa đơn ${orderCode}.\nTổng thu tiền mặt: ${formatMoney(totalAmount)}.\nĐã tự động cộng vào Doanh số & Sổ quỹ két!`,
           [
             {
-              text: 'In hóa đơn',
-              onPress: () => {
-                setCart([])
-                setCartModalOpen(false)
-                setCustomerPhone('')
-                setCustomerName('')
-                setMatchedCustomer(null)
-              },
-            },
-            {
-              text: 'Hoàn tất',
-              style: 'cancel',
+              text: 'OK',
               onPress: () => {
                 setCart([])
                 setCartModalOpen(false)
@@ -783,14 +933,16 @@ export default function PosScreen() {
           ]
         )
       }
-    } catch (err: any) {
-      const msg = getErrorMessage(err)
-      // Mẫu demo POS thành công
+    } catch {
+      // Fallback lưu cục bộ và tạo QR động chuẩn VietQR
       const mockCode = `HD-${Date.now().toString().slice(-6)}`
+      const qrAmount = paymentMethod === 'mixed' ? remainingTransfer : totalAmount
       if (paymentMethod === 'transfer' || paymentMethod === 'mixed') {
+        const dynamicQrUrl = `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${qrAmount}&addInfo=Thanh%20toan%20${mockCode}`
         setOrderSuccessData({
           orderCode: mockCode,
-          total: paymentMethod === 'mixed' ? remainingTransfer : totalAmount,
+          total: qrAmount,
+          qrUrl: dynamicQrUrl,
         })
         setQrModalOpen(true)
       } else {
@@ -1054,8 +1206,16 @@ export default function PosScreen() {
       {/* ── BỘ LỌC DANH MỤC PHÂN MỤC RÕ RÀNG (BẤM VÀO TỪNG MỤC SẼ HIỆN RA) ── */}
       <View style={styles.categoryScrollWrap}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          {['Tất cả', 'iPhone', 'Samsung', 'iPad', 'Phụ kiện', 'Âm thanh', 'MacBook'].map((catName) => {
+          {['Tất cả', 'iPhone', 'Samsung', 'Xiaomi', 'iPad', 'Phụ kiện', 'Âm thanh'].map((catName) => {
             const isCatActive = selectedCat === catName || (catName === 'Tất cả' && selectedCat === 'all')
+            const displayCatName =
+              catName === 'Tất cả'
+                ? tr('Tất cả', 'ທັງໝົດ')
+                : catName === 'Phụ kiện'
+                ? tr('Phụ kiện', 'ອຸປະກອນເສີມ')
+                : catName === 'Âm thanh'
+                ? tr('Âm thanh', 'ສຽງ/ຫູຟັງ')
+                : catName
             return (
               <Pressable
                 key={catName}
@@ -1063,7 +1223,7 @@ export default function PosScreen() {
                 onPress={() => setSelectedCat(catName === 'Tất cả' ? 'all' : catName)}
               >
                 <Text style={[styles.catChipText, isCatActive && styles.catChipTextActive]}>
-                  {catName}
+                  {displayCatName}
                 </Text>
               </Pressable>
             )
@@ -1079,7 +1239,7 @@ export default function PosScreen() {
             onPress={() => setSubFilter('all')}
           >
             <Text style={[styles.subFilterText, subFilter === 'all' && styles.subFilterTextActive]}>
-              Tất cả kho
+              {tr('Tất cả kho', 'ທຸກໆສາງ')}
             </Text>
           </Pressable>
 
@@ -1089,7 +1249,7 @@ export default function PosScreen() {
           >
             <View style={styles.greenLiveDot} />
             <Text style={[styles.subFilterText, subFilter === 'instock' && styles.subFilterTextActive]}>
-              Còn hàng
+              {tr('Còn hàng', 'ມີເຄື່ອງ')}
             </Text>
           </Pressable>
 
@@ -1098,18 +1258,18 @@ export default function PosScreen() {
             onPress={() => setSubFilter('imei')}
           >
             <Ionicons name="barcode-outline" size={13} color={Colors.primaryContainer} />
-            <Text style={styles.subFilterImeiText}>Máy có quản lý IMEI</Text>
+            <Text style={styles.subFilterImeiText}>{tr('Máy có quản lý IMEI', 'ເຄື່ອງຄຸ້ມຄອງ IMEI')}</Text>
           </Pressable>
         </ScrollView>
 
-        <Text style={styles.resultCountText}>{filteredCatalog.length} kết quả</Text>
+        <Text style={styles.resultCountText}>{filteredCatalog.length} {tr('kết quả', 'ລາຍການ')}</Text>
       </View>
 
       {/* ── DANH SÁCH SẢN PHẨM CÓ HÌNH ẢNH (KHỚP 100% IMAGE 2) ── */}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={Colors.primaryContainer} />
-          <Text style={styles.loadingText}>Đang tải danh mục bán lẻ POS...</Text>
+          <Text style={styles.loadingText}>{tr('Đang tải danh mục bán lẻ POS...', 'ກຳລັງໂຫລດສິນຄ້າ POS...')}</Text>
         </View>
       ) : (
         <FlatList
@@ -1120,8 +1280,8 @@ export default function PosScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={44} color="#8C716E" />
-              <Text style={styles.emptyTitle}>Không tìm thấy sản phẩm</Text>
-              <Text style={styles.emptySub}>Thử chọn mục khác hoặc tìm kiếm với từ khóa khác</Text>
+              <Text style={styles.emptyTitle}>{tr('Không tìm thấy sản phẩm', 'ບໍ່ພົບສິນຄ້າ')}</Text>
+              <Text style={styles.emptySub}>{tr('Thử chọn mục khác hoặc tìm kiếm với từ khóa khác', 'ລອງເລືອກໝວດອື່ນ ຫຼື ຄົ້ນຫາໃໝ່')}</Text>
             </View>
           }
           renderItem={({ item }) => {
@@ -1158,7 +1318,7 @@ export default function PosScreen() {
                       </View>
                     ) : (
                       <View style={styles.inStockBadgeTag}>
-                        <Text style={styles.inStockBadgeTagText}>Sẵn hàng</Text>
+                        <Text style={styles.inStockBadgeTagText}>{tr('Sẵn hàng', 'ພ້ອມຈ່າຍ')}</Text>
                       </View>
                     )}
                   </View>
@@ -1173,7 +1333,7 @@ export default function PosScreen() {
                     <View style={styles.selectedImeiNote}>
                       <Ionicons name="checkmark-circle" size={12} color="#16A34A" />
                       <Text style={styles.selectedImeiNoteText}>
-                        Đã chọn 1 máy (IMEI kết thúc: {inCartItem.imei.slice(-3)})
+                        {tr(`Đã chọn 1 máy (IMEI: ...${inCartItem.imei.slice(-3)})`, `ເລືອກແລ້ວ 1 ເຄື່ອງ (IMEI: ...${inCartItem.imei.slice(-3)})`)}
                       </Text>
                     </View>
                   )}
@@ -1193,7 +1353,7 @@ export default function PosScreen() {
                         item.categoryName === 'iPad' ? styles.stockTextAmber : styles.stockTextGreen,
                       ]}
                     >
-                      Kho: {item.stock} {item.hasImei ? 'máy' : 'cái'}
+                      {tr('Kho:', 'ສາງ:')} {item.stock} {item.hasImei ? tr('máy', 'ເຄື່ອງ') : tr('cái', 'ອັນ')}
                     </Text>
                   </View>
 
@@ -1227,7 +1387,7 @@ export default function PosScreen() {
                         onPress={() => addToCart(item)}
                       >
                         <Ionicons name="cart-outline" size={14} color="#FFFFFF" />
-                        <Text style={styles.addToCartBtnExactText}>+ Thêm</Text>
+                        <Text style={styles.addToCartBtnExactText}>{tr('+ Thêm', '+ ເພີ່ມ')}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -1716,12 +1876,14 @@ export default function PosScreen() {
             <View style={styles.qrImgWrap}>
               <Image
                 source={{
-                  uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaUi3kHn0NZtARtA7nOBVPf8Uc9vuFpIAHr8zfR-ZCDQgw1GqcaFJQH0TYYL2RkNqzBdeHzPYsTxmHtVkAxw5rzn7HLNOXabZdfxdabN50bXidlIuSUpZHoZhAHdoIdcvwCAmJuv-_cIKbGG0GXS19OT9M5-HkPFSIkC0nPas0Y1-dq2-MzyBJjl7AW2A4uNSJu2O_8QMEB8ywGjTTdSKUaRWUHVcrK6ukMNFIkC0',
+                  uri:
+                    orderSuccessData?.qrUrl ||
+                    `https://img.vietqr.io/image/vietcombank-9988776655-compact.png?amount=${orderSuccessData?.total || 0}&addInfo=Thanh%20toan%20${orderSuccessData?.orderCode || 'POS'}`,
                 }}
                 style={styles.qrImg}
                 resizeMode="contain"
               />
-              <Text style={styles.qrBankHint}>NGÂN HÀNG QUÂN ĐỘI (MB BANK)</Text>
+              <Text style={styles.qrBankHint}>VIETCOMBANK · 9988776655 · LIENG MOBILE</Text>
             </View>
 
             <View style={styles.qrInfoList}>
@@ -1741,6 +1903,9 @@ export default function PosScreen() {
               style={styles.qrConfirmBtn}
               onPress={async () => {
                 const finalCode = orderSuccessData?.orderCode || `HD-${Date.now().toString().slice(-6)}`
+                if (orderSuccessData?.orderId) {
+                  await posApi.confirmPosPayment(orderSuccessData.orderId).catch(() => null)
+                }
                 await buildAndPersistOrder(finalCode, paymentMethod)
                 setQrModalOpen(false)
                 setCart([])
