@@ -37,7 +37,7 @@ Toàn bộ các yêu cầu thay đổi phạm vi (Change Requests - CR) so với
 | **Người đề xuất** | Nguyễn Thị Hồng (Project Manager / Scrum Master) |
 | **Lý do đề xuất** | Nhằm tối ưu hóa hiệu suất làm việc của nhóm 3 thành viên theo đúng thế mạnh kỹ thuật, tránh chồng chéo trách nhiệm giữa Frontend Web và Mobile App. |
 | **Mô tả thay đổi** | **Chuyên môn hóa nguồn lực:**<br>- **Khổng Thị Lệ Giang (`ktlgiang`)**: Đảm nhiệm toàn diện mảng **Mobile Lead, Thiết kế UI/UX theo chuẩn Google Stitch**, xây dựng **Ma trận kiểm thử (Test Matrix) & QA Checklist**, thực hiện kiểm thử UAT trên thiết bị iOS/Android thật.<br>- **Nguyễn Thị Hồng (`Chimsedinang605`)**: Đảm nhiệm **Project Manager / Scrum Master**, phụ trách **Web Admin POS, Phân hệ Quán nhỏ** và điều phối Sprint.<br>- **Phạm Quốc Bảo (`baopham1410`)**: Đảm nhiệm **Technical Lead, Backend API, Dịch vụ AI AutoGrade & Hạ tầng CI/CD**. |
-| **Ảnh hưởng tiến độ** | Tốc độ hoàn thành các màn hình Mobile và tài liệu kiểm thử tăng rõ rệt; tỷ lệ phân bổ đóng góp chuẩn hóa: Bảo 40%, Hồng 35%, Giang 25%. |
+| **Ảnh hưởng tiến độ** | Tốc độ hoàn thành các màn hình Mobile và tài liệu kiểm thử tăng rõ rệt; tỷ lệ phân bổ đóng góp chia đều đồng thuận: Bảo 33.3%, Hồng 33.3%, Giang 33.4% (Tổng cộng 100% chia đều). |
 | **Quyết định của CCB** | **Approved (Phê duyệt thực thi)** |
 | **Bằng chứng thực tế** | Bộ tài liệu QA Checklist (`docs/qa-test-checklist.md`), PR #86, PR #87, PR #165 (Stitch Mobile UI). |
 | **Cập nhật Baseline** | Cập nhật Mục 10 Project Charter, Ma trận RACI trong Product Backlog; đóng Rủi ro R-03. |

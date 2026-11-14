@@ -140,8 +140,13 @@ def md_to_docx(src: Path, dest: Path) -> None:
     if code_lines:
         flush_code()
 
-    doc.save(dest)
-    print(f"OK  {dest.name}")
+    try:
+        doc.save(dest)
+        print(f"OK  {dest.name}")
+    except PermissionError:
+        alt = dest.with_name(dest.stem + "_chia_deu" + dest.suffix)
+        doc.save(alt)
+        print(f"OK (file đang mở trong Word, đã lưu bản mới): {alt.name}")
 
 
 def csv_to_xlsx(src: Path, dest: Path) -> None:
@@ -166,8 +171,13 @@ def csv_to_xlsx(src: Path, dest: Path) -> None:
             max_len = max(max_len, len(str(cell.value or "")))
         ws.column_dimensions[letter].width = min(max(12, max_len + 2), 40)
     ws.freeze_panes = "B2"
-    wb.save(dest)
-    print(f"OK  {dest.name}")
+    try:
+        wb.save(dest)
+        print(f"OK  {dest.name}")
+    except PermissionError:
+        alt = dest.with_name(dest.stem + "_chia_deu" + dest.suffix)
+        wb.save(alt)
+        print(f"OK (file đang mở trong Excel, đã lưu bản mới): {alt.name}")
 
 
 def main() -> None:
