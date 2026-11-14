@@ -39,35 +39,6 @@ export const IMPORT_CATEGORY_PROFILES = {
       { key: 'variantDesc', label: 'Quy cách / mô tả', placeholder: 'Trong suốt / Dài 1m / Type‑C...', required: true },
     ],
   },
-  tivi: {
-    requiresImei: false,
-    profile: 'appliance',
-    namePlaceholder: 'Ví dụ: Samsung Smart TV 55"',
-    hint: 'Tivi theo số lượng; serial hãng (nếu có) có thể ghi ở Danh sách IMEI.',
-    fields: [
-      { key: 'color', label: 'Màu', placeholder: 'Đen / Bạc...', required: false },
-      { key: 'storage', label: 'Kích thước màn', placeholder: '55 inch / 65 inch...', required: true },
-    ],
-  },
-  'tu-lanh': {
-    requiresImei: false,
-    profile: 'appliance',
-    namePlaceholder: 'Ví dụ: Panasonic Inverter 190L',
-    hint: 'Theo số lượng; dung tích ghi ở quy cách bên dưới.',
-    fields: [
-      { key: 'color', label: 'Màu', placeholder: 'Trắng / Inox...', required: false },
-      { key: 'storage', label: 'Dung tích', placeholder: '190L / 256L...', required: true },
-    ],
-  },
-  quat: {
-    requiresImei: false,
-    profile: 'accessory',
-    namePlaceholder: 'Ví dụ: Senko quạt đứng 16 inch',
-    hint: 'Quạt, linh kiện — nhập số lượng, không bắt IMEI 15 số.',
-    fields: [
-      { key: 'variantDesc', label: 'Quy cách', placeholder: '16 inch / Quạt trần 56 inch...', required: true },
-    ],
-  },
 }
 
 const LEGACY_CATEGORY_ALIASES = {
@@ -124,9 +95,6 @@ function slugToLabel(slug) {
     tablet: 'Tablet',
     laptop: 'Laptop',
     'phu-kien': 'Phụ kiện',
-    tivi: 'Tivi',
-    'tu-lanh': 'Tủ lạnh',
-    quat: 'Quạt',
   }
   return map[slug] ?? slug
 }
