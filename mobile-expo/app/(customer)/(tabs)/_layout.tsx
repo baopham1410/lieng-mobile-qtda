@@ -24,7 +24,7 @@ export default function CustomerTabsLayout() {
       <Tabs.Screen
         name="trade-in"
         options={{
-          title: 'Thu cũ AI',
+          title: 'Thu cũ',
         }}
       />
       <Tabs.Screen

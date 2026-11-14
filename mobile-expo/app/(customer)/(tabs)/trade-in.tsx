@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useEffect, useState } from 'react'
 import {
   Alert,
   Platform,
@@ -17,8 +18,11 @@ import { Radius } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 
 interface DevicePricing {
+  id: string
+  brand: 'Apple' | 'Samsung' | 'Xiaomi' | 'OPPO'
   model: string
   storage: string
+  displayName: string
   gradePrices: {
     grade1: number // Like new 99%
     grade2: number // Xước nhẹ 98%
@@ -27,124 +31,273 @@ interface DevicePricing {
   }
 }
 
-const TRADE_IN_PRICING: Record<string, DevicePricing> = {
-  'iphone-15-pmax-256': {
+// Bảng giá sàn thu mua chính thức (Đồng bộ với file Excel & JSON)
+const TRADE_IN_DEVICES: DevicePricing[] = [
+  // --- APPLE IPHONE ---
+  {
+    id: 'apple-iphone-15-pmax-256',
+    brand: 'Apple',
     model: 'iPhone 15 Pro Max',
     storage: '256GB',
-    gradePrices: { grade1: 22500000, grade2: 20500000, grade3: 17500000, grade4: 12000000 },
+    displayName: 'iPhone 15 Pro Max (256GB)',
+    gradePrices: { grade1: 23500000, grade2: 22000000, grade3: 20000000, grade4: 14500000 },
   },
-  'iphone-15-pmax-512': {
-    model: 'iPhone 15 Pro Max',
-    storage: '512GB',
-    gradePrices: { grade1: 25000000, grade2: 23000000, grade3: 19500000, grade4: 14000000 },
+  {
+    id: 'apple-iphone-15-pro-128',
+    brand: 'Apple',
+    model: 'iPhone 15 Pro',
+    storage: '128GB',
+    displayName: 'iPhone 15 Pro (128GB)',
+    gradePrices: { grade1: 18500000, grade2: 17000000, grade3: 15000000, grade4: 11000000 },
   },
-  'iphone-14-pmax-128': {
+  {
+    id: 'apple-iphone-14-pmax-128',
+    brand: 'Apple',
     model: 'iPhone 14 Pro Max',
     storage: '128GB',
+    displayName: 'iPhone 14 Pro Max (128GB)',
     gradePrices: { grade1: 17000000, grade2: 15500000, grade3: 13000000, grade4: 9000000 },
   },
-  'iphone-14-pmax-256': {
-    model: 'iPhone 14 Pro Max',
-    storage: '256GB',
-    gradePrices: { grade1: 18500000, grade2: 17000000, grade3: 14500000, grade4: 10500000 },
-  },
-  'iphone-13-pmax-128': {
+  {
+    id: 'apple-iphone-13-pmax-128',
+    brand: 'Apple',
     model: 'iPhone 13 Pro Max',
     storage: '128GB',
+    displayName: 'iPhone 13 Pro Max (128GB)',
     gradePrices: { grade1: 13500000, grade2: 12000000, grade3: 10000000, grade4: 6500000 },
   },
-  'samsung-s24-ultra-256': {
+  {
+    id: 'apple-iphone-12-pmax-128',
+    brand: 'Apple',
+    model: 'iPhone 12 Pro Max',
+    storage: '128GB',
+    displayName: 'iPhone 12 Pro Max (128GB)',
+    gradePrices: { grade1: 10500000, grade2: 9200000, grade3: 7500000, grade4: 5000000 },
+  },
+  {
+    id: 'apple-iphone-11-64',
+    brand: 'Apple',
+    model: 'iPhone 11',
+    storage: '64GB',
+    displayName: 'iPhone 11 (64GB)',
+    gradePrices: { grade1: 5200000, grade2: 4500000, grade3: 3800000, grade4: 2500000 },
+  },
+
+  // --- SAMSUNG GALAXY ---
+  {
+    id: 'samsung-s24-ultra-256',
+    brand: 'Samsung',
     model: 'Samsung Galaxy S24 Ultra',
     storage: '256GB',
-    gradePrices: { grade1: 19500000, grade2: 17500000, grade3: 14500000, grade4: 10000000 },
+    displayName: 'Galaxy S24 Ultra (256GB)',
+    gradePrices: { grade1: 19500000, grade2: 17500000, grade3: 14500000, grade4: 9500000 },
   },
-  'samsung-s23-ultra-256': {
+  {
+    id: 'samsung-s24-256',
+    brand: 'Samsung',
+    model: 'Samsung Galaxy S24',
+    storage: '256GB',
+    displayName: 'Galaxy S24 (256GB)',
+    gradePrices: { grade1: 12000000, grade2: 10500000, grade3: 8500000, grade4: 5500000 },
+  },
+  {
+    id: 'samsung-s23-ultra-256',
+    brand: 'Samsung',
     model: 'Samsung Galaxy S23 Ultra',
     storage: '256GB',
-    gradePrices: { grade1: 14000000, grade2: 12500000, grade3: 10000000, grade4: 7000000 },
+    displayName: 'Galaxy S23 Ultra (256GB)',
+    gradePrices: { grade1: 14000000, grade2: 12500000, grade3: 10000000, grade4: 6500000 },
   },
-}
+  {
+    id: 'samsung-s22-ultra-128',
+    brand: 'Samsung',
+    model: 'Samsung Galaxy S22 Ultra',
+    storage: '128GB',
+    displayName: 'Galaxy S22 Ultra (128GB)',
+    gradePrices: { grade1: 9500000, grade2: 8200000, grade3: 6500000, grade4: 4200000 },
+  },
+  {
+    id: 'samsung-z-fold5-256',
+    brand: 'Samsung',
+    model: 'Samsung Galaxy Z Fold5',
+    storage: '256GB',
+    displayName: 'Galaxy Z Fold5 (256GB)',
+    gradePrices: { grade1: 18000000, grade2: 15500000, grade3: 12000000, grade4: 7500000 },
+  },
+  {
+    id: 'samsung-z-flip5-256',
+    brand: 'Samsung',
+    model: 'Samsung Galaxy Z Flip5',
+    storage: '256GB',
+    displayName: 'Galaxy Z Flip5 (256GB)',
+    gradePrices: { grade1: 9500000, grade2: 8200000, grade3: 6500000, grade4: 4000000 },
+  },
+  {
+    id: 'samsung-a55-128',
+    brand: 'Samsung',
+    model: 'Samsung Galaxy A55 5G',
+    storage: '128GB',
+    displayName: 'Galaxy A55 5G (128GB)',
+    gradePrices: { grade1: 5500000, grade2: 4800000, grade3: 3800000, grade4: 2300000 },
+  },
 
-const MODELS = [
-  { id: 'iphone-15-pmax-256', brand: 'Apple', name: 'iPhone 15 Pro Max (256GB)' },
-  { id: 'iphone-15-pmax-512', brand: 'Apple', name: 'iPhone 15 Pro Max (512GB)' },
-  { id: 'iphone-14-pmax-128', brand: 'Apple', name: 'iPhone 14 Pro Max (128GB)' },
-  { id: 'iphone-14-pmax-256', brand: 'Apple', name: 'iPhone 14 Pro Max (256GB)' },
-  { id: 'iphone-13-pmax-128', brand: 'Apple', name: 'iPhone 13 Pro Max (128GB)' },
-  { id: 'samsung-s24-ultra-256', brand: 'Samsung', name: 'Samsung Galaxy S24 Ultra (256GB)' },
-  { id: 'samsung-s23-ultra-256', brand: 'Samsung', name: 'Samsung Galaxy S23 Ultra (256GB)' },
+  // --- XIAOMI ---
+  {
+    id: 'xiaomi-14t-pro-256',
+    brand: 'Xiaomi',
+    model: 'Xiaomi 14T Pro',
+    storage: '256GB',
+    displayName: 'Xiaomi 14T Pro (256GB)',
+    gradePrices: { grade1: 10500000, grade2: 9200000, grade3: 7500000, grade4: 4800000 },
+  },
+  {
+    id: 'xiaomi-14-256',
+    brand: 'Xiaomi',
+    model: 'Xiaomi 14',
+    storage: '256GB',
+    displayName: 'Xiaomi 14 (256GB)',
+    gradePrices: { grade1: 12500000, grade2: 11000000, grade3: 8800000, grade4: 5500000 },
+  },
+  {
+    id: 'xiaomi-13-pro-256',
+    brand: 'Xiaomi',
+    model: 'Xiaomi 13 Pro',
+    storage: '256GB',
+    displayName: 'Xiaomi 13 Pro (256GB)',
+    gradePrices: { grade1: 9000000, grade2: 7800000, grade3: 6200000, grade4: 3800000 },
+  },
+  {
+    id: 'xiaomi-redmi-note13-pro-128',
+    brand: 'Xiaomi',
+    model: 'Redmi Note 13 Pro',
+    storage: '128GB',
+    displayName: 'Redmi Note 13 Pro (128GB)',
+    gradePrices: { grade1: 3800000, grade2: 3200000, grade3: 2500000, grade4: 1500000 },
+  },
+
+  // --- OPPO ---
+  {
+    id: 'oppo-find-n3-512',
+    brand: 'OPPO',
+    model: 'OPPO Find N3',
+    storage: '512GB',
+    displayName: 'OPPO Find N3 (512GB)',
+    gradePrices: { grade1: 22000000, grade2: 19000000, grade3: 15000000, grade4: 9500000 },
+  },
+  {
+    id: 'oppo-reno12-256',
+    brand: 'OPPO',
+    model: 'OPPO Reno12 5G',
+    storage: '256GB',
+    displayName: 'OPPO Reno12 5G (256GB)',
+    gradePrices: { grade1: 6800000, grade2: 5800000, grade3: 4600000, grade4: 2800000 },
+  },
+  {
+    id: 'oppo-reno11-256',
+    brand: 'OPPO',
+    model: 'OPPO Reno11 5G',
+    storage: '256GB',
+    displayName: 'OPPO Reno11 5G (256GB)',
+    gradePrices: { grade1: 5200000, grade2: 4500000, grade3: 3500000, grade4: 2200000 },
+  },
 ]
+
+const BRANDS = ['Tất cả', 'Apple', 'Samsung', 'Xiaomi', 'OPPO']
 
 export default function CustomerTradeInScreen() {
   const insets = useSafeAreaInsets()
   const { user } = useAuth()
 
-  const [selectedModelId, setSelectedModelId] = useState('iphone-15-pmax-256')
+  const [selectedBrand, setSelectedBrand] = useState('Tất cả')
+  const [selectedDeviceId, setSelectedDeviceId] = useState('apple-iphone-15-pmax-256')
   const [selectedGrade, setSelectedGrade] = useState<'grade1' | 'grade2' | 'grade3' | 'grade4'>('grade1')
-  const [batteryPercent, setBatteryPercent] = useState('88')
+  
+  // Thông tin nhận tiền
+  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'cash'>('bank')
+  const [bankName, setBankName] = useState('Vietcombank')
+  const [bankAccount, setBankAccount] = useState('')
+  const [accountHolder, setAccountHolder] = useState(user?.name || '')
+  
+  // Thông tin liên hệ
   const [customerName, setCustomerName] = useState(user?.name || '')
-  const [customerPhone, setCustomerPhone] = useState(user?.phone || '')
+  const [customerPhone, setCustomerPhone] = useState(user?.phone || '0383435600')
   const [note, setNote] = useState('')
-  const [submittedTickets, setSubmittedTickets] = useState<any[]>([
-    {
-      code: 'TC-2026-081',
-      model: 'iPhone 14 Pro Max 128GB',
-      gradeLabel: 'Loại 2 (Xước nhẹ 98%)',
-      estimatePrice: 15500000,
-      status: 'Chờ mang máy',
-      createdAt: '13/11/2026',
-    },
-  ])
+  
+  // Danh sách phiếu thật lưu trữ
+  const [submittedTickets, setSubmittedTickets] = useState<any[]>([])
 
-  const currentPricing = TRADE_IN_PRICING[selectedModelId]
-  const estimatedPrice = currentPricing?.gradePrices[selectedGrade] || 0
+  useEffect(() => {
+    // Load phiếu đã tạo từ AsyncStorage
+    AsyncStorage.getItem('lieng_customer_tradein_tickets').then((raw) => {
+      if (raw) {
+        try {
+          setSubmittedTickets(JSON.parse(raw))
+        } catch {}
+      }
+    })
+  }, [])
+
+  const filteredDevices = TRADE_IN_DEVICES.filter((d) => {
+    if (selectedBrand === 'Tất cả') return true
+    return d.brand === selectedBrand
+  })
+
+  const currentDevice = TRADE_IN_DEVICES.find((d) => d.id === selectedDeviceId) || TRADE_IN_DEVICES[0]
+  const estimatedPrice = currentDevice.gradePrices[selectedGrade] || 0
 
   const handleCreateTicket = async () => {
     if (!customerPhone.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại liên hệ để nhận mã phiếu thu cũ.')
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để tạo phiếu thu cũ.')
       return
     }
 
-    const modelFullName = (currentPricing?.model || 'Điện thoại cũ') + ' ' + (currentPricing?.storage || '')
-    const gradeTitle =
+    if (paymentMethod === 'bank' && !bankAccount.trim()) {
+      Alert.alert('Thiếu thông tin thanh toán', 'Vui lòng nhập Số tài khoản ngân hàng để nhận tiền chuyển khoản ngay sau khi thẩm định.')
+      return
+    }
+
+    const gradeLabel =
       selectedGrade === 'grade1'
         ? 'Loại 1 (Like New 99%)'
         : selectedGrade === 'grade2'
           ? 'Loại 2 (Xước nhẹ 98%)'
           : selectedGrade === 'grade3'
-            ? 'Loại 3 (Cấn móp 95%)'
-            : 'Loại 4 (Lỗi / Vỡ kính)'
+            ? 'Loại 3 (Cấn / Vỡ kính)'
+            : 'Loại 4 (Hỏng nặng)'
 
-    let generatedCode = `TC-2026-0${submittedTickets.length + 82}`
+    const newTicketCode = `TC-${Date.now().toString().slice(-6)}`
+
     try {
-      const res = await api.post('/store/inquiry', {
+      await api.post('/store/inquiry', {
         name: customerName.trim() || 'Khách thu cũ',
         phone: customerPhone.trim(),
-        product_name: `${modelFullName} [${gradeTitle}]`,
-        topic: 'Thu cũ đổi mới',
-        note: `Định giá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ · Trợ giá: 2.000.000 đ`,
+        product_name: `${currentDevice.displayName} [${gradeLabel}]`,
+        topic: 'Thu mua máy cũ',
+        note: `Định giá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ | Nhận tiền: ${paymentMethod === 'bank' ? `${bankName} - ${bankAccount}` : 'Tiền mặt tại quầy'} | Ghi chú: ${note}`,
         items: [{ productId: 1, qty: 1 }],
       })
-      if (res.data?.data?.reference) {
-        generatedCode = res.data.data.reference
-      }
     } catch (e: any) {
-      console.warn('API trade-in inquiry error, fallback:', e?.message)
+      console.warn('Inquiry API log:', e?.message)
     }
 
     const newTicket = {
-      code: generatedCode,
-      model: modelFullName,
-      gradeLabel: gradeTitle,
+      code: newTicketCode,
+      device: currentDevice.displayName,
+      brand: currentDevice.brand,
+      gradeLabel: gradeLabel,
       estimatePrice: estimatedPrice,
-      status: 'Chờ mang máy',
-      createdAt: 'Hôm nay',
+      paymentMethod: paymentMethod === 'bank' ? `Chuyển khoản (${bankName} - ${bankAccount})` : 'Tiền mặt tại quầy',
+      status: 'Chờ mang máy tới quầy',
+      createdAt: new Date().toLocaleDateString('vi-VN'),
     }
 
-    setSubmittedTickets([newTicket, ...submittedTickets])
+    const updated = [newTicket, ...submittedTickets]
+    setSubmittedTickets(updated)
+    await AsyncStorage.setItem('lieng_customer_tradein_tickets', JSON.stringify(updated))
+
     Alert.alert(
       'Tạo phiếu thu cũ thành công 🎉',
-      `Mã phiếu của bạn: ${newTicket.code}\nGiá thu mua ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\nNhân viên showroom Lieng Mobile đã nhận được thông báo tiếp nhận và sẵn sàng thẩm định máy ngay!`,
+      `Mã phiếu: ${newTicket.code}\nThiết bị: ${newTicket.device}\nGiá thu mua ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\nBạn vui lòng mang máy đến Showroom Lieng Mobile (123 Nguyễn Văn Cừ, Q.5, TP.HCM). Kỹ thuật viên sẽ kiểm tra trực tiếp bằng máy quét AutoGrade trong 5 phút và thanh toán ngay!`,
     )
   }
 
@@ -152,8 +305,8 @@ export default function CustomerTradeInScreen() {
     <View style={styles.container}>
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
-        <Text style={styles.headerTitle}>Thu Cũ Đổi Mới Chuẩn AI</Text>
-        <Text style={styles.headerSub}>Định giá online 60s · Trợ giá thêm 2.000.000 đ</Text>
+        <Text style={styles.headerTitle}>Thu Mua Điện Thoại Cũ Giá Cao</Text>
+        <Text style={styles.headerSub}>Định giá minh bạch · Nhận tiền ngay trong 5 phút</Text>
       </View>
 
       <ScrollView
@@ -162,7 +315,7 @@ export default function CustomerTradeInScreen() {
       >
         {/* Banner 4 bước */}
         <View style={styles.stepsBanner}>
-          <Text style={styles.stepsTitle}>Quy Trình 4 Bước Thu Cũ Nhanh Gọn</Text>
+          <Text style={styles.stepsTitle}>Quy Trình 4 Bước Thu Mua Minh Bạch</Text>
           <View style={styles.stepGrid}>
             <View style={styles.stepItem}>
               <View style={styles.stepNumBox}><Text style={styles.stepNum}>1</Text></View>
@@ -178,22 +331,42 @@ export default function CustomerTradeInScreen() {
             </View>
             <View style={styles.stepItem}>
               <View style={styles.stepNumBox}><Text style={styles.stepNum}>4</Text></View>
-              <Text style={styles.stepLabel}>Nhận tiền tại quầy</Text>
+              <Text style={styles.stepLabel}>Nhận tiền 5 phút</Text>
             </View>
           </View>
         </View>
 
         {/* ── BƯỚC 1: Chọn dòng máy ── */}
         <View style={styles.sectionCard}>
-          <Text style={styles.cardHeader}>Bước 1: Chọn máy bạn đang dùng</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.cardHeader}>Bước 1: Chọn thiết bị bạn muốn bán</Text>
+            <Text style={styles.badgeCount}>{filteredDevices.length} máy</Text>
+          </View>
+
+          {/* Bộ lọc Hãng */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandRow}>
+            {BRANDS.map((b) => (
+              <Pressable
+                key={b}
+                style={[styles.brandPill, selectedBrand === b && styles.brandPillActive]}
+                onPress={() => setSelectedBrand(b)}
+              >
+                <Text style={[styles.brandPillText, selectedBrand === b && styles.brandPillTextActive]}>
+                  {b}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {/* Danh sách chip thiết bị */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modelScroll}>
-            {MODELS.map((m) => {
-              const active = selectedModelId === m.id
+            {filteredDevices.map((m) => {
+              const active = selectedDeviceId === m.id
               return (
                 <Pressable
                   key={m.id}
                   style={[styles.modelChip, active && styles.modelChipActive]}
-                  onPress={() => setSelectedModelId(m.id)}
+                  onPress={() => setSelectedDeviceId(m.id)}
                 >
                   <Ionicons
                     name={m.brand === 'Apple' ? 'logo-apple' : 'phone-portrait'}
@@ -201,7 +374,7 @@ export default function CustomerTradeInScreen() {
                     color={active ? '#7A0C10' : '#64748B'}
                   />
                   <Text style={[styles.modelChipText, active && styles.modelChipTextActive]}>
-                    {m.name}
+                    {m.displayName}
                   </Text>
                 </Pressable>
               )
@@ -230,7 +403,7 @@ export default function CustomerTradeInScreen() {
                   <Text style={[styles.gradeTagText, { color: '#059669' }]}>Giá cao nhất</Text>
                 </View>
               </View>
-              <Text style={styles.gradeDesc}>Thân máy đẹp như mới, không cấn móp hay trầy xước, pin tốt {'>'} 85%</Text>
+              <Text style={styles.gradeDesc}>Thân máy đẹp như mới, không cấn móp hay trầy xước, pin tốt ≥ 85%, full chức năng</Text>
             </View>
           </Pressable>
 
@@ -245,8 +418,8 @@ export default function CustomerTradeInScreen() {
               color="#7A0C10"
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.gradeTitle}>Loại 2 (Xước nhẹ 98%)</Text>
-              <Text style={styles.gradeDesc}>Xước dăm nhẹ ở viền hoặc lưng máy, màn hình sáng đẹp không trầy</Text>
+              <Text style={styles.gradeTitle}>Loại 2 (Xước nhẹ 95% - 98%)</Text>
+              <Text style={styles.gradeDesc}>Xước dăm nhẹ ở sườn viền hoặc mặt lưng, màn hình hiển thị sáng đẹp không nứt</Text>
             </View>
           </Pressable>
 
@@ -261,8 +434,8 @@ export default function CustomerTradeInScreen() {
               color="#7A0C10"
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.gradeTitle}>Loại 3 (Cấn móp 95%)</Text>
-              <Text style={styles.gradeDesc}>Có vết cấn móp góc cạnh, trầy xước thấy rõ, màn hình hoạt động bình thường</Text>
+              <Text style={styles.gradeTitle}>Loại 3 (Cấn viền / Nứt kính ngoài)</Text>
+              <Text style={styles.gradeDesc}>Có vết cấn móp góc cạnh hoặc nứt kính ngoài; tấm nền màn hình và cảm ứng hoạt động tốt</Text>
             </View>
           </Pressable>
 
@@ -277,44 +450,90 @@ export default function CustomerTradeInScreen() {
               color="#7A0C10"
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.gradeTitle}>Loại 4 (Lỗi / Vỡ kính)</Text>
-              <Text style={styles.gradeDesc}>Kính nứt vỡ, sọc màn hình, pin chai nặng hoặc mất một số tính năng phụ</Text>
+              <Text style={styles.gradeTitle}>Loại 4 (Hỏng nặng / Lỗi màn hình)</Text>
+              <Text style={styles.gradeDesc}>Màn hình sọc, đốm đen, mất nguồn, pin chai nặng hoặc lỗi linh kiện quan trọng</Text>
             </View>
           </Pressable>
         </View>
 
         {/* ── BƯỚC 3: Giá thu mua ước tính ── */}
         <View style={styles.priceEstimateCard}>
-          <Text style={styles.estimateLabel}>GIÁ THU MUA ƯỚC TÍNH</Text>
+          <Text style={styles.estimateLabel}>GIÁ THU MUA ƯỚC TÍNH TẠI QUẦY</Text>
           <Text style={styles.estimateValue}>
             {estimatedPrice.toLocaleString('vi-VN')} đ
           </Text>
           <View style={styles.subsidyRow}>
-            <Ionicons name="sparkles" size={16} color="#D97706" />
+            <Ionicons name="flash" size={15} color="#059669" />
             <Text style={styles.subsidyText}>
-              Đã cộng trợ giá lên đời +2.000.000 đ khi đổi máy mới
+              Thanh toán tức thì trong 5 phút sau khi kiểm tra máy
             </Text>
           </View>
           <Text style={styles.disclaimerText}>
-            * Giá ước tính dựa trên tình trạng tự khai báo. Khi bạn mang máy đến cửa hàng, hệ thống AutoGrade AI và chuyên viên kỹ thuật sẽ thẩm định thực tế để chốt giá cuối cùng.
+            * Mức giá trên áp dụng theo Bảng giá sàn chính thức của Lieng Mobile. Khi mang máy đến cửa hàng, kỹ thuật viên sẽ dùng camera AutoGrade kiểm tra ngoại quan 4 góc trong 5 phút để chốt giá thu mua minh bạch.
           </Text>
         </View>
 
-        {/* ── BƯỚC 4: Thông tin liên hệ & Đặt lịch ── */}
+        {/* ── BƯỚC 4: Hình thức nhận tiền & Thông tin liên hệ ── */}
         <View style={styles.sectionCard}>
-          <Text style={styles.cardHeader}>Bước 4: Thông tin đặt lịch mang máy</Text>
+          <Text style={styles.cardHeader}>Bước 4: Hình thức nhận tiền & Đặt lịch</Text>
 
+          {/* Chọn nhận tiền */}
+          <View style={styles.paymentMethodRow}>
+            <Pressable
+              style={[styles.paymentMethodBtn, paymentMethod === 'bank' && styles.paymentMethodBtnActive]}
+              onPress={() => setPaymentMethod('bank')}
+            >
+              <Ionicons name="card" size={18} color={paymentMethod === 'bank' ? '#7A0C10' : '#64748B'} />
+              <Text style={[styles.paymentMethodText, paymentMethod === 'bank' && styles.paymentMethodTextActive]}>
+                Chuyển khoản VietQR
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.paymentMethodBtn, paymentMethod === 'cash' && styles.paymentMethodBtnActive]}
+              onPress={() => setPaymentMethod('cash')}
+            >
+              <Ionicons name="cash" size={18} color={paymentMethod === 'cash' ? '#7A0C10' : '#64748B'} />
+              <Text style={[styles.paymentMethodText, paymentMethod === 'cash' && styles.paymentMethodTextActive]}>
+                Tiền mặt tại quầy
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Nếu chọn chuyển khoản: nhập STK */}
+          {paymentMethod === 'bank' && (
+            <View style={styles.bankBox}>
+              <Text style={styles.inputLabel}>Thông tin tài khoản nhận tiền:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Tên ngân hàng (VD: Vietcombank, MBBank, Techcombank)"
+                placeholderTextColor="#94A3B8"
+                value={bankName}
+                onChangeText={setBankName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Số tài khoản ngân hàng (*)"
+                placeholderTextColor="#94A3B8"
+                keyboardType="numeric"
+                value={bankAccount}
+                onChangeText={setBankAccount}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Tên chủ tài khoản"
+                placeholderTextColor="#94A3B8"
+                value={accountHolder}
+                onChangeText={setAccountHolder}
+              />
+            </View>
+          )}
+
+          {/* Thông tin liên hệ */}
+          <Text style={styles.inputLabel}>Số điện thoại liên hệ xác nhận:</Text>
           <TextInput
             style={styles.input}
-            placeholder="Họ và tên của bạn"
-            placeholderTextColor="#94A3B8"
-            value={customerName}
-            onChangeText={setCustomerName}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Số điện thoại (VD: 0383435600) (*)"
+            placeholder="Số điện thoại (*)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={customerPhone}
@@ -322,41 +541,49 @@ export default function CustomerTradeInScreen() {
           />
 
           <TextInput
-            style={[styles.input, { height: 60 }]}
-            placeholder="Ghi chú thêm (máy còn hộp zin, có củ sạc zin...)"
+            style={[styles.input, { height: 50 }]}
+            placeholder="Ghi chú thêm (VD: Máy còn hộp zin, cáp sạc zin...)"
             placeholderTextColor="#94A3B8"
-            multiline
             value={note}
             onChangeText={setNote}
           />
 
           <Pressable style={styles.submitBtn} onPress={handleCreateTicket}>
-            <Ionicons name="send" size={18} color="#FFFFFF" />
-            <Text style={styles.submitBtnText}>GỬI YÊU CẦU & NHẬN MÃ THU CŨ</Text>
+            <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+            <Text style={styles.submitBtnText}>TẠO PHIẾU THU CŨ & NHẬN MÃ HẸN</Text>
           </Pressable>
         </View>
 
         {/* ── Danh sách phiếu thu cũ của tôi ── */}
         <View style={styles.historyCard}>
           <Text style={styles.historyHeader}>Phiếu Thu Cũ Của Bạn ({submittedTickets.length})</Text>
-          {submittedTickets.map((t, idx) => (
-            <View key={idx} style={styles.ticketItem}>
-              <View style={styles.ticketTop}>
-                <Text style={styles.ticketCode}>{t.code}</Text>
-                <View style={styles.ticketStatusBadge}>
-                  <Text style={styles.ticketStatusText}>{t.status}</Text>
+          {submittedTickets.length === 0 ? (
+            <View style={styles.emptyTickets}>
+              <Ionicons name="receipt-outline" size={32} color="#94A3B8" />
+              <Text style={styles.emptyTicketsText}>Bạn chưa tạo phiếu thu cũ nào.</Text>
+              <Text style={styles.emptyTicketsSub}>Chọn máy và bấm tạo phiếu ở trên để nhận mã hẹn mang máy tới quầy.</Text>
+            </View>
+          ) : (
+            submittedTickets.map((t, idx) => (
+              <View key={idx} style={styles.ticketItem}>
+                <View style={styles.ticketTop}>
+                  <Text style={styles.ticketCode}>{t.code}</Text>
+                  <View style={styles.ticketStatusBadge}>
+                    <Text style={styles.ticketStatusText}>{t.status}</Text>
+                  </View>
+                </View>
+                <Text style={styles.ticketModel}>{t.device}</Text>
+                <Text style={styles.ticketGrade}>{t.gradeLabel}</Text>
+                <Text style={styles.ticketPayment}>{t.paymentMethod}</Text>
+                <View style={styles.ticketBottom}>
+                  <Text style={styles.ticketPrice}>
+                    {t.estimatePrice.toLocaleString('vi-VN')} đ
+                  </Text>
+                  <Text style={styles.ticketDate}>{t.createdAt}</Text>
                 </View>
               </View>
-              <Text style={styles.ticketModel}>{t.model}</Text>
-              <Text style={styles.ticketGrade}>{t.gradeLabel}</Text>
-              <View style={styles.ticketBottom}>
-                <Text style={styles.ticketPrice}>
-                  {t.estimatePrice.toLocaleString('vi-VN')} đ
-                </Text>
-                <Text style={styles.ticketDate}>{t.createdAt}</Text>
-              </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -443,16 +670,49 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#191C1E',
   },
-  modelScroll: {
+  badgeCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A0C10',
+    backgroundColor: '#FFE5E5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  brandRow: {
     gap: 8,
     paddingVertical: 2,
+  },
+  brandPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  brandPillActive: {
+    backgroundColor: '#7A0C10',
+    borderColor: '#7A0C10',
+  },
+  brandPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  brandPillTextActive: {
+    color: '#FFFFFF',
+  },
+  modelScroll: {
+    gap: 8,
+    paddingVertical: 4,
   },
   modelChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 12,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
@@ -527,7 +787,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radius.full,
@@ -536,7 +796,7 @@ const styles = StyleSheet.create({
   subsidyText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#065F46',
   },
   disclaimerText: {
     fontSize: 10.5,
@@ -544,8 +804,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 15,
   },
-  input: {
+  paymentMethodRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  paymentMethodBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
+  },
+  paymentMethodBtnActive: {
+    borderColor: '#7A0C10',
+    backgroundColor: '#FFF8F8',
+  },
+  paymentMethodText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  paymentMethodTextActive: {
+    color: '#7A0C10',
+    fontWeight: '800',
+  },
+  bankBox: {
+    gap: 8,
+    backgroundColor: '#F1F5F9',
+    padding: 12,
+    borderRadius: 12,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 12,
@@ -582,6 +882,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#191C1E',
+  },
+  emptyTickets: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 6,
+  },
+  emptyTicketsText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  emptyTicketsSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
   ticketItem: {
     backgroundColor: '#F8FAFC',
@@ -620,6 +935,11 @@ const styles = StyleSheet.create({
   ticketGrade: {
     fontSize: 11,
     color: '#64748B',
+  },
+  ticketPayment: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '600',
   },
   ticketBottom: {
     flexDirection: 'row',
