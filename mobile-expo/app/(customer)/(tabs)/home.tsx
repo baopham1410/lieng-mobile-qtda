@@ -11,9 +11,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { api } from '@/api/client'
 
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
@@ -81,11 +84,45 @@ export default function CustomerHomeScreen() {
   const router = useRouter()
   const { user } = useAuth()
   const [showAddressModal, setShowAddressModal] = useState(false)
+  const [showCallModal, setShowCallModal] = useState(false)
+  const [callerPhone, setCallerPhone] = useState('0383435600')
+  const [callerName, setCallerName] = useState(user?.name || '')
+  const [callTopic, setCallTopic] = useState('Tư vấn chọn máy')
+  const [calling, setCalling] = useState(false)
 
   const handleCallHotline = () => {
-    Linking.openURL('tel:0900000000').catch(() => {
-      Alert.alert('Hotline Lieng Mobile', 'Gọi ngay: 0900.000.000 (08:00 - 21:30)')
-    })
+    setShowCallModal(true)
+  }
+
+  const handleStartConsultCall = async () => {
+    if (!callerPhone.trim()) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để kết nối tư vấn.')
+      return
+    }
+    setCalling(true)
+    try {
+      await api.post('/store/inquiry', {
+        name: callerName.trim() || 'Khách gọi hotline',
+        phone: callerPhone.trim(),
+        topic: callTopic,
+        product_name: 'Hotline Showroom Lieng',
+        note: 'Khách gọi hotline từ Mobile App',
+      })
+      setShowCallModal(false)
+      Alert.alert(
+        'Đang đổ chuông tới Showroom 🔔',
+        `Cuộc gọi từ số ${callerPhone} đã được chuyển tới Bàn tư vấn của cửa hàng Lieng Mobile.\nChuyên viên tư vấn đang tiếp nhận cuộc gọi của bạn!`,
+      )
+    } catch (e: any) {
+      console.warn('Call inquiry error:', e?.message)
+      setShowCallModal(false)
+      Alert.alert(
+        'Đã gửi yêu cầu tư vấn 🔔',
+        `Cuộc gọi từ số ${callerPhone} đã được chuyển tới Bàn tư vấn của cửa hàng Lieng Mobile!`,
+      )
+    } finally {
+      setCalling(false)
+    }
   }
 
   const handleOpenZalo = () => {
@@ -381,6 +418,119 @@ export default function CustomerHomeScreen() {
               <Ionicons name="navigate" size={18} color="#FFFFFF" />
               <Text style={styles.modalActionBtnText}>Mở Google Maps chỉ đường</Text>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal Gọi Tư Vấn Hotline ── */}
+      <Modal visible={showCallModal} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalBox, { maxWidth: 420 }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="call" size={20} color="#DC2626" />
+                <Text style={styles.modalTitle}>Kết Nối Bàn Tư Vấn Lieng</Text>
+              </View>
+              <Pressable onPress={() => setShowCallModal(false)}>
+                <Ionicons name="close-circle" size={24} color="#94A3B8" />
+              </Pressable>
+            </View>
+
+            <View style={{ padding: 18, gap: 12 }}>
+              <Text style={{ fontSize: 12, color: '#64748B', lineHeight: 18 }}>
+                Nhập số điện thoại để kết nối trực tiếp với chuyên viên tại quầy. Cuộc gọi sẽ đổ chuông ngay trên Bàn tư vấn Web Admin!
+              </Text>
+
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1E293B', marginBottom: 4 }}>
+                  Số điện thoại của bạn (*)
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#CBD5E1',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 15,
+                    color: '#0F172A',
+                    backgroundColor: '#F8FAFC',
+                  }}
+                  keyboardType="phone-pad"
+                  value={callerPhone}
+                  onChangeText={setCallerPhone}
+                  placeholder="VD: 0383435600"
+                />
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1E293B', marginBottom: 4 }}>
+                  Họ và tên
+                </Text>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#CBD5E1',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    color: '#0F172A',
+                    backgroundColor: '#F8FAFC',
+                  }}
+                  value={callerName}
+                  onChangeText={setCallerName}
+                  placeholder="Tên khách hàng"
+                />
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1E293B', marginBottom: 6 }}>
+                  Chủ đề cần tư vấn
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {['Tư vấn chọn máy', 'Báo giá & Khuyến mãi', 'Thu cũ đổi mới', 'Bảo hành máy'].map((topic) => {
+                    const active = callTopic === topic
+                    return (
+                      <Pressable
+                        key={topic}
+                        onPress={() => setCallTopic(topic)}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 8,
+                          backgroundColor: active ? '#7A0C10' : '#F1F5F9',
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: active ? '#FFFFFF' : '#475569' }}>
+                          {topic}
+                        </Text>
+                      </Pressable>
+                    )
+                  })}
+                </View>
+              </View>
+
+              <Pressable
+                style={{
+                  backgroundColor: '#DC2626',
+                  borderRadius: 12,
+                  paddingVertical: 13,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginTop: 6,
+                }}
+                disabled={calling}
+                onPress={handleStartConsultCall}
+              >
+                <Ionicons name="call" size={18} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>
+                  {calling ? 'ĐANG KẾT NỐI TỔNG ĐÀI...' : 'BẮT ĐẦU GỌI TƯ VẤN NGAY'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>

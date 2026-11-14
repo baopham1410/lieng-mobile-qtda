@@ -314,7 +314,7 @@ export default function CustomerTradeInScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="Số điện thoại (*)"
+            placeholder="Số điện thoại (VD: 0383435600) (*)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={customerPhone}
