@@ -22,11 +22,9 @@ class StoreController extends Controller
             'tablet' => 'tablet',
             'laptop' => 'laptop',
             'phu-kien' => 'accessory',
-            'tivi' => 'tv',
-            'tu-lanh' => 'refrigerator',
-            'quat' => 'fan',
         ];
 
+        // Chỉ lấy các sản phẩm công nghệ / di động (Điện thoại, Tablet, Laptop, Phụ kiện)
         $products = Product::with([
             'category',
             'variants.prices',
@@ -35,6 +33,9 @@ class StoreController extends Controller
             ]),
         ])
             ->where('is_active', true)
+            ->whereHas('category', function ($q) {
+                $q->whereIn('slug', ['dien-thoai', 'tablet', 'laptop', 'phu-kien']);
+            })
             ->orderByDesc('updated_at')
             ->get();
 

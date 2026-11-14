@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
@@ -37,6 +38,14 @@ interface CatalogItem {
     battery: string
     warranty: string
   }
+}
+
+export interface HeldItemInfo {
+  id: number
+  name: string
+  refCode: string
+  date: string
+  status: string
 }
 
 const CATALOG_DATA: CatalogItem[] = [
@@ -178,30 +187,62 @@ const CATALOG_DATA: CatalogItem[] = [
   },
 ]
 
-const CATEGORY_TABS = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'iphone', label: 'iPhone' },
-  { id: 'samsung', label: 'Samsung' },
-  { id: 'ipad', label: 'iPad' },
-  { id: 'mac', label: 'MacBook' },
-  { id: 'accessory', label: 'Phụ kiện' },
-]
-
 export default function CustomerCatalogScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, customer } = useAuth()
+  const customerPhone = customer?.phone || user?.phone || '0383435600'
+  const customerName = customer?.name || user?.name || ''
 
   const [search, setSearch] = useState('')
   const [selectedCat, setSelectedCat] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState<CatalogItem | null>(null)
   const [catalogList, setCatalogList] = useState<CatalogItem[]>(CATALOG_DATA)
+  const [heldItems, setHeldItems] = useState<HeldItemInfo[]>([])
 
   // Form giữ máy
-  const [inquiryName, setInquiryName] = useState('')
-  const [inquiryPhone, setInquiryPhone] = useState('')
+  const [inquiryName, setInquiryName] = useState(customerName)
+  const [inquiryPhone, setInquiryPhone] = useState(customerPhone)
   const [inquiryNote, setInquiryNote] = useState('')
   const [submittingInquiry, setSubmittingInquiry] = useState(false)
+
+  // 1. Tải danh sách đã giữ từ AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem('lieng_held_items').then((stored) => {
+      if (stored) {
+        try {
+          setHeldItems(JSON.parse(stored))
+        } catch {}
+      }
+    })
+  }, [])
+
+  // 2. Đồng bộ các yêu cầu giữ máy thật từ database Neon
+  useEffect(() => {
+    if (!customerPhone) return
+    api.get(`/customer/my-inquiries?phone=${encodeURIComponent(customerPhone)}`)
+      .then((res) => {
+        const inqs = res.data?.data
+        if (Array.isArray(inqs) && inqs.length > 0) {
+          const fromBackend: HeldItemInfo[] = inqs.map((q: any) => ({
+            id: q.product_id || q.id,
+            name: q.product_name || 'Thiết bị',
+            refCode: q.code || ('TV-' + q.id),
+            date: q.created_at ? new Date(q.created_at).toLocaleDateString('vi-VN') : 'Hôm nay',
+            status: q.status || 'ringing',
+          }))
+          setHeldItems((prev) => {
+            const map = new Map<string, HeldItemInfo>()
+            prev.forEach((p) => map.set(p.name.toLowerCase().trim(), p))
+            fromBackend.forEach((b) => map.set(b.name.toLowerCase().trim(), b))
+            const merged = Array.from(map.values())
+            AsyncStorage.setItem('lieng_held_items', JSON.stringify(merged))
+            return merged
+          })
+        }
+      })
+      .catch(() => {})
+  }, [customerPhone])
 
   useEffect(() => {
     let isMounted = true
@@ -217,7 +258,7 @@ export default function CustomerCatalogScreen() {
             if (nameLower.includes('galaxy') || nameLower.includes('samsung')) cat = 'samsung'
             if (nameLower.includes('ipad') || catLower === 'tablet') cat = 'ipad'
             if (nameLower.includes('macbook') || catLower === 'laptop') cat = 'mac'
-            if (catLower === 'accessory' || nameLower.includes('sạc') || nameLower.includes('cáp')) cat = 'accessory'
+            if (catLower === 'accessory' || nameLower.includes('sạc') || nameLower.includes('cáp') || nameLower.includes('tai nghe') || nameLower.includes('ốp')) cat = 'accessory'
 
             return {
               id: p.productId || idx + 1,
@@ -246,7 +287,25 @@ export default function CustomerCatalogScreen() {
     return () => { isMounted = false }
   }, [])
 
+  const dynamicCategoryTabs = [
+    { id: 'all', label: 'Tất cả' },
+    ...(heldItems.length > 0 ? [{ id: 'held', label: `Đang giữ (${heldItems.length})` }] : []),
+    { id: 'iphone', label: 'iPhone' },
+    { id: 'samsung', label: 'Samsung' },
+    { id: 'ipad', label: 'iPad' },
+    { id: 'mac', label: 'MacBook' },
+    { id: 'accessory', label: 'Phụ kiện' },
+  ]
+
   const filteredList = catalogList.filter((item) => {
+    if (selectedCat === 'held') {
+      return heldItems.some(
+        (h) =>
+          h.id === item.id ||
+          h.name.toLowerCase().includes(item.name.toLowerCase()) ||
+          item.name.toLowerCase().includes(h.name.toLowerCase())
+      )
+    }
     const matchCat = selectedCat === 'all' || item.category === selectedCat
     const matchText =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -256,24 +315,25 @@ export default function CustomerCatalogScreen() {
 
   const handleOpenDetail = (item: CatalogItem) => {
     setSelectedProduct(item)
-    setInquiryName(user?.name || '')
-    setInquiryPhone(user?.phone || '')
+    setInquiryName(customerName || user?.name || '')
+    setInquiryPhone(customerPhone || user?.phone || '')
     setInquiryNote('')
   }
 
   const handleSendInquiry = async () => {
     if (!inquiryPhone.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để cửa hàng liên hệ giữ máy.')
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để cửa hàng liên hệ giữ hàng.')
       return
     }
     setSubmittingInquiry(true)
     const modelName = selectedProduct?.name || 'máy'
+    const isAccessory = selectedProduct?.category === 'accessory'
     try {
       const res = await api.post('/store/inquiry', {
-        name: inquiryName.trim() || 'Quý khách',
+        name: inquiryName.trim() || customerName || 'Quý khách',
         phone: inquiryPhone.trim(),
         product_name: modelName,
-        topic: 'Giữ máy tại quầy',
+        topic: isAccessory ? 'Giữ phụ kiện tại quầy' : 'Giữ máy tại quầy',
         items: [
           {
             productId: (selectedProduct as any)?.productId || selectedProduct?.id || 1,
@@ -283,21 +343,65 @@ export default function CustomerCatalogScreen() {
         note: inquiryNote.trim() || undefined,
       })
       const refCode = res.data?.data?.reference || ('TV-' + Date.now().toString().slice(-6))
+      const newHeldItem: HeldItemInfo = {
+        id: selectedProduct?.id || Date.now(),
+        name: selectedProduct?.name || 'Sản phẩm',
+        refCode,
+        date: new Date().toLocaleDateString('vi-VN'),
+        status: 'ringing',
+      }
+      const updated = [...heldItems.filter((h) => h.id !== newHeldItem.id && h.name !== newHeldItem.name), newHeldItem]
+      setHeldItems(updated)
+      await AsyncStorage.setItem('lieng_held_items', JSON.stringify(updated))
       setSelectedProduct(null)
       Alert.alert(
-        'Đã gửi yêu cầu giữ máy 🎉',
-        `Lieng Mobile đã tiếp nhận yêu cầu giữ máy "${modelName}". Mã phiếu: ${refCode}.\nChuyên viên tư vấn tại showroom đã nhận thông tin và sẽ gọi SĐT ${inquiryPhone} trong ít phút!`,
+        isAccessory ? 'Đã đặt giữ sản phẩm 🎉' : 'Đã đặt giữ máy 🎉',
+        `Lieng Mobile đã tiếp nhận yêu cầu giữ "${modelName}".\nMã phiếu giữ: ${refCode}.\nCửa hàng giữ hàng cho bạn trong 24h. Chuyên viên sẽ gọi xác nhận đến SĐT ${inquiryPhone}!`,
       )
     } catch (err: any) {
       console.warn('API inquiry error, fallback alert:', err)
+      const refCode = 'TV-' + Date.now().toString().slice(-6)
+      const newHeldItem: HeldItemInfo = {
+        id: selectedProduct?.id || Date.now(),
+        name: selectedProduct?.name || 'Sản phẩm',
+        refCode,
+        date: new Date().toLocaleDateString('vi-VN'),
+        status: 'ringing',
+      }
+      const updated = [...heldItems.filter((h) => h.id !== newHeldItem.id && h.name !== newHeldItem.name), newHeldItem]
+      setHeldItems(updated)
+      await AsyncStorage.setItem('lieng_held_items', JSON.stringify(updated))
       setSelectedProduct(null)
       Alert.alert(
-        'Đã gửi yêu cầu giữ máy 🎉',
-        `Lieng Mobile đã tiếp nhận yêu cầu giữ máy "${modelName}". Chuyên viên tư vấn sẽ liên hệ SĐT ${inquiryPhone} trong ít phút!`,
+        isAccessory ? 'Đã đặt giữ sản phẩm 🎉' : 'Đã đặt giữ máy 🎉',
+        `Lieng Mobile đã tiếp nhận yêu cầu giữ "${modelName}". Mã phiếu giữ: ${refCode}.\nChuyên viên tư vấn sẽ liên hệ SĐT ${inquiryPhone} trong ít phút!`,
       )
     } finally {
       setSubmittingInquiry(false)
     }
+  }
+
+  const handleCancelHold = async (product: CatalogItem) => {
+    Alert.alert(
+      'Hủy phiếu giữ hàng',
+      `Bạn có chắc chắn muốn hủy giữ "${product.name}"?`,
+      [
+        { text: 'Không', style: 'cancel' },
+        {
+          text: 'Hủy giữ hàng',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = heldItems.filter(
+              (h) => h.id !== product.id && !h.name.toLowerCase().includes(product.name.toLowerCase())
+            )
+            setHeldItems(updated)
+            await AsyncStorage.setItem('lieng_held_items', JSON.stringify(updated))
+            setSelectedProduct(null)
+            Alert.alert('Thành công', 'Đã hủy phiếu giữ hàng.')
+          },
+        },
+      ]
+    )
   }
 
   return (
@@ -329,15 +433,31 @@ export default function CustomerCatalogScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catScroll}
         >
-          {CATEGORY_TABS.map((cat) => {
+          {dynamicCategoryTabs.map((cat) => {
             const active = selectedCat === cat.id
+            const isHeldTab = cat.id === 'held'
             return (
               <Pressable
                 key={cat.id}
-                style={[styles.catChip, active && styles.catChipActive]}
+                style={[
+                  styles.catChip,
+                  active && styles.catChipActive,
+                  isHeldTab && styles.catChipHeld,
+                  isHeldTab && active && styles.catChipHeldActive,
+                ]}
                 onPress={() => setSelectedCat(cat.id)}
               >
-                <Text style={[styles.catChipText, active && styles.catChipTextActive]}>
+                {isHeldTab ? (
+                  <Ionicons name="checkmark-circle" size={14} color={active ? '#FFFFFF' : '#15803D'} />
+                ) : null}
+                <Text
+                  style={[
+                    styles.catChipText,
+                    active && styles.catChipTextActive,
+                    isHeldTab && styles.catChipHeldText,
+                    isHeldTab && active && styles.catChipHeldTextActive,
+                  ]}
+                >
                   {cat.label}
                 </Text>
               </Pressable>
@@ -356,40 +476,66 @@ export default function CustomerCatalogScreen() {
         </Text>
 
         <View style={styles.grid}>
-          {filteredList.map((item) => (
-            <Pressable
-              key={item.id}
-              style={styles.productCard}
-              onPress={() => handleOpenDetail(item)}
-            >
-              <Image
-                source={getProductImageSource(item.imageKey, item.name)}
-                style={styles.productImg}
-                resizeMode="contain"
-              />
+          {filteredList.map((item) => {
+            const isHeld = heldItems.some(
+              (h) =>
+                h.id === item.id ||
+                h.name.toLowerCase().includes(item.name.toLowerCase()) ||
+                item.name.toLowerCase().includes(h.name.toLowerCase())
+            )
+            const isAccessory = item.category === 'accessory'
+            const actionText = isHeld
+              ? '✓ Đã giữ tại quầy'
+              : (isAccessory ? 'Xem & Giữ hàng' : 'Xem & Giữ máy')
 
-              <Text style={styles.productName} numberOfLines={2}>
-                {item.name}
-              </Text>
-              <Text style={styles.productSub} numberOfLines={1}>
-                {item.subtitle}
-              </Text>
+            return (
+              <Pressable
+                key={item.id}
+                style={[styles.productCard, isHeld && styles.productCardHeld]}
+                onPress={() => handleOpenDetail(item)}
+              >
+                {isHeld ? (
+                  <View style={styles.heldBadge}>
+                    <Ionicons name="checkmark-circle" size={11} color="#FFFFFF" />
+                    <Text style={styles.heldBadgeText}>ĐÃ GIỮ 24H</Text>
+                  </View>
+                ) : null}
 
-              <View style={styles.priceWrap}>
-                <Text style={styles.priceNum}>
-                  {item.price.toLocaleString('vi-VN')} đ
+                <Image
+                  source={getProductImageSource(item.imageKey, item.name)}
+                  style={styles.productImg}
+                  resizeMode="contain"
+                />
+
+                <Text style={styles.productName} numberOfLines={2}>
+                  {item.name}
                 </Text>
-                <Text style={styles.priceOld}>
-                  {item.oldPrice.toLocaleString('vi-VN')} đ
+                <Text style={styles.productSub} numberOfLines={1}>
+                  {item.subtitle}
                 </Text>
-              </View>
 
-              <View style={styles.viewDetailBtn}>
-                <Text style={styles.viewDetailText}>Xem & Giữ máy</Text>
-                <Ionicons name="arrow-forward" size={12} color="#7A0C10" />
-              </View>
-            </Pressable>
-          ))}
+                <View style={styles.priceWrap}>
+                  <Text style={styles.priceNum}>
+                    {item.price.toLocaleString('vi-VN')} đ
+                  </Text>
+                  <Text style={styles.priceOld}>
+                    {item.oldPrice.toLocaleString('vi-VN')} đ
+                  </Text>
+                </View>
+
+                <View style={[styles.viewDetailBtn, isHeld && styles.viewDetailBtnHeld]}>
+                  <Text style={[styles.viewDetailText, isHeld && styles.viewDetailTextHeld]}>
+                    {actionText}
+                  </Text>
+                  <Ionicons
+                    name={isHeld ? 'checkmark' : 'arrow-forward'}
+                    size={12}
+                    color={isHeld ? '#FFFFFF' : '#7A0C10'}
+                  />
+                </View>
+              </Pressable>
+            )
+          })}
         </View>
       </ScrollView>
 
@@ -429,7 +575,7 @@ export default function CustomerCatalogScreen() {
                     </View>
                     <View style={styles.warrantyBadge}>
                       <Ionicons name="shield-checkmark" size={14} color="#059669" />
-                      <Text style={styles.warrantyBadgeText}>Bảo hành 12 tháng</Text>
+                      <Text style={styles.warrantyBadgeText}>Bảo hành chính hãng</Text>
                     </View>
                   </View>
 
@@ -474,51 +620,100 @@ export default function CustomerCatalogScreen() {
                     <Ionicons name="chevron-forward" size={18} color="#7A0C10" />
                   </Pressable>
 
-                  {/* Form Giữ máy */}
-                  <View style={styles.inquiryForm}>
-                    <Text style={styles.inquiryFormTitle}>
-                      Quan tâm / Đăng ký Giữ máy tại quầy
-                    </Text>
-                    <Text style={styles.inquiryFormDesc}>
-                      Cửa hàng sẽ giữ máy cho bạn trong 24h. Nhân viên gọi xác nhận miễn phí.
-                    </Text>
+                  {/* Form Giữ máy HOẶC Trạng thái ĐÃ GIỮ */}
+                  {(() => {
+                    const isHeld = heldItems.some(
+                      (h) =>
+                        h.id === selectedProduct.id ||
+                        h.name.toLowerCase().includes(selectedProduct.name.toLowerCase()) ||
+                        selectedProduct.name.toLowerCase().includes(h.name.toLowerCase())
+                    )
+                    const heldInfo = heldItems.find(
+                      (h) =>
+                        h.id === selectedProduct.id ||
+                        h.name.toLowerCase().includes(selectedProduct.name.toLowerCase()) ||
+                        selectedProduct.name.toLowerCase().includes(h.name.toLowerCase())
+                    )
+                    const isAccessory = selectedProduct.category === 'accessory'
 
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Họ và tên của bạn"
-                      placeholderTextColor="#94A3B8"
-                      value={inquiryName}
-                      onChangeText={setInquiryName}
-                    />
+                    if (isHeld) {
+                      return (
+                        <View style={styles.heldStatusBox}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <Ionicons name="checkmark-circle" size={24} color="#15803D" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.heldStatusTitle}>Đã Đặt Giữ Tại Showroom</Text>
+                              <Text style={styles.heldStatusSub}>
+                                Mã phiếu: {heldInfo?.refCode || 'TV-ONLINE'} · Ngày: {heldInfo?.date || 'Hôm nay'}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.heldStatusNote}>
+                            Cửa hàng Lieng Mobile cam kết giữ {isAccessory ? 'sản phẩm' : 'máy'} này cho bạn trong vòng 24h. Nhân viên tư vấn tại showroom đã nhận thông tin và sẵn sàng hỗ trợ bạn.
+                          </Text>
 
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Số điện thoại nhận máy (*)"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="phone-pad"
-                      value={inquiryPhone}
-                      onChangeText={setInquiryPhone}
-                    />
+                          <Pressable
+                            style={styles.cancelHoldBtn}
+                            onPress={() => handleCancelHold(selectedProduct)}
+                          >
+                            <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                            <Text style={styles.cancelHoldBtnText}>Hủy phiếu giữ {isAccessory ? 'hàng' : 'máy'}</Text>
+                          </Pressable>
+                        </View>
+                      )
+                    }
 
-                    <TextInput
-                      style={[styles.formInput, { height: 60 }]}
-                      placeholder="Ghi chú thêm (màu sắc mong muốn, giờ nhận máy...)"
-                      placeholderTextColor="#94A3B8"
-                      multiline
-                      value={inquiryNote}
-                      onChangeText={setInquiryNote}
-                    />
+                    return (
+                      <View style={styles.inquiryForm}>
+                        <Text style={styles.inquiryFormTitle}>
+                          {isAccessory ? 'Quan tâm / Đăng ký Giữ sản phẩm tại quầy' : 'Quan tâm / Đăng ký Giữ máy tại quầy'}
+                        </Text>
+                        <Text style={styles.inquiryFormDesc}>
+                          {isAccessory
+                            ? 'Cửa hàng sẽ giữ sản phẩm cho bạn trong 24h. Nhân viên gọi xác nhận miễn phí.'
+                            : 'Cửa hàng sẽ giữ máy cho bạn trong 24h. Nhân viên gọi xác nhận miễn phí.'}
+                        </Text>
 
-                    <Pressable
-                      style={styles.submitInquiryBtn}
-                      onPress={handleSendInquiry}
-                      disabled={submittingInquiry}
-                    >
-                      <Text style={styles.submitInquiryBtnText}>
-                        {submittingInquiry ? 'Đang gửi yêu cầu...' : 'XÁC NHẬN GIỮ MÁY'}
-                      </Text>
-                    </Pressable>
-                  </View>
+                        <TextInput
+                          style={styles.formInput}
+                          placeholder="Họ và tên của bạn"
+                          placeholderTextColor="#94A3B8"
+                          value={inquiryName}
+                          onChangeText={setInquiryName}
+                        />
+
+                        <TextInput
+                          style={styles.formInput}
+                          placeholder="Số điện thoại nhận máy (*)"
+                          placeholderTextColor="#94A3B8"
+                          keyboardType="phone-pad"
+                          value={inquiryPhone}
+                          onChangeText={setInquiryPhone}
+                        />
+
+                        <TextInput
+                          style={[styles.formInput, { height: 60 }]}
+                          placeholder="Ghi chú thêm (màu sắc mong muốn, giờ nhận máy...)"
+                          placeholderTextColor="#94A3B8"
+                          multiline
+                          value={inquiryNote}
+                          onChangeText={setInquiryNote}
+                        />
+
+                        <Pressable
+                          style={styles.submitInquiryBtn}
+                          onPress={handleSendInquiry}
+                          disabled={submittingInquiry}
+                        >
+                          <Text style={styles.submitInquiryBtnText}>
+                            {submittingInquiry
+                              ? 'Đang gửi yêu cầu...'
+                              : (isAccessory ? 'XÁC NHẬN GIỮ HÀNG (24H)' : 'XÁC NHẬN GIỮ MÁY (24H)')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )
+                  })()}
                 </>
               ) : null}
             </ScrollView>
@@ -810,5 +1005,104 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  // Held styles
+  catChipHeld: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  catChipHeldActive: {
+    backgroundColor: '#15803D',
+    borderColor: '#15803D',
+  },
+  catChipHeldText: {
+    color: '#15803D',
+    fontWeight: '800',
+  },
+  catChipHeldTextActive: {
+    color: '#FFFFFF',
+  },
+  productCardHeld: {
+    borderColor: '#10B981',
+    borderWidth: 1.5,
+    backgroundColor: '#F0FDF4',
+  },
+  heldBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: '#15803D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  heldBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  viewDetailBtnHeld: {
+    backgroundColor: '#15803D',
+    borderColor: '#15803D',
+  },
+  viewDetailTextHeld: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  heldStatusBox: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 20,
+    gap: 10,
+  },
+  heldStatusTitle: {
+    fontSize: 14.5,
+    fontWeight: '900',
+    color: '#15803D',
+  },
+  heldStatusSub: {
+    fontSize: 11.5,
+    color: '#166534',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  heldStatusNote: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 18,
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cancelHoldBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    marginTop: 4,
+  },
+  cancelHoldBtnText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '700',
   },
 })
