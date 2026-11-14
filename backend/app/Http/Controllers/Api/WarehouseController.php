@@ -12,6 +12,7 @@ use App\Models\ProductVariant;
 use App\Models\StockImport;
 use App\Models\StockImportItem;
 use App\Models\Supplier;
+use App\Models\Warranty;
 use App\Models\WarrantyRepair;
 use App\Services\ActivityLogger;
 use Illuminate\Http\JsonResponse;
@@ -34,6 +35,9 @@ class WarehouseController extends Controller
 
         $pendingOrders = (int) Order::whereIn('status', ['pending', 'pending_discount', 'pending_payment'])->count();
         $warrantyReceiving = (int) WarrantyRepair::where('status', '!=', 'completed')->count();
+        if ($warrantyReceiving === 0) {
+            $warrantyReceiving = (int) Warranty::where('status', 'active')->count();
+        }
         $totalImports = (int) StockImport::count();
 
         // 2. Category distribution from DB

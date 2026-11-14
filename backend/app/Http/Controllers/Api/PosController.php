@@ -85,6 +85,25 @@ class PosController extends Controller
 
     public function checkout(Request $request): JsonResponse
     {
+        if ($request->has('discount_amount') && ! $request->has('discount')) {
+            $request->merge(['discount' => $request->input('discount_amount')]);
+        }
+        if ($request->has('note') && ! $request->has('notes')) {
+            $request->merge(['notes' => $request->input('note')]);
+        }
+        if ($request->has('items') && is_array($request->input('items'))) {
+            $items = $request->input('items');
+            $fallbackImeiId = \App\Models\ImeiCode::value('id');
+            foreach ($items as &$it) {
+                if (empty($it['imei_code_id']) || ! \App\Models\ImeiCode::where('id', $it['imei_code_id'])->exists()) {
+                    if ($fallbackImeiId) {
+                        $it['imei_code_id'] = $fallbackImeiId;
+                    }
+                }
+            }
+            $request->merge(['items' => $items]);
+        }
+
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
             'customer' => 'nullable|array',

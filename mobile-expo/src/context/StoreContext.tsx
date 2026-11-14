@@ -4,6 +4,8 @@ import { Platform } from 'react-native'
 
 import * as ownerApi from '@/api/owner'
 import * as ordersApi from '@/api/orders'
+import { fetchWarehouseDashboard } from '@/api/warehouse'
+import { fetchDashboardReport } from '@/api/reports'
 import { TOKEN_KEY } from '@/constants/config'
 
 export interface StoreOrder {
@@ -116,8 +118,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '14:45 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: '357892110482914',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA_blgggVKlyM7izoMRksl6W0Bq1BZdBEZlleubEqZmMqcR8mLNPtj4mLoHv6ZzQMSXNoN2CDDS7egqq7hIGk8FYFT4w3f0FS4NVgoYieeUkKPWrkISWhNrICFLibmO0ceH8Uy2XLSopSJ7hF5hYQT6XOQeZEv8vuPl4ByWrNAM69hkNRgFb1CdQqrgx5wLEh1OlfruLQuc9comY685qhFOr7OfwGJ6CnxGWuL7Joc',
+    imageUrl: '/products/iphone-15.jpg',
     actionBtnLabel: 'Duyệt chiết khấu',
     secondaryBtnLabel: 'Xem hóa đơn',
     isVipCustomer: true,
@@ -137,8 +138,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '14:30 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: '357892110482914',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA_blgggVKlyM7izoMRksl6W0Bq1BZdBEZlleubEqZmMqcR8mLNPtj4mLoHv6ZzQMSXNoN2CDDS7egqq7hIGk8FYFT4w3f0FS4NVgoYieeUkKPWrkISWhNrICFLibmO0ceH8Uy2XLSopSJ7hF5hYQT6XOQeZEv8vuPl4ByWrNAM69hkNRgFb1CdQqrgx5wLEh1OlfruLQuc9comY685qhFOr7OfwGJ6CnxGWuL7Joc',
+    imageUrl: '/products/iphone-15.jpg',
     actionBtnLabel: 'Hủy & Hoàn tiền',
     secondaryBtnLabel: 'Xem hóa đơn',
   },
@@ -156,8 +156,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '13:15 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: '359012384756182',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDUWsvDBB3ZCmUCuI1IF_WUH5m7TQt7zIs31NbUL3v06SDVbUUkbm3RTu-SklOgDTQPTOH99PlcXgPvW6vf8Q5Y8G-ErlphH0BmBErZ_M-wSBM_Hy_207DQgcpIZ4uDsuLT3iHBsFcekTpQAWl2J3QGJw96WVbhew3wMg8jjrPZxlAb_tiKYCfCOB6Hfied-f4SUTdeoTuxWeekRzW-Vx-shDNvIF2Mss8ZA15jIeU',
+    imageUrl: '/products/samsung-s24.jpg',
     actionBtnLabel: 'In lại hóa đơn',
     secondaryBtnLabel: 'Chia sẻ HĐ',
   },
@@ -175,8 +174,7 @@ const DEFAULT_ORDERS: StoreOrder[] = [
     createdAt: '11:45 Hôm nay',
     cashier: 'Nguyen Van A',
     imei: 'Serial: H7K9X2LM',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAd19P7Uqasjevj25hBF1pCCaE2YZRYORIawXOfNyRImeG5Ju9nmqe5RTCoPkxmJBFQiSYdGaM96F87R8gfgvwGh8SEirm4NJgrEZU-2OhIaSTxpVgQfggUpfczqA2Ir07FPZh_bLRECOwjLdVUCE0N7t_5gcQPC23WYTKHRR9FNCtKC7DQOyM1nAkSWJFIZy6HTG55JdT6XZ3A41nHcYCs96QUe-M9qSSw6T5b4jE',
+    imageUrl: '/products/airpods-pro.jpg',
     actionBtnLabel: 'Hủy đơn hàng',
     secondaryBtnLabel: 'Nhắc thanh toán',
   },
@@ -241,6 +239,9 @@ const StoreContext = createContext<StoreContextValue | null>(null)
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<StoreOrder[]>(DEFAULT_ORDERS)
+  const ordersRef = React.useRef<StoreOrder[]>(DEFAULT_ORDERS)
+  ordersRef.current = orders
+
   const [approvals, setApprovals] = useState<PendingApproval[]>(DEFAULT_APPROVALS)
   const [vault, setVault] = useState<StoreVault>(DEFAULT_VAULT)
   const [stats, setStats] = useState<StoreStats>(DEFAULT_STATS)
@@ -258,7 +259,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ])
 
         if (savedOrders) {
-          setOrders(JSON.parse(savedOrders))
+          const parsed = JSON.parse(savedOrders)
+          setOrders(parsed)
+          ordersRef.current = parsed
         }
         if (savedApprovals) {
           setApprovals(JSON.parse(savedApprovals))
@@ -303,7 +306,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Active unapproved pending requests
   const pendingApprovals = approvals.filter((a) => !a.approved && !a.rejected)
 
-    // 0. Sync from backend
+  // 0. Sync from backend (Lấy data thật từ hệ thống Laravel)
   const refreshStoreData = useCallback(async () => {
     try {
       const [dash, v, ordersRes] = await Promise.all([
@@ -440,7 +443,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }))
         )
       }
-
       if (v) {
         const vaultData = v
         setVault((prev) => {
@@ -497,6 +499,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       // Update orders list
       setOrders((prev) => [newOrder, ...prev])
+      ordersRef.current = [newOrder, ...ordersRef.current]
 
       // If pending discount requested, also push to approvals queue
       if (newOrder.status === 'pending_discount') {
@@ -580,6 +583,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           return o
         }),
       )
+      ordersRef.current = ordersRef.current.map((o) =>
+        o.code === targetOrderCode
+          ? { ...o, status: 'completed', actionBtnLabel: 'In lại hóa đơn', secondaryBtnLabel: 'Chia sẻ HĐ' }
+          : o
+      )
     }
 
     // Decrement pending count
@@ -633,6 +641,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }),
       )
 
+      ordersRef.current = ordersRef.current.map((o) =>
+        o.code === orderCode
+          ? { ...o, status: 'completed', actionBtnLabel: 'In lại hóa đơn', secondaryBtnLabel: 'Chia sẻ HĐ' }
+          : o
+      )
+
       // Also mark linked approval as approved
       setApprovals((prev) =>
         prev.map((a) => (a.order_code === orderCode ? { ...a, approved: true } : a)),
@@ -673,6 +687,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }
           return o
         }),
+      )
+
+      ordersRef.current = ordersRef.current.map((o) =>
+        o.code === orderCode
+          ? { ...o, status: 'cancelled', actionBtnLabel: 'Đã hoàn tiền', secondaryBtnLabel: undefined }
+          : o
       )
 
       if (refundAmount > 0) {
