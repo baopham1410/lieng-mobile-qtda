@@ -299,7 +299,17 @@ function normalizeFormPhotos(rowPhotos = {}) {
   return result
 }
 
+function safeClone(obj, fallback = null) {
+  if (!obj) return fallback
+  try {
+    return JSON.parse(JSON.stringify(obj))
+  } catch {
+    return fallback
+  }
+}
+
 function hydrateFormFromTicket(ticket) {
+  if (!ticket) return
   editingId.value = ticket.id
   removedSlots.value = []
   const defaults = emptyAppraisalForm()
@@ -313,9 +323,10 @@ function hydrateFormFromTicket(ticket) {
     accessoriesNote: ticket.accessoriesNote || '',
     photos: normalizeFormPhotos(ticket.photos),
     hardware: { ...defaults.hardware, ...(ticket.hardware || {}) },
-    aiResult: ticket.aiResult ? structuredClone(ticket.aiResult) : defaults.aiResult,
+    aiResult: ticket.aiResult ? safeClone(ticket.aiResult, defaults.aiResult) : defaults.aiResult,
     finalPrice: Number(ticket.finalPrice) || 0,
     status: ticket.status || 'draft',
+    code: ticket.code || '',
   }
   customModel.value =
     ticket.model && !modelOptions.value.includes(ticket.model) ? ticket.model : ''
@@ -333,11 +344,18 @@ function openCreate() {
 }
 
 function openEdit(row) {
+  if (!row) return
   hydrateFormFromTicket(row)
   formError.value = ''
   formNotice.value = ''
   formStep.value = 1
   showForm.value = true
+}
+
+function startInspection(row) {
+  if (!row) return
+  closeDetail()
+  openEdit(row)
 }
 
 function openDetail(row) {
@@ -557,7 +575,7 @@ async function saveTicket() {
     const payload = {
       ...buildTicketPayload(),
       photosMeta: photosMetaFromForm(form.value.photos),
-      aiResult: structuredClone(form.value.aiResult),
+      aiResult: safeClone(form.value.aiResult),
       staffName: 'Nhân viên demo',
     }
 
@@ -2055,7 +2073,7 @@ onMounted(loadInitialData)
               <button
                 type="button"
                 class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white shadow-md shadow-red-500/25 hover:bg-red-700 active:scale-95 transition"
-                @click="openEdit(selected); closeDetail()"
+                @click="startInspection(selected)"
               >
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -2244,7 +2262,7 @@ onMounted(loadInitialData)
             <button
               type="button"
               class="flex-1 inline-flex items-center justify-center gap-2 rounded-[14px] bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
-              @click="openEdit(selected); closeDetail()"
+              @click="startInspection(selected)"
             >
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
