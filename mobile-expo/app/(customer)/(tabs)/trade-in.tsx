@@ -202,7 +202,7 @@ const TRADE_IN_DEVICES: DevicePricing[] = [
   },
 ]
 
-const BRANDS = ['Tất cả', 'Apple', 'Samsung', 'Xiaomi', 'OPPO']
+const BRANDS = ['Tất cả', 'Apple', 'Samsung', 'Xiaomi', 'OPPO', 'Hãng khác']
 
 const BRANCHES = [
   { id: 'q5', name: 'Showroom 1: 123 Nguyễn Văn Cừ, Q.5', address: '123 Nguyễn Văn Cừ, P.4, Q.5, TP.HCM' },
@@ -224,6 +224,10 @@ export default function CustomerTradeInScreen() {
   const [selectedDeviceId, setSelectedDeviceId] = useState('apple-iphone-15-pmax-256')
   const [selectedGrade, setSelectedGrade] = useState<'grade1' | 'grade2' | 'grade3' | 'grade4'>('grade1')
   
+  // Trường hợp khách bán dòng máy khác (tự nhập)
+  const [customModelName, setCustomModelName] = useState('')
+  const [customStorage, setCustomStorage] = useState('128GB')
+
   // Thông tin đặt lịch hẹn
   const [selectedBranchId, setSelectedBranchId] = useState('q5')
   const [selectedTimeSlotId, setSelectedTimeSlotId] = useState('today_afternoon')
@@ -247,13 +251,26 @@ export default function CustomerTradeInScreen() {
     })
   }, [])
 
+  const handleSelectBrand = (brand: string) => {
+    setSelectedBrand(brand)
+    if (brand === 'Hãng khác') {
+      setSelectedDeviceId('custom')
+    } else if (selectedDeviceId === 'custom') {
+      const firstInBrand = TRADE_IN_DEVICES.find((d) => brand === 'Tất cả' || d.brand === brand)
+      if (firstInBrand) setSelectedDeviceId(firstInBrand.id)
+    }
+  }
+
+  const isCustom = selectedDeviceId === 'custom'
+
   const filteredDevices = TRADE_IN_DEVICES.filter((d) => {
     if (selectedBrand === 'Tất cả') return true
+    if (selectedBrand === 'Hãng khác') return false
     return d.brand === selectedBrand
   })
 
-  const currentDevice = TRADE_IN_DEVICES.find((d) => d.id === selectedDeviceId) || TRADE_IN_DEVICES[0]
-  const estimatedPrice = currentDevice.gradePrices[selectedGrade] || 0
+  const currentDevice = TRADE_IN_DEVICES.find((d) => d.id === selectedDeviceId)
+  const estimatedPrice = currentDevice ? currentDevice.gradePrices[selectedGrade] : 0
   const chosenBranch = BRANCHES.find((b) => b.id === selectedBranchId) || BRANCHES[0]
   const chosenTimeSlot = TIME_SLOTS.find((s) => s.id === selectedTimeSlotId) || TIME_SLOTS[0]
 
@@ -262,6 +279,15 @@ export default function CustomerTradeInScreen() {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại để tạo lịch hẹn thu cũ.')
       return
     }
+
+    if (isCustom && !customModelName.trim()) {
+      Alert.alert('Thiếu tên máy', 'Vui lòng nhập tên dòng máy bạn muốn bán (VD: Google Pixel 8 Pro, Sony Xperia, Note 20...).')
+      return
+    }
+
+    const deviceDisplayName = isCustom
+      ? `${customModelName.trim()} ${customStorage.trim() ? `(${customStorage.trim()})` : ''}`
+      : currentDevice?.displayName || 'Điện thoại cũ'
 
     const gradeLabel =
       selectedGrade === 'grade1'
@@ -278,9 +304,9 @@ export default function CustomerTradeInScreen() {
       await api.post('/store/inquiry', {
         name: customerName.trim() || 'Khách đặt lịch thu cũ',
         phone: customerPhone.trim(),
-        product_name: `${currentDevice.displayName} [${gradeLabel}]`,
+        product_name: `${deviceDisplayName} [${gradeLabel}]`,
         topic: 'Đặt lịch hẹn thu cũ',
-        note: `Định giá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ | Lịch hẹn: ${chosenTimeSlot.label} | Tại: ${chosenBranch.name} | Ghi chú: ${note}`,
+        note: `Định giá: ${isCustom ? 'Định giá trực tiếp tại showroom' : `${estimatedPrice.toLocaleString('vi-VN')} đ`} | Lịch hẹn: ${chosenTimeSlot.label} | Tại: ${chosenBranch.name} | Ghi chú: ${note}`,
         items: [{ productId: 1, qty: 1 }],
       })
     } catch (e: any) {
@@ -289,10 +315,11 @@ export default function CustomerTradeInScreen() {
 
     const newTicket = {
       code: newTicketCode,
-      device: currentDevice.displayName,
-      brand: currentDevice.brand,
+      device: deviceDisplayName,
+      isCustom: isCustom,
       gradeLabel: gradeLabel,
       estimatePrice: estimatedPrice,
+      priceDisplay: isCustom ? 'Định giá tại quầy' : `${estimatedPrice.toLocaleString('vi-VN')} đ`,
       branch: chosenBranch.name,
       timeSlot: chosenTimeSlot.label,
       status: 'Đã đặt lịch hẹn',
@@ -305,7 +332,7 @@ export default function CustomerTradeInScreen() {
 
     Alert.alert(
       'Đặt lịch hẹn thành công 🎉',
-      `Mã lịch hẹn: ${newTicket.code}\nThiết bị: ${newTicket.device}\nGiá ước tính: ${estimatedPrice.toLocaleString('vi-VN')} đ.\n\n📍 Địa điểm: ${chosenBranch.name}\n⏰ Thời gian: ${chosenTimeSlot.label}\n\nNhân viên kỹ thuật showroom đã nhận thông tin và sẽ sẵn sàng đón tiếp bạn kiểm tra máy nhé!`,
+      `Mã lịch hẹn: ${newTicket.code}\nThiết bị: ${newTicket.device}\nGiá thu mua: ${newTicket.priceDisplay}\n\n📍 Địa điểm: ${chosenBranch.name}\n⏰ Thời gian: ${chosenTimeSlot.label}\n\nNhân viên kỹ thuật showroom đã nhận thông tin và sẽ sẵn sàng đón tiếp bạn kiểm tra máy nhé!`,
     )
   }
 
@@ -313,7 +340,7 @@ export default function CustomerTradeInScreen() {
     <View style={styles.container}>
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 14) }]}>
-        <Text style={styles.headerTitle}>Đặt Lịch Hẹn Thu Mua Điện Thoại Cũ</Text>
+        <Text style={styles.headerTitle}>Đặt Lịch Hẹn Thu Mua Điện Thoại</Text>
         <Text style={styles.headerSub}>Định giá tham khảo · Đặt lịch mang máy tới Showroom</Text>
       </View>
 
@@ -347,8 +374,10 @@ export default function CustomerTradeInScreen() {
         {/* ── BƯỚC 1: Chọn dòng máy ── */}
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.cardHeader}>Bước 1: Chọn thiết bị bạn muốn bán</Text>
-            <Text style={styles.badgeCount}>{filteredDevices.length} máy</Text>
+            <Text style={styles.cardHeader}>Bước 1: Chọn máy bạn muốn bán</Text>
+            <Text style={styles.badgeCount}>
+              {isCustom ? 'Tự nhập máy khác' : `${filteredDevices.length} máy sẵn`}
+            </Text>
           </View>
 
           {/* Bộ lọc Hãng */}
@@ -357,7 +386,7 @@ export default function CustomerTradeInScreen() {
               <Pressable
                 key={b}
                 style={[styles.brandPill, selectedBrand === b && styles.brandPillActive]}
-                onPress={() => setSelectedBrand(b)}
+                onPress={() => handleSelectBrand(b)}
               >
                 <Text style={[styles.brandPillText, selectedBrand === b && styles.brandPillTextActive]}>
                   {b}
@@ -367,27 +396,71 @@ export default function CustomerTradeInScreen() {
           </ScrollView>
 
           {/* Danh sách chip thiết bị */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modelScroll}>
-            {filteredDevices.map((m) => {
-              const active = selectedDeviceId === m.id
-              return (
-                <Pressable
-                  key={m.id}
-                  style={[styles.modelChip, active && styles.modelChipActive]}
-                  onPress={() => setSelectedDeviceId(m.id)}
-                >
-                  <Ionicons
-                    name={m.brand === 'Apple' ? 'logo-apple' : 'phone-portrait'}
-                    size={16}
-                    color={active ? '#7A0C10' : '#64748B'}
-                  />
-                  <Text style={[styles.modelChipText, active && styles.modelChipTextActive]}>
-                    {m.displayName}
-                  </Text>
-                </Pressable>
-              )
-            })}
-          </ScrollView>
+          {selectedBrand !== 'Hãng khác' && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modelScroll}>
+              {filteredDevices.map((m) => {
+                const active = selectedDeviceId === m.id
+                return (
+                  <Pressable
+                    key={m.id}
+                    style={[styles.modelChip, active && styles.modelChipActive]}
+                    onPress={() => setSelectedDeviceId(m.id)}
+                  >
+                    <Ionicons
+                      name={m.brand === 'Apple' ? 'logo-apple' : 'phone-portrait'}
+                      size={16}
+                      color={active ? '#7A0C10' : '#64748B'}
+                    />
+                    <Text style={[styles.modelChipText, active && styles.modelChipTextActive]}>
+                      {m.displayName}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+
+              {/* Nút bấm tự nhập máy khác */}
+              <Pressable
+                style={[styles.modelChip, isCustom && styles.modelChipActive]}
+                onPress={() => setSelectedDeviceId('custom')}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={16}
+                  color={isCustom ? '#7A0C10' : '#64748B'}
+                />
+                <Text style={[styles.modelChipText, isCustom && styles.modelChipTextActive]}>
+                  + Dòng máy khác (Tự nhập)
+                </Text>
+              </Pressable>
+            </ScrollView>
+          )}
+
+          {/* Form tự nhập máy khác nếu chọn custom */}
+          {isCustom && (
+            <View style={styles.customBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Ionicons name="sparkles" size={16} color="#7A0C10" />
+                <Text style={styles.customBoxTitle}>Bán điện thoại khác (Chưa có trong danh mục)</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Tên hãng & dòng máy (VD: Google Pixel 8 Pro, Sony Xperia 1, Galaxy Note 20...)"
+                placeholderTextColor="#94A3B8"
+                value={customModelName}
+                onChangeText={setCustomModelName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Dung lượng bộ nhớ (VD: 128GB, 256GB, 512GB...)"
+                placeholderTextColor="#94A3B8"
+                value={customStorage}
+                onChangeText={setCustomStorage}
+              />
+              <Text style={styles.customBoxNote}>
+                💡 Lieng Mobile nhận thu mua tất cả các dòng smartphone chính hãng! Kỹ thuật viên sẽ kiểm tra trực tiếp và chốt giá tốt nhất cho bạn tại Showroom.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── BƯỚC 2: Chọn tình trạng ── */}
@@ -465,21 +538,39 @@ export default function CustomerTradeInScreen() {
         </View>
 
         {/* ── BƯỚC 3: Giá thu mua ước tính ── */}
-        <View style={styles.priceEstimateCard}>
-          <Text style={styles.estimateLabel}>GIÁ THU MUA THAM KHẢO TẠI QUẦY</Text>
-          <Text style={styles.estimateValue}>
-            {estimatedPrice.toLocaleString('vi-VN')} đ
-          </Text>
-          <View style={styles.subsidyRow}>
-            <Ionicons name="shield-checkmark" size={15} color="#065F46" />
-            <Text style={styles.subsidyText}>
-              Định giá tham khảo · Kiểm tra máy trực tiếp tại Showroom
+        {isCustom ? (
+          <View style={styles.priceEstimateCard}>
+            <Text style={styles.estimateLabel}>ĐỊNH GIÁ TRỰC TIẾP TẠI SHOWROOM</Text>
+            <Text style={[styles.estimateValue, { fontSize: 24, marginVertical: 8 }]}>
+              Liên hệ báo giá tại quầy
+            </Text>
+            <View style={styles.subsidyRow}>
+              <Ionicons name="sparkles" size={15} color="#065F46" />
+              <Text style={styles.subsidyText}>
+                Cam kết định giá tốt nhất thị trường theo ngoại quan thực tế
+              </Text>
+            </View>
+            <Text style={styles.disclaimerText}>
+              * Do dòng máy này chưa có trong bảng giá niêm yết tự động, bạn hãy đặt lịch hẹn mang máy ra Showroom. Kỹ thuật viên sẽ kiểm tra trực tiếp và chốt giá thu mua minh bạch cho bạn.
             </Text>
           </View>
-          <Text style={styles.disclaimerText}>
-            * Mức giá trên là giá tham khảo theo bảng giá niêm yết của Lieng Mobile. Khi bạn mang máy đến cửa hàng theo lịch hẹn, chuyên viên kỹ thuật sẽ kiểm tra máy trực tiếp để chốt giá chính thức với bạn.
-          </Text>
-        </View>
+        ) : (
+          <View style={styles.priceEstimateCard}>
+            <Text style={styles.estimateLabel}>GIÁ THU MUA THAM KHẢO TẠI QUẦY</Text>
+            <Text style={styles.estimateValue}>
+              {estimatedPrice.toLocaleString('vi-VN')} đ
+            </Text>
+            <View style={styles.subsidyRow}>
+              <Ionicons name="shield-checkmark" size={15} color="#065F46" />
+              <Text style={styles.subsidyText}>
+                Định giá tham khảo · Kiểm tra máy trực tiếp tại Showroom
+              </Text>
+            </View>
+            <Text style={styles.disclaimerText}>
+              * Mức giá trên là giá tham khảo theo bảng giá niêm yết của Lieng Mobile. Khi bạn mang máy đến cửa hàng theo lịch hẹn, chuyên viên kỹ thuật sẽ kiểm tra máy trực tiếp để chốt giá chính thức với bạn.
+            </Text>
+          </View>
+        )}
 
         {/* ── BƯỚC 4: Chọn Chi nhánh & Khung giờ hẹn ── */}
         <View style={styles.sectionCard}>
@@ -589,7 +680,7 @@ export default function CustomerTradeInScreen() {
                 </View>
                 <View style={styles.ticketBottom}>
                   <Text style={styles.ticketPrice}>
-                    {t.estimatePrice.toLocaleString('vi-VN')} đ
+                    {t.priceDisplay || (t.estimatePrice > 0 ? `${t.estimatePrice.toLocaleString('vi-VN')} đ` : 'Định giá tại quầy')}
                   </Text>
                   <Text style={styles.ticketDate}>{t.createdAt}</Text>
                 </View>
@@ -742,6 +833,25 @@ const styles = StyleSheet.create({
   modelChipTextActive: {
     color: '#7A0C10',
     fontWeight: '800',
+  },
+  customBox: {
+    backgroundColor: '#FFF8F8',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    gap: 8,
+    marginTop: 4,
+  },
+  customBoxTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#7A0C10',
+  },
+  customBoxNote: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 15,
   },
   gradeRow: {
     flexDirection: 'row',
