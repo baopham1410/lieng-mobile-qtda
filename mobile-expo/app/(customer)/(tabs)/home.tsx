@@ -28,7 +28,17 @@ import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { getProductImageSource } from '@/utils/productImages'
 
-const HOT_PRODUCTS = [
+interface HotProductItem {
+  id: number
+  name: string
+  subtitle: string
+  price: number
+  oldPrice: number
+  badge: string
+  imageKey: string
+}
+
+const HOT_PRODUCTS: HotProductItem[] = [
   {
     id: 1,
     name: 'iPhone 15 Pro Max 256GB',
@@ -93,6 +103,36 @@ export default function CustomerHomeScreen() {
   const [warranties, setWarranties] = useState<CustomerWarrantyItem[]>([])
   const [purchases, setPurchases] = useState<CustomerPurchaseItem[]>([])
   const [loadingCustomerData, setLoadingCustomerData] = useState(false)
+  const [hotProducts, setHotProducts] = useState<HotProductItem[]>(HOT_PRODUCTS)
+
+  useEffect(() => {
+    let isMounted = true
+    api.get('/store/catalog')
+      .then((res) => {
+        const prods = res.data?.data?.products
+        if (Array.isArray(prods) && prods.length > 0 && isMounted) {
+          const mapped: HotProductItem[] = prods.slice(0, 8).map((p: any, idx: number) => {
+            const specText = Array.isArray(p.specs) ? p.specs.join(' · ') : (typeof p.specs === 'string' ? p.specs : '')
+            return {
+              id: p.productId || idx + 1,
+              name: p.name,
+              subtitle: `${p.brand || 'Chính hãng'} · ${specText || 'Bảo hành 12 tháng'}`,
+              price: Number(p.price) || 0,
+              oldPrice: Number(p.oldPrice) || Math.round(Number(p.price) * 1.1),
+              badge: p.badge || (idx === 0 ? 'Bán chạy nhất' : idx === 1 ? 'AI Flagship' : 'Chính hãng VN/A'),
+              imageKey: p.image || 'iphone-15.jpg',
+            }
+          })
+          setHotProducts(mapped)
+        }
+      })
+      .catch((err) => {
+        console.warn('Lỗi tải sản phẩm store catalog:', err?.message)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -450,7 +490,7 @@ export default function CustomerHomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.hotList}
         >
-          {HOT_PRODUCTS.map((item) => (
+          {hotProducts.map((item) => (
             <Pressable
               key={item.id}
               style={styles.hotCard}

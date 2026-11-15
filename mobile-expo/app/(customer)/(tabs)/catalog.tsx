@@ -254,12 +254,19 @@ export default function CustomerCatalogScreen() {
             let cat: CatalogItem['category'] = 'other'
             const catLower = (p.category || '').toLowerCase()
             const nameLower = (p.name || '').toLowerCase()
-            if (nameLower.includes('iphone') || catLower.includes('apple') || catLower === 'phone') cat = 'iphone'
-            if (nameLower.includes('galaxy') || nameLower.includes('samsung')) cat = 'samsung'
-            if (nameLower.includes('ipad') || catLower === 'tablet') cat = 'ipad'
-            if (nameLower.includes('macbook') || catLower === 'laptop') cat = 'mac'
-            if (catLower === 'accessory' || nameLower.includes('sạc') || nameLower.includes('cáp') || nameLower.includes('tai nghe') || nameLower.includes('ốp')) cat = 'accessory'
+            if (nameLower.includes('galaxy') || nameLower.includes('samsung')) {
+              cat = 'samsung'
+            } else if (nameLower.includes('iphone') || catLower.includes('apple') || (catLower === 'phone' && !nameLower.includes('xiaomi') && !nameLower.includes('oppo'))) {
+              cat = 'iphone'
+            } else if (nameLower.includes('ipad') || catLower === 'tablet') {
+              cat = 'ipad'
+            } else if (nameLower.includes('macbook') || catLower === 'laptop') {
+              cat = 'mac'
+            } else if (catLower === 'accessory' || catLower.includes('phụ kiện') || nameLower.includes('sạc') || nameLower.includes('cáp') || nameLower.includes('tai nghe') || nameLower.includes('ốp') || nameLower.includes('jbl')) {
+              cat = 'accessory'
+            }
 
+            const specsArr = Array.isArray(p.specs) ? p.specs : (typeof p.specs === 'string' ? [p.specs] : [])
             return {
               id: p.productId || idx + 1,
               name: p.name,
@@ -269,10 +276,10 @@ export default function CustomerCatalogScreen() {
               oldPrice: Number(p.oldPrice) || Math.round(Number(p.price) * 1.1),
               imageKey: p.image || 'iphone-15.jpg',
               specs: {
-                screen: p.specs?.[0] || '6.7" OLED',
-                chip: p.specs?.[1] || 'Chip hiệu năng cao',
-                ram: '8 GB',
-                storage: p.specs?.[0] || '128 GB',
+                screen: specsArr[1] ? `Phiên bản: ${specsArr[1]}` : (specsArr[0] || 'Màn hình sắc nét OLED'),
+                chip: p.brand ? `Thương hiệu: ${p.brand}` : 'Hiệu năng cao',
+                ram: 'Tiêu chuẩn',
+                storage: specsArr[0] || '128 GB',
                 battery: 'Pin chuẩn · Sạc nhanh',
                 warranty: `${p.warrantyMonths || 12} tháng chính hãng`,
               },
