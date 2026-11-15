@@ -281,6 +281,8 @@ class PosController extends Controller
             $responseData['paymentBreakdown'] = $breakdown;
         }
 
+        StoreOwnerController::bustOwnerCaches();
+
         return response()->json([
             'data' => $responseData,
             'message' => $breakdown
@@ -402,6 +404,8 @@ class PosController extends Controller
             'payment_status' => $order->payment_status === 'pending' ? 'failed' : $order->payment_status,
             'notes' => trim(($order->notes ?? '').' [Hủy quầy POS: '.now()->format('d/m/Y H:i').']'),
         ]);
+
+        StoreOwnerController::bustOwnerCaches();
 
         return response()->json([
             'success' => true,

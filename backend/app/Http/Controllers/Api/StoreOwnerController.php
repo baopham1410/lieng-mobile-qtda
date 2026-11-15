@@ -25,94 +25,26 @@ use Illuminate\Support\Str;
 
 class StoreOwnerController extends Controller
 {
+    public static function bustOwnerCaches(): void
+    {
+        Cache::forget('store_owner_dashboard_payload');
+        Cache::forget('store_owner_vault_status_payload');
+    }
+
     /**
      * Dashboard KPIs & Approval Queue for Store Owner (Chủ quán)
      */
     public function dashboard(Request $request): JsonResponse
     {
-        // 0. Ensure POS orders created from Mobile / Flagship showroom are present in DB
-        if (! Order::where('code', 'HD-895744')->exists()) {
-            $customerHong = Customer::firstOrCreate(
-                ['phone' => '0963768605'],
-                ['name' => 'Hồng', 'address' => 'Hà Nội']
-            );
-            $salesUser = User::where('email', 'banhang@liengmobile.com')->first() ?? User::first();
-            $variantIphone = ProductVariant::first();
-            $newOrder = Order::create([
-                'code' => 'HD-895744',
-                'customer_id' => $customerHong->id,
-                'user_id' => $salesUser?->id,
-                'subtotal' => 34880000,
-                'discount' => 1000000,
-                'total' => 33880000,
-                'payment_method' => 'transfer',
-                'payment_provider' => 'vietqr',
-                'payment_status' => 'paid',
-                'status' => 'completed',
-                'paid_at' => now(),
-            ]);
+        $managerName = $request->user()?->name ?? 'Trần Quốc Bảo';
 
-            if ($variantIphone) {
-                $imeiHong = ImeiCode::firstOrCreate(
-                    ['imei' => '357892110482914'],
-                    ['product_variant_id' => $variantIphone->id, 'status' => 'sold', 'import_cost' => 28000000]
-                );
-                OrderItem::create([
-                    'order_id' => $newOrder->id,
-                    'product_variant_id' => $variantIphone->id,
-                    'imei_code_id' => $imeiHong->id,
-                    'unit_price' => 34880000,
-                    'discount' => 1000000,
-                    'total' => 33880000,
-                ]);
-            }
+        $data = Cache::remember('store_owner_dashboard_payload', 10, function () use ($managerName) {
+            $today = now()->toDateString();
+            $monthStart = now()->startOfMonth()->toDateString();
 
-            ReportCacheService::bustDashboard();
-            ReportCacheService::bustRevenue();
-        }
-
-        if (! Order::where('code', 'HD-20261109-024')->exists()) {
-            $customerLong = Customer::firstOrCreate(
-                ['phone' => '0988.xxx.456'],
-                ['name' => 'Anh Hoàng Long', 'address' => 'Cầu Giấy, Hà Nội']
-            );
-            $salesUser = User::where('email', 'banhang@liengmobile.com')->first() ?? User::first();
-            $variantIphone = ProductVariant::first();
-            $pendingOrder = Order::create([
-                'code' => 'HD-20261109-024',
-                'customer_id' => $customerLong->id,
-                'user_id' => $salesUser?->id,
-                'subtotal' => 29490000,
-                'discount' => 1474000,
-                'total' => 28016000,
-                'payment_method' => 'transfer',
-                'payment_status' => 'pending',
-                'status' => 'pending_discount',
-                'notes' => '[Chờ Chủ quán duyệt chiết khấu 1.474.000 đ]',
-            ]);
-
-            if ($variantIphone) {
-                $imeiLong = ImeiCode::firstOrCreate(
-                    ['imei' => '357892110482915'],
-                    ['product_variant_id' => $variantIphone->id, 'status' => 'in_stock', 'import_cost' => 25200000]
-                );
-                OrderItem::create([
-                    'order_id' => $pendingOrder->id,
-                    'product_variant_id' => $variantIphone->id,
-                    'imei_code_id' => $imeiLong->id,
-                    'unit_price' => 29490000,
-                    'discount' => 1474000,
-                    'total' => 28016000,
-                ]);
-            }
-        }
-
-        $today = now()->toDateString();
-        $monthStart = now()->startOfMonth()->toDateString();
-
-        // 1. Calculate actual revenue and order counts for today directly from DB
-        $revenueToday = (float) Order::query()
-            ->where('status', 'completed')
+            // 1. Calculate actual revenue and order counts for today directly from DB
+            $revenueToday = (float) Order::query()
+                ->where('status', 'completed')
             ->whereDate('created_at', $today)
             ->sum('total');
 
@@ -251,35 +183,36 @@ class StoreOwnerController extends Controller
             ]);
         }
 
-        return response()->json([
-            'data' => [
-                'kpis' => [
-                    'revenue_today' => $revenueToday,
-                    'today_revenue' => $revenueToday,
-                    'today_orders' => $completedOrders,
-                    'revenue_month' => $revenueMonth,
-                    'month_revenue' => $revenueMonth,
-                    'revenue_growth' => '+18.2%',
-                    'cash_in_vault' => $cashInVault,
-                    'vault_status' => 'Sẵn sàng giao ca',
-                    'total_orders' => $totalOrders,
-                    'completed_orders' => $completedOrders,
-                    'pending_orders' => $pendingOrders,
-                    'imei_in_stock' => $imeiInStock,
-                    'services_pending' => $servicesPending,
-                    'completion_rate' => $totalOrders > 0 ? round(($completedOrders / $totalOrders) * 100) . '% hoàn tất' : '100% hoàn tất',
-                    'pending_approvals_count' => count($pendingApprovals),
-                ],
-                'pending_approvals' => $pendingApprovals,
-                'recent_orders' => $recentOrders,
-                'store_info' => [
-                    'branch' => 'Liêng Mobile - Chi nhánh Cầu Giấy #01',
-                    'manager' => $request->user()?->name ?? 'Trần Quốc Bảo',
-                    'shift' => 'Đang trực ca (08:00 - 16:30)',
-                ],
+        return [
+            'kpis' => [
+                'revenue_today' => $revenueToday,
+                'today_revenue' => $revenueToday,
+                'today_orders' => $completedOrders,
+                'revenue_month' => $revenueMonth,
+                'month_revenue' => $revenueMonth,
+                'revenue_growth' => '+18.2%',
+                'cash_in_vault' => $cashInVault,
+                'vault_status' => 'Sẵn sàng giao ca',
+                'total_orders' => $totalOrders,
+                'completed_orders' => $completedOrders,
+                'pending_orders' => $pendingOrders,
+                'imei_in_stock' => $imeiInStock,
+                'services_pending' => $servicesPending,
+                'completion_rate' => $totalOrders > 0 ? round(($completedOrders / $totalOrders) * 100) . '% hoàn tất' : '100% hoàn tất',
+                'pending_approvals_count' => count($pendingApprovals),
             ],
-        ]);
-    }
+            'pending_approvals' => $pendingApprovals,
+            'recent_orders' => $recentOrders,
+            'store_info' => [
+                'branch' => 'Liêng Mobile - Chi nhánh Cầu Giấy #01',
+                'manager' => $managerName,
+                'shift' => 'Đang trực ca (08:00 - 16:30)',
+            ],
+        ];
+    });
+
+    return response()->json(['data' => $data]);
+}
 
     /**
      * Get Pending Approvals Queue (VIP discounts & Trade-in buyback appraisals)
@@ -393,6 +326,7 @@ class StoreOwnerController extends Controller
             }
 
             ReportCacheService::bustAll();
+            self::bustOwnerCaches();
 
             return response()->json([
                 'success' => true,
@@ -409,6 +343,8 @@ class StoreOwnerController extends Controller
             'description' => 'Duyệt giá thu cũ trade-in cho phiếu ' . ($request->input('ticket_code') ?? 'TC-2026-044'),
             'link' => '/warranties',
         ]);
+
+        self::bustOwnerCaches();
 
         return response()->json([
             'success' => true,
@@ -427,6 +363,7 @@ class StoreOwnerController extends Controller
 
         // Persist rejection so it will never reappear in pending queue
         Cache::forever("owner_approval_{$id}", 'rejected');
+        self::bustOwnerCaches();
 
         ActivityLogger::record($user, [
             'action' => 'reject_approval',
@@ -448,35 +385,37 @@ class StoreOwnerController extends Controller
      */
     public function getVaultStatus(Request $request): JsonResponse
     {
-        $today = now()->toDateString();
+        $managerName = $request->user()?->name ?? 'Trần Quốc Bảo';
 
-        // Real aggregated metrics purely from DB for today
-        $cashSales = (float) Transaction::query()
-            ->where('type', 'income')
-            ->where('payment_method', 'cash')
-            ->whereDate('created_at', $today)
-            ->sum('amount');
+        $data = Cache::remember('store_owner_vault_status_payload', 10, function () use ($managerName) {
+            $today = now()->toDateString();
 
-        $operationalExpenses = (float) Transaction::query()
-            ->where('type', 'expense')
-            ->whereDate('created_at', $today)
-            ->where(function ($q) {
-                $q->where('reference_type', 'QuanEntry')
-                  ->orWhere('description', 'like', '%quán%')
-                  ->orWhere('description', 'like', '%Showroom%')
-                  ->orWhere('description', 'like', '%vận hành%');
-            })
-            ->sum('amount');
+            // Real aggregated metrics purely from DB for today
+            $cashSales = (float) Transaction::query()
+                ->where('type', 'income')
+                ->where('payment_method', 'cash')
+                ->whereDate('created_at', $today)
+                ->sum('amount');
 
-        // Initial shift opening cash is 10M
-        $openingCash = 10000000;
-        $actualCashInVault = $openingCash + $cashSales - $operationalExpenses;
+            $operationalExpenses = (float) Transaction::query()
+                ->where('type', 'expense')
+                ->whereDate('created_at', $today)
+                ->where(function ($q) {
+                    $q->where('reference_type', 'QuanEntry')
+                      ->orWhere('description', 'like', '%quán%')
+                      ->orWhere('description', 'like', '%Showroom%')
+                      ->orWhere('description', 'like', '%vận hành%');
+                })
+                ->sum('amount');
 
-        $targetRevenue = 55000000;
-        $progressPct = round(min(100, ($actualCashInVault / $targetRevenue) * 100));
+            // Initial shift opening cash is 10M
+            $openingCash = 10000000;
+            $actualCashInVault = $openingCash + $cashSales - $operationalExpenses;
 
-        return response()->json([
-            'data' => [
+            $targetRevenue = 55000000;
+            $progressPct = round(min(100, ($actualCashInVault / $targetRevenue) * 100));
+
+            return [
                 'shift_name' => '08:00 — 16:30 (Hôm nay)',
                 'status' => 'open',
                 'status_label' => 'Đang mở két',
@@ -494,7 +433,7 @@ class StoreOwnerController extends Controller
                 'branch' => [
                     'name' => 'Liêng Mobile - Flagship #01',
                     'address' => '123 Điện Biên Phủ, Phường Võ Thị Sáu, Quận 3, TP.HCM',
-                    'manager' => $request->user()?->name ?? 'Trần Quốc Bảo',
+                    'manager' => $managerName,
                 ],
                 'peripherals' => [
                     'bill_printer' => [
@@ -508,8 +447,10 @@ class StoreOwnerController extends Controller
                         'status_label' => 'Đồng bộ đám mây thời gian thực',
                     ],
                 ],
-            ],
-        ]);
+            ];
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     /**
@@ -572,6 +513,7 @@ class StoreOwnerController extends Controller
         }
 
         ReportCacheService::bustAll();
+        self::bustOwnerCaches();
 
         return response()->json([
             'success' => true,
@@ -715,6 +657,7 @@ class StoreOwnerController extends Controller
         }
 
         ReportCacheService::bustAll();
+        self::bustOwnerCaches();
 
         return response()->json([
             'success' => true,

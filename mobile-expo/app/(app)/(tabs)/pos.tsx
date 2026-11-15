@@ -631,11 +631,6 @@ export default function PosScreen() {
 
   useEffect(() => {
     loadData()
-    // Tự động làm mới danh mục & tồn kho quầy POS mỗi 15 giây
-    const timer = setInterval(() => {
-      loadData()
-    }, 15000)
-    return () => clearInterval(timer)
   }, [loadData])
 
   const onRefresh = () => {

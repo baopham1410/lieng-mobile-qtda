@@ -80,7 +80,7 @@ export async function submitPosCheckout(payload: {
   discount?: number
   notes?: string
 }) {
-  const { data } = await api.post('/pos/checkout', payload)
+  const { data } = await api.post('/pos/checkout', payload, { timeout: 45000 })
   return data
 }
 

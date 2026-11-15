@@ -314,7 +314,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const [dash, v, ordersRes] = await Promise.all([
         ownerApi.getOwnerDashboard().catch(() => null),
         ownerApi.getVaultStatus().catch(() => null),
-        ordersApi.fetchOrders({ per_page: 100 }).catch(() => null),
+        ordersApi.fetchOrders({ per_page: 20 }).catch(() => null),
       ]);
 
       let currentOrders: StoreOrder[] = []

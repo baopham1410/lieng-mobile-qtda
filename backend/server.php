@@ -14,4 +14,15 @@ if ($uri !== '/' && file_exists(__DIR__.'/public'.$uri)) {
     return false;
 }
 
+$start = microtime(true);
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+error_log("[".date('H:i:s')."] --> {$method} {$uri}");
+
+register_shutdown_function(function() use ($start, $method, $uri) {
+    $ms = round((microtime(true) - $start) * 1000, 1);
+    error_log("[".date('H:i:s')."] <-- {$method} {$uri} [{$ms}ms]");
+});
+
+header('Connection: close');
+
 require_once __DIR__.'/public/index.php';
