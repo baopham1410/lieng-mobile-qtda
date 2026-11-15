@@ -469,8 +469,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    refreshStoreData();
-  }, [refreshStoreData]);
+    refreshStoreData()
+    // Đồng bộ thời gian thực tự động mỗi 4 giây (Realtime Auto-Sync với Neon DB)
+    const interval = setInterval(() => {
+      refreshStoreData()
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [refreshStoreData])
 
   // 1. Add new order from POS
   const addPosOrder = useCallback(

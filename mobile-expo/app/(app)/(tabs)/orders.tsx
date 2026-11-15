@@ -347,6 +347,11 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     loadOrders()
+    // Tự động đồng bộ đơn hàng thời gian thực mỗi 4 giây (Realtime Auto-Sync)
+    const timer = setInterval(() => {
+      loadOrders()
+    }, 4000)
+    return () => clearInterval(timer)
   }, [loadOrders])
   const copyOrderCode = (code: string) => {
     Alert.alert('Sao chép mã', `Mã đơn: ${code}\nĐã lưu vào bộ nhớ tạm.`)

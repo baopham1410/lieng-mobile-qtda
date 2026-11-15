@@ -200,6 +200,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     onRefresh()
+    const timer = setInterval(() => {
+      onRefresh()
+    }, 4000)
+    return () => clearInterval(timer)
   }, [onRefresh])
 
   const handleApproveDiscount = async (id: string) => {

@@ -92,6 +92,11 @@ export function WarehouseStockCenter() {
 
   useEffect(() => {
     loadData()
+    // Tự động đồng bộ kho thời gian thực mỗi 4 giây (Realtime Auto-Sync)
+    const timer = setInterval(() => {
+      loadData()
+    }, 4000)
+    return () => clearInterval(timer)
   }, [loadData])
 
   const handleRefresh = () => {

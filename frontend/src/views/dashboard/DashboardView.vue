@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import AppEmptyState from '@/components/common/AppEmptyState.vue'
@@ -106,6 +106,18 @@ onMounted(() => {
   if (initial.deviceShareChart) {
     deviceShareChart.value = initial.deviceShareChart
   }
+
+  // Tự động đồng bộ thời gian thực mỗi 4 giây (Realtime Auto-Sync với Neon DB)
+  const realTimeTimer = setInterval(async () => {
+    try {
+      const data = await fetchDashboard(silentRequest)
+      applyData(data)
+    } catch {}
+  }, 4000)
+
+  onUnmounted(() => {
+    clearInterval(realTimeTimer)
+  })
 })
 
 const statCards = computed(() => [
