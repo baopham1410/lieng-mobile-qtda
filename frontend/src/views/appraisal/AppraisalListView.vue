@@ -64,7 +64,7 @@ const recalcBusy = ref(false)
 const deleting = ref(false)
 const customModel = ref('')
 const formStep = ref(1)
-const bboxShapeMode = ref('box') // 'box' | 'both' | 'circle'
+const bboxShapeMode = ref('both') // 'box' | 'both' | 'circle' (mặc định khoanh vùng cả viền và khoanh tròn)
 const showGoodBoxes = ref(false)
 const zoomInspect = ref(null)
 
@@ -798,15 +798,7 @@ function downloadAnnotatedImage(item) {
         ctx.stroke()
       }
 
-      const tag = `${det.class} ${Math.round((det.confidence || 0) * 100)}%`
-      const fontSize = Math.max(14, Math.round(canvas.width * 0.022))
-      ctx.font = `bold ${fontSize}px sans-serif`
-      const tw = ctx.measureText(tag).width + 12
-      const ty = Math.max(fontSize + 6, y)
-      ctx.fillStyle = color
-      ctx.fillRect(x, ty - fontSize - 6, tw, fontSize + 6)
-      ctx.fillStyle = '#ffffff'
-      ctx.fillText(tag, x + 6, ty - 5)
+      // Chỉ khoanh vùng hư hỏng bằng viền & khoanh tròn, không ghi nhãn chữ đè lên ảnh
     }
 
     const link = document.createElement('a')
@@ -1813,20 +1805,7 @@ onMounted(loadInitialData)
                         </g>
                       </svg>
 
-                      <template v-for="det in item.detections" :key="`lbl-${det.id}`">
-                        <span
-                          v-if="bboxStyle(det)"
-                          class="pointer-events-none absolute rounded px-1 py-0.5 text-[9px] font-bold leading-none text-white shadow"
-                          :class="parseFloat(bboxStyle(det).top) >= 8 ? '-translate-y-full' : ''"
-                          :style="{
-                            left: Math.min(82, Math.max(0, parseFloat(bboxStyle(det).left))) + '%',
-                            top: Math.max(0.5, parseFloat(bboxStyle(det).top)) + '%',
-                            backgroundColor: bboxColorHex(det.class),
-                          }"
-                        >
-                          {{ det.class }} {{ Math.round((det.confidence || 0) * 100) }}%
-                        </span>
-                      </template>
+                      <!-- Chỉ khoanh vùng viền/khoanh tròn hư hỏng, không gắn nhãn chữ đè lên ảnh -->
                     </div>
 
                     <div class="mt-1.5 flex items-center justify-between gap-2">
@@ -2349,19 +2328,7 @@ onMounted(loadInitialData)
                 />
               </g>
             </svg>
-            <template v-for="det in zoomInspect.detections || []" :key="`z-${det.id}`">
-              <span
-                v-if="bboxStyle(det)"
-                class="pointer-events-none absolute -translate-y-full rounded px-1.5 py-0.5 text-xs font-bold text-white shadow"
-                :style="{
-                  left: bboxStyle(det).left,
-                  top: Math.max(6, parseFloat(bboxStyle(det).top)) + '%',
-                  backgroundColor: bboxColorHex(det.class),
-                }"
-              >
-                {{ det.label || det.class }} ({{ Math.round((det.confidence || 0) * 100) }}%)
-              </span>
-            </template>
+            <!-- Chỉ khoanh vùng viền/khoanh tròn hư hỏng khi phóng to, không hiển thị nhãn chữ đè lên ảnh -->
           </div>
         </div>
       </div>
