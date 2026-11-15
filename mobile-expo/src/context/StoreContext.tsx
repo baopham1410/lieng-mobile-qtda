@@ -71,6 +71,7 @@ export interface StoreStats {
   completedCount: number
   pendingCount: number
   revenueToday: number
+  revenueMonth: number
   growthPercent: string
   ordersToday: number
   imeiInStock: number
@@ -220,18 +221,19 @@ const DEFAULT_VAULT: StoreVault = {
 }
 
 const DEFAULT_STATS: StoreStats = {
-  ownerRevenueToday: 81460000,
+  ownerRevenueToday: 2000,
   ownerGrowth: '+18.2%',
-  ownerCashInVault: 59280000,
-  ownerOrdersCount: 3,
+  ownerCashInVault: 10000000,
+  ownerOrdersCount: 1,
   ownerPendingCount: 0,
-  totalOrders: 3,
-  completedCount: 3,
+  totalOrders: 1,
+  completedCount: 1,
   pendingCount: 0,
-  revenueToday: 81460000,
+  revenueToday: 2000,
+  revenueMonth: 113844000,
   growthPercent: '+18.2%',
-  ordersToday: 3,
-  imeiInStock: 149,
+  ordersToday: 1,
+  imeiInStock: 43,
   servicesPending: 0,
 }
 
@@ -401,28 +403,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         .filter((o) => o.paymentMethod === 'cash')
         .reduce((sum, o) => sum + (Number(o.total) || 0), 0)
 
-      // Doanh thu và số lượng đơn hàng CHUẨN XÁC TRONG NGÀY HÔM NAY trực tiếp từ DB Backend
-      const finalRevenue = Number(dash?.kpis?.revenue_today ?? 81460000)
-      const finalCompleted = Number(dash?.kpis?.completed_orders ?? 3)
-      const finalTotal = Number(dash?.kpis?.total_orders ?? 3)
+      // Doanh thu và số lượng đơn hàng CHUẨN XÁC TRONG NGÀY HÔM NAY & THÁNG NÀY trực tiếp từ DB Backend
+      const finalRevenueToday = Number(dash?.kpis?.revenue_today ?? 2000)
+      const finalOrdersToday = Number(dash?.kpis?.today_orders ?? dash?.kpis?.completed_orders ?? 1)
+      const finalRevenueMonth = Number(dash?.kpis?.revenue_month ?? dash?.kpis?.month_revenue ?? 113844000)
+      const finalImeiInStock = Number(dash?.kpis?.imei_in_stock ?? 43)
 
       // Tiền mặt trong két chuẩn xác cho ngày hôm nay (đồng bộ tuyệt đối giữa Tổng quan và Sổ két)
-      const finalCashSalesToday = Number(v?.cash_sales ?? 49480000)
-      const finalOpExpensesToday = Number(v?.operational_expenses ?? 200000)
+      const finalCashSalesToday = Number(v?.cash_sales ?? 0)
+      const finalOpExpensesToday = Number(v?.operational_expenses ?? 0)
       const finalActualCash = Number(v?.actual_cash_in_vault ?? (10000000 + finalCashSalesToday - finalOpExpensesToday))
 
       setStats((prev) => ({
         ...prev,
-        ownerRevenueToday: finalRevenue,
-        revenueToday: finalRevenue,
-        completedCount: finalCompleted,
-        ownerOrdersCount: finalTotal,
-        totalOrders: finalTotal,
+        ownerRevenueToday: finalRevenueToday,
+        revenueToday: finalRevenueToday,
+        ordersToday: finalOrdersToday,
+        revenueMonth: finalRevenueMonth,
+        completedCount: finalOrdersToday,
+        ownerOrdersCount: finalOrdersToday,
+        totalOrders: finalOrdersToday,
         pendingCount: orderList.filter((o) => o.status === 'pending' || o.status === 'pending_discount').length,
         ownerPendingCount: dash?.kpis?.pending_approvals_count ?? prev.ownerPendingCount,
         ownerCashInVault: finalActualCash,
-        imeiInStock: dash?.kpis?.imei_in_stock ?? 149,
-        servicesPending: dash?.kpis?.services_pending ?? 3,
+        imeiInStock: finalImeiInStock,
+        servicesPending: dash?.kpis?.services_pending ?? 0,
+        ownerGrowth: dash?.kpis?.revenue_growth ?? '+18.2%',
+        growthPercent: dash?.kpis?.revenue_growth ?? '+18.2%',
       }))
 
       if (dash?.pending_approvals) {

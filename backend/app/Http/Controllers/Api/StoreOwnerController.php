@@ -108,11 +108,17 @@ class StoreOwnerController extends Controller
         }
 
         $today = now()->toDateString();
+        $monthStart = now()->startOfMonth()->toDateString();
 
         // 1. Calculate actual revenue and order counts for today directly from DB
         $revenueToday = (float) Order::query()
             ->where('status', 'completed')
             ->whereDate('created_at', $today)
+            ->sum('total');
+
+        $revenueMonth = (float) Order::query()
+            ->where('status', 'completed')
+            ->whereDate('created_at', '>=', $monthStart)
             ->sum('total');
 
         $completedOrders = (int) Order::query()
@@ -145,10 +151,7 @@ class StoreOwnerController extends Controller
         $cashInVault = $openingCash + $cashIncome - $cashExpense;
 
         $imeiInStock = (int) ImeiCode::where('status', 'in_stock')->count();
-        $servicesPending = (int) WarrantyRepair::where('status', '!=', 'completed')->count();
-        if ($servicesPending === 0) {
-            $servicesPending = (int) Warranty::where('status', 'active')->count();
-        }
+        $servicesPending = (int) Warranty::where('status', 'active')->count();
 
         // 3. Pending Approvals Queue
         $pendingApprovals = $this->getPendingApprovalsQueue();
@@ -252,6 +255,10 @@ class StoreOwnerController extends Controller
             'data' => [
                 'kpis' => [
                     'revenue_today' => $revenueToday,
+                    'today_revenue' => $revenueToday,
+                    'today_orders' => $completedOrders,
+                    'revenue_month' => $revenueMonth,
+                    'month_revenue' => $revenueMonth,
                     'revenue_growth' => '+18.2%',
                     'cash_in_vault' => $cashInVault,
                     'vault_status' => 'Sẵn sàng giao ca',

@@ -13,6 +13,9 @@ export interface OwnerDashboardData {
     pending_orders?: number
     imei_in_stock?: number
     services_pending?: number
+    today_orders?: number
+    revenue_month?: number
+    month_revenue?: number
   }
   pending_approvals: Array<{
     id: string
