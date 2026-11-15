@@ -25,7 +25,8 @@ import { getProductImageSource } from '@/utils/productImages'
 interface CatalogItem {
   id: number
   name: string
-  category: 'iphone' | 'samsung' | 'ipad' | 'mac' | 'accessory' | 'other'
+  category: 'phone' | 'tablet' | 'laptop' | 'accessory' | 'other' | string
+  brand?: string
   subtitle: string
   price: number
   oldPrice: number
@@ -196,6 +197,7 @@ export default function CustomerCatalogScreen() {
 
   const [search, setSearch] = useState('')
   const [selectedCat, setSelectedCat] = useState('all')
+  const [selectedBrand, setSelectedBrand] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState<CatalogItem | null>(null)
   const [catalogList, setCatalogList] = useState<CatalogItem[]>(CATALOG_DATA)
   const [heldItems, setHeldItems] = useState<HeldItemInfo[]>([])
@@ -254,15 +256,29 @@ export default function CustomerCatalogScreen() {
             let cat: CatalogItem['category'] = 'other'
             const catLower = (p.category || '').toLowerCase()
             const nameLower = (p.name || '').toLowerCase()
-            if (nameLower.includes('galaxy') || nameLower.includes('samsung')) {
-              cat = 'samsung'
-            } else if (nameLower.includes('iphone') || catLower.includes('apple') || (catLower === 'phone' && !nameLower.includes('xiaomi') && !nameLower.includes('oppo'))) {
-              cat = 'iphone'
-            } else if (nameLower.includes('ipad') || catLower === 'tablet') {
-              cat = 'ipad'
-            } else if (nameLower.includes('macbook') || catLower === 'laptop') {
-              cat = 'mac'
-            } else if (catLower === 'accessory' || catLower.includes('phụ kiện') || nameLower.includes('sạc') || nameLower.includes('cáp') || nameLower.includes('tai nghe') || nameLower.includes('ốp') || nameLower.includes('jbl')) {
+            if (
+              catLower === 'phone' ||
+              catLower.includes('điện thoại') ||
+              nameLower.includes('iphone') ||
+              nameLower.includes('galaxy') ||
+              nameLower.includes('samsung') ||
+              nameLower.includes('xiaomi') ||
+              nameLower.includes('oppo')
+            ) {
+              cat = 'phone'
+            } else if (catLower === 'tablet' || nameLower.includes('ipad')) {
+              cat = 'tablet'
+            } else if (catLower === 'laptop' || nameLower.includes('macbook')) {
+              cat = 'laptop'
+            } else if (
+              catLower === 'accessory' ||
+              catLower.includes('phụ kiện') ||
+              nameLower.includes('sạc') ||
+              nameLower.includes('cáp') ||
+              nameLower.includes('tai nghe') ||
+              nameLower.includes('ốp') ||
+              nameLower.includes('jbl')
+            ) {
               cat = 'accessory'
             }
 
@@ -271,6 +287,7 @@ export default function CustomerCatalogScreen() {
               id: p.productId || idx + 1,
               name: p.name,
               category: cat,
+              brand: p.brand || (nameLower.includes('iphone') || nameLower.includes('ipad') ? 'Apple' : nameLower.includes('samsung') ? 'Samsung' : 'Chính hãng'),
               subtitle: `${p.brand || 'Chính hãng'} · ${p.badge || 'Sẵn hàng'}`,
               price: Number(p.price) || 0,
               oldPrice: Number(p.oldPrice) || Math.round(Number(p.price) * 1.1),
@@ -294,15 +311,21 @@ export default function CustomerCatalogScreen() {
     return () => { isMounted = false }
   }, [])
 
+  const phoneCount = catalogList.filter((c) => c.category === 'phone').length
+  const tabletCount = catalogList.filter((c) => c.category === 'tablet').length
+  const laptopCount = catalogList.filter((c) => c.category === 'laptop').length
+  const accessoryCount = catalogList.filter((c) => c.category === 'accessory').length
+
   const dynamicCategoryTabs = [
-    { id: 'all', label: 'Tất cả' },
+    { id: 'all', label: `Tất cả (${catalogList.length})` },
     ...(heldItems.length > 0 ? [{ id: 'held', label: `Đang giữ (${heldItems.length})` }] : []),
-    { id: 'iphone', label: 'iPhone' },
-    { id: 'samsung', label: 'Samsung' },
-    { id: 'ipad', label: 'iPad' },
-    { id: 'mac', label: 'MacBook' },
-    { id: 'accessory', label: 'Phụ kiện' },
+    { id: 'phone', label: `Điện thoại (${phoneCount})` },
+    { id: 'tablet', label: `Tablet (${tabletCount})` },
+    ...(laptopCount > 0 ? [{ id: 'laptop', label: `Laptop (${laptopCount})` }] : []),
+    { id: 'accessory', label: `Phụ kiện (${accessoryCount})` },
   ]
+
+  const brandList = ['all', 'Apple', 'Samsung', 'Xiaomi', 'OPPO', 'Lieng', 'JBL']
 
   const filteredList = catalogList.filter((item) => {
     if (selectedCat === 'held') {
@@ -314,10 +337,13 @@ export default function CustomerCatalogScreen() {
       )
     }
     const matchCat = selectedCat === 'all' || item.category === selectedCat
+    const matchBrand =
+      selectedBrand === 'all' || (item.brand || '').toLowerCase() === selectedBrand.toLowerCase()
     const matchText =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.subtitle.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchText
+      item.subtitle.toLowerCase().includes(search.toLowerCase()) ||
+      (item.brand && item.brand.toLowerCase().includes(search.toLowerCase()))
+    return matchCat && matchBrand && matchText
   })
 
   const handleOpenDetail = (item: CatalogItem) => {
@@ -471,6 +497,33 @@ export default function CustomerCatalogScreen() {
             )
           })}
         </ScrollView>
+
+        {/* Brand Filter Chips (Đồng bộ theo hãng như trên Web) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.catScroll, { marginTop: 6 }]}
+        >
+          {brandList.map((b) => {
+            const active = selectedBrand === b
+            const label = b === 'all' ? 'Tất cả hãng' : b
+            const count =
+              b === 'all'
+                ? catalogList.length
+                : catalogList.filter((c) => (c.brand || '').toLowerCase() === b.toLowerCase()).length
+            return (
+              <Pressable
+                key={b}
+                style={[styles.brandChip, active && styles.brandChipActive]}
+                onPress={() => setSelectedBrand(b)}
+              >
+                <Text style={[styles.brandChipText, active && styles.brandChipTextActive]}>
+                  {label} {count > 0 ? `(${count})` : ''}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
       </View>
 
       {/* ── Product Grid ── */}
@@ -479,7 +532,7 @@ export default function CustomerCatalogScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.resultCountText}>
-          Hiển thị {filteredList.length} sản phẩm phù hợp
+          Hiển thị {filteredList.length} / {catalogList.length} sản phẩm phù hợp (Đồng bộ cùng Web)
         </Text>
 
         <View style={styles.grid}>
@@ -787,6 +840,27 @@ const styles = StyleSheet.create({
     color: '#FFE5E5',
   },
   catChipTextActive: {
+    color: '#7A0C10',
+    fontWeight: '800',
+  },
+  brandChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  brandChipActive: {
+    backgroundColor: '#FFE5E5',
+    borderColor: '#FFE5E5',
+  },
+  brandChipText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#FFD9DC',
+  },
+  brandChipTextActive: {
     color: '#7A0C10',
     fontWeight: '800',
   },

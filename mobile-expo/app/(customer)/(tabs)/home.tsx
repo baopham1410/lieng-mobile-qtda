@@ -111,7 +111,7 @@ export default function CustomerHomeScreen() {
       .then((res) => {
         const prods = res.data?.data?.products
         if (Array.isArray(prods) && prods.length > 0 && isMounted) {
-          const mapped: HotProductItem[] = prods.slice(0, 8).map((p: any, idx: number) => {
+          const mapped: HotProductItem[] = prods.map((p: any, idx: number) => {
             const specText = Array.isArray(p.specs) ? p.specs.join(' · ') : (typeof p.specs === 'string' ? p.specs : '')
             return {
               id: p.productId || idx + 1,
@@ -477,11 +477,16 @@ export default function CustomerHomeScreen() {
         {/* ── Máy Đang Hot (Horizontal Scroll) ── */}
         <View style={[styles.sectionHeader, { marginTop: 24 }]}>
           <View>
-            <Text style={styles.sectionTitle}>Sản Phẩm Đang Hot 🔥</Text>
-            <Text style={styles.sectionSubtitle}>Giá tốt nhất hôm nay tại Showroom</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.sectionTitle}>Sản Phẩm Đang Hot 🔥</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{hotProducts.length} sản phẩm</Text>
+              </View>
+            </View>
+            <Text style={styles.sectionSubtitle}>Kho hàng Showroom ({hotProducts.length} sản phẩm đồng bộ cùng Web)</Text>
           </View>
           <Pressable onPress={() => router.replace('/(customer)/(tabs)/catalog' as any)}>
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
+            <Text style={styles.seeAllText}>Xem tất cả ({hotProducts.length}) →</Text>
           </Pressable>
         </View>
 
@@ -882,6 +887,17 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     color: '#191C1E',
+  },
+  countBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A0C10',
   },
   sectionSubtitle: {
     fontSize: 12,
