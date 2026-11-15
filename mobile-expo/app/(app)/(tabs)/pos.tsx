@@ -79,9 +79,9 @@ interface PosUnitItem {
   storageTag?: string
 }
 
-// Danh mục sản phẩm phong phú cho từng mục theo đúng chuẩn Google Stitch Showcase
+// Danh mục sản phẩm phong phú theo chuẩn Neon PostgreSQL Cloud của cửa hàng Liêng Mobile
 const FALLBACK_POS_UNITS: PosUnitItem[] = [
-  // ── 1. iPhone (Card 1 chuẩn Stitch ở vị trí đầu) ──
+  // ── 1. iPhone 15 Pro Max (Card 1 chuẩn) ──
   {
     id: 1,
     imeiCodeId: 24,
@@ -92,13 +92,13 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
     price: 28990000,
     categoryName: 'iPhone',
     hasImei: true,
-    stock: 5,
-    availableImeis: ['357892110482915', '35016109177109', '35011445310920'],
+    stock: 4,
+    availableImeis: ['357892110482915', '35011445310920', '35017669785041', '35013665803114'],
     storageTag: '256GB',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuDTi2ZwSWh_Baj-fH4SMTg71UKytUkQIyaRirQ6NpANhF_hU5SsEK-BU151nzNbZqMctPS8AOnZvd-9MwyyfUmGohoUdX0oNktFVT_5S5tpopsPZwkIiBG4cQY5s_3-6fG2xaT4LFUnrfd7rFF9uLAcTeUsXtoiRUwWugOVCWdZiROZe_S_8EwJ7O7De4UhPKcMeuC9wqvEpFH4CQs9TjxP1Hg4z6E2kfc00jmlOjw',
   },
-  // ── 2. Samsung (Card 2 chuẩn Stitch ở vị trí 2) ──
+  // ── 2. Samsung Galaxy S24 Ultra (Card 2 chuẩn) ──
   {
     id: 2,
     imeiCodeId: 29,
@@ -109,113 +109,79 @@ const FALLBACK_POS_UNITS: PosUnitItem[] = [
     price: 28990000,
     categoryName: 'Samsung',
     hasImei: true,
-    stock: 6,
-    availableImeis: ['357129104829301', '357129104829302', '357129104829303'],
+    stock: 5,
+    availableImeis: ['35027135056014', '35023025926141', '35021204418428', '35023025894765', '35022549575253'],
     storageTag: '512GB',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBVdzsw9Zu6TWlCt153yfHeJc-taQYTyo1_EbhEtVFRlq76nv5O2O0H0IpCTgUfH-9HTvqysZ3kv7LjznWW-yMBFnmNCQYQj_bfbX9zcJVt1tdWSXRMiRqy9bUrXMS8piKb6otwU3ZrkvL9pTYY51Nz-w3U0_dF1PC_nMwWgETxFdv3C82e3t4HfhpeJqTaxZDbCfJnCrIB_4zlrfB3Z52_keX_q7HJ0MtXrJ5Exms',
   },
-  // ── 3. iPad (Card 3 chuẩn Stitch ở vị trí 3) ──
+  // ── 3. OPPO Reno12 5G (Card 3 chuẩn) ──
   {
     id: 3,
-    imeiCodeId: 103,
-    imei: '358910293847561',
-    productVariantId: 3,
-    name: 'iPad Pro M4 11" 256GB Wifi Space Black',
-    sku: 'IPADM4-11-256',
-    price: 26490000,
-    categoryName: 'iPad',
+    imeiCodeId: 42,
+    imei: '35054854842884',
+    productVariantId: 5,
+    name: 'OPPO Reno12 5G 256GB Bạc Ánh Sao',
+    sku: 'OPPO-R12-256',
+    price: 12990000,
+    categoryName: 'Điện thoại',
     hasImei: true,
     stock: 2,
-    availableImeis: ['358910293847561', '358910293847562'],
-    storageTag: '11" M4',
+    availableImeis: ['35054854842884', '35059048710848'],
+    storageTag: '256GB',
     imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAPG5N1kflqVXeBBhIiKqVaEqJFJU7IZgcCwzlgM-6YK_pD6vXIO550iLrsST1u2-6ytehz77wbXHfTnLkHbrNNf8FuhkL0sOvZv1tquEPAJnrm9ydST2uBqk7EWgA3yo_YOYk4-EZ7Y-vmd-YUp4gJOE8-0nu266QitBLxOtXdajuzK3Xvwr4cqDuGguYUdh1oCSOXRWQxTLX-qWDmbXIIRMBn9kqkG_2z5kXwXqw',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBVdzsw9Zu6TWlCt153yfHeJc-taQYTyo1_EbhEtVFRlq76nv5O2O0H0IpCTgUfH-9HTvqysZ3kv7LjznWW-yMBFnmNCQYQj_bfbX9zcJVt1tdWSXRMiRqy9bUrXMS8piKb6otwU3ZrkvL9pTYY51Nz-w3U0_dF1PC_nMwWgETxFdv3C82e3t4HfhpeJqTaxZDbCfJnCrIB_4zlrfB3Z52_keX_q7HJ0MtXrJ5Exms',
   },
-  // ── 4. Phụ kiện (Card 4 chuẩn Stitch ở vị trí 4) ──
+  // ── 4. Tai nghe JBL Tune 520BT ──
   {
     id: 4,
-    imeiCodeId: 104,
-    imei: '359018273645192',
-    productVariantId: 4,
-    name: 'Tai nghe AirPods Pro 2 Type-C (Chính hãng VN/A)',
-    sku: 'AP-PRO2-TYPEC',
-    price: 5390000,
+    imeiCodeId: 58,
+    imei: 'PK-PK-JBL-001-912',
+    productVariantId: 9,
+    name: 'Tai nghe JBL Tune 520BT Bass Sâu',
+    sku: 'JBL-T520-BLK',
+    price: 891000,
+    categoryName: 'Âm thanh',
+    hasImei: false,
+    stock: 5,
+    availableImeis: ['PK-PK-JBL-001-912', 'PK-PK-JBL-001-931', 'PK-PK-JBL-001-330'],
+    storageTag: 'Bluetooth',
+    imageUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAd19P7Uqasjevj25hBF1pCCaE2YZRYORIawXOfNyRImeG5Ju9nmqe5RTCoPkxmJBFQiSYdGaM96F87R8gfgvwGh8SEirm4NJgrEZU-2OhIaSTxpVgQfggUpfczqA2Ir07FPZh_bLRECOwjLdVUCE0N7t_5gcQPC23WYTKHRR9FNCtKC7DQOyM1nAkSWJFIZy6HTG55JdT6XZ3A41nHcYCs96QUe-M9qSSw6T5b4jE',
+  },
+  // ── 5. Cáp sạc USB-C 1m ──
+  {
+    id: 5,
+    imeiCodeId: 47,
+    imei: 'PK-PK-USB-C-001-912',
+    productVariantId: 7,
+    name: 'Cáp sạc USB-C to USB-C 1m 60W',
+    sku: 'USBC-60W-1M',
+    price: 190000,
     categoryName: 'Phụ kiện',
     hasImei: false,
-    stock: 15,
-    availableImeis: [],
-    storageTag: 'VN/A',
+    stock: 5,
+    availableImeis: ['PK-PK-USB-C-001-912', 'PK-PK-USB-C-001-842', 'PK-PK-USB-C-001-687'],
+    storageTag: '1m · 60W',
     imageUrl:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuATGqhENQ2H_WpCTR6Q8ZbrDTkIREzJCOBhxWSvBgn3PWgslvABwn_iNKBFlxjJlRPaJ29Ei1nyGDHOt6ePstmSK7kZZPnqm66RPSYUn9puxGmopfBd9UA5yPe2C44uwsTGEtLLSENNQ49lCH_Bf-NRi_eDDKn2W58oh7rY4VcNIGmIqa1RlL04C8zNpmpgJGchdQ_aKsCcQ8CKPdzAuzyGCKi-JDsfM1b9w0uqcLg',
   },
-
-  // ── Thêm sản phẩm cho mục: iPhone ──
-  {
-    id: 5,
-    imeiCodeId: 105,
-    imei: '356892110482914',
-    productVariantId: 5,
-    name: 'iPhone 15 Plus 128GB Xanh Mint (VN/A)',
-    sku: 'IP15P-128-GRN',
-    price: 21890000,
-    categoryName: 'iPhone',
-    hasImei: true,
-    stock: 5,
-    availableImeis: ['356892110482914', '356892110482915'],
-    storageTag: '128GB',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDTi2ZwSWh_Baj-fH4SMTg71UKytUkQIyaRirQ6NpANhF_hU5SsEK-BU151nzNbZqMctPS8AOnZvd-9MwyyfUmGohoUdX0oNktFVT_5S5tpopsPZwkIiBG4cQY5s_3-6fG2xaT4LFUnrfd7rFF9uLAcTeUsXtoiRUwWugOVCWdZiROZe_S_8EwJ7O7De4UhPKcMeuC9wqvEpFH4CQs9TjxP1Hg4z6E2kfc00jmlOjw',
-  },
+  // ── 6. Ốp lưng iPhone 15 ──
   {
     id: 6,
-    imeiCodeId: 106,
-    imei: '356892110482916',
-    productVariantId: 6,
-    name: 'iPhone 14 Pro Max 128GB Tím Deep Purple',
-    sku: 'IP14PM-128-PUR',
-    price: 22490000,
-    categoryName: 'iPhone',
-    hasImei: true,
-    stock: 3,
-    availableImeis: ['356892110482916'],
-    storageTag: '128GB',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAsVAzVjidciBXlEMyAjLp7efMuRPZ-xePBFaIgHxTITyBxSypH8aD8Tsm12MjaC7uYNN0WWXnJ5MJ3S0x69EJNz66glMnJaYTrCMxf4pwxlJw1-KHcpg-yvU1eEc88Razhfble-O4BleYMUiTCCXxfO5GCCqsA1DkJ8oqbPUcKxtpNg1dHXg_WEvIct4JlEyBTviKtapVwv53PBCt9EMEglyITHiEfC6jMNU4gqvc',
-  },
-
-  // ── Thêm sản phẩm cho mục: Samsung ──
-  {
-    id: 7,
-    imeiCodeId: 107,
-    imei: '357129104829304',
-    productVariantId: 7,
-    name: 'Samsung Galaxy Z Fold 5 256GB Phantom Black',
-    sku: 'SM-F946B-256',
-    price: 29990000,
-    categoryName: 'Samsung',
-    hasImei: true,
-    stock: 3,
-    availableImeis: ['357129104829304'],
-    storageTag: '256GB',
-    imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBVdzsw9Zu6TWlCt153yfHeJc-taQYTyo1_EbhEtVFRlq76nv5O2O0H0IpCTgUfH-9HTvqysZ3kv7LjznWW-yMBFnmNCQYQj_bfbX9zcJVt1tdWSXRMiRqy9bUrXMS8piKb6otwU3ZrkvL9pTYY51Nz-w3U0_dF1PC_nMwWgETxFdv3C82e3t4HfhpeJqTaxZDbCfJnCrIB_4zlrfB3Z52_keX_q7HJ0MtXrJ5Exms',
-  },
-  {
-    id: 8,
-    imeiCodeId: 108,
-    imei: '357129104829305',
+    imeiCodeId: 54,
+    imei: 'PK-PK-CASE-001-830',
     productVariantId: 8,
-    name: 'Samsung Galaxy S23 Ultra 256GB Xanh Botanic',
-    sku: 'SM-S918B-256',
-    price: 19990000,
-    categoryName: 'Samsung',
-    hasImei: true,
-    stock: 4,
-    availableImeis: ['357129104829305'],
-    storageTag: '256GB',
+    name: 'Ốp lưng iPhone 15 Chống Sốc Trong Suốt',
+    sku: 'CASE-IP15-CLR',
+    price: 150000,
+    categoryName: 'Phụ kiện',
+    hasImei: false,
+    stock: 5,
+    availableImeis: ['PK-PK-CASE-001-830', 'PK-PK-CASE-001-927', 'PK-PK-CASE-001-637'],
+    storageTag: 'Trong suốt',
     imageUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBVdzsw9Zu6TWlCt153yfHeJc-taQYTyo1_EbhEtVFRlq76nv5O2O0H0IpCTgUfH-9HTvqysZ3kv7LjznWW-yMBFnmNCQYQj_bfbX9zcJVt1tdWSXRMiRqy9bUrXMS8piKb6otwU3ZrkvL9pTYY51Nz-w3U0_dF1PC_nMwWgETxFdv3C82e3t4HfhpeJqTaxZDbCfJnCrIB_4zlrfB3Z52_keX_q7HJ0MtXrJ5Exms',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuATGqhENQ2H_WpCTR6Q8ZbrDTkIREzJCOBhxWSvBgn3PWgslvABwn_iNKBFlxjJlRPaJ29Ei1nyGDHOt6ePstmSK7kZZPnqm66RPSYUn9puxGmopfBd9UA5yPe2C44uwsTGEtLLSENNQ49lCH_Bf-NRi_eDDKn2W58oh7rY4VcNIGmIqa1RlL04C8zNpmpgJGchdQ_aKsCcQ8CKPdzAuzyGCKi-JDsfM1b9w0uqcLg',
   },
 
   // ── Thêm sản phẩm cho mục: iPad ──
@@ -441,7 +407,10 @@ export default function PosScreen() {
   const [customerName, setCustomerName] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
   const [matchedCustomer, setMatchedCustomer] = useState<posApi.PosCustomer | null>(null)
+  const [customerSuggestions, setCustomerSuggestions] = useState<posApi.PosCustomer[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [lookupLoading, setLookupLoading] = useState(false)
+  const customerSuggestTimerRef = useRef<any>(null)
 
   // Thanh toán (đồng bộ mặc định 0đ và AppMoneyInput giống Web Admin)
   const [discount, setDiscount] = useState<number>(0)
@@ -662,10 +631,10 @@ export default function PosScreen() {
 
   useEffect(() => {
     loadData()
-    // Tự động làm mới danh mục & tồn kho quầy POS mỗi 5 giây
+    // Tự động làm mới danh mục & tồn kho quầy POS mỗi 15 giây
     const timer = setInterval(() => {
       loadData()
-    }, 5000)
+    }, 15000)
     return () => clearInterval(timer)
   }, [loadData])
 
@@ -674,29 +643,73 @@ export default function PosScreen() {
     loadData()
   }
 
-  // Tra cứu khách hàng theo SĐT
-  const handleLookupCustomer = async (phone: string) => {
-    const clean = phone.trim()
-    if (clean.length < 9) {
+  // Chọn nhanh khách hàng từ danh sách gợi ý
+  const handleSelectCustomer = (customer: posApi.PosCustomer) => {
+    setMatchedCustomer(customer)
+    setCustomerPhone(customer.phone)
+    setCustomerName(customer.name)
+    setCustomerAddress(customer.address || '')
+    setShowSuggestions(false)
+    setCustomerSuggestions([])
+  }
+
+  // Xóa / Đổi khách hàng
+  const handleClearCustomer = () => {
+    setCustomerPhone('')
+    setCustomerName('')
+    setCustomerAddress('')
+    setMatchedCustomer(null)
+    setShowSuggestions(false)
+    setCustomerSuggestions([])
+  }
+
+  // Tra cứu & Gợi ý khách hàng siêu nhanh (Debounce 250ms, hiển thị ngay từ 2 ký tự chuẩn Web Admin)
+  const handlePhoneInputChange = (val: string) => {
+    setCustomerPhone(val)
+    if (matchedCustomer) {
       setMatchedCustomer(null)
+    }
+
+    if (customerSuggestTimerRef.current) {
+      clearTimeout(customerSuggestTimerRef.current)
+    }
+
+    const trimmed = val.trim()
+    const digits = trimmed.replace(/\D/g, '')
+
+    if (trimmed.length < 2 && digits.length < 2) {
+      setCustomerSuggestions([])
+      setShowSuggestions(false)
+      setLookupLoading(false)
       return
     }
+
     setLookupLoading(true)
-    try {
-      const res = await posApi.lookupPosCustomer(clean)
-      const data = res?.data
-      if (data && data.id) {
-        setMatchedCustomer(data)
-        setCustomerName(data.name || '')
-        setCustomerAddress(data.address || '')
-      } else {
-        setMatchedCustomer(null)
+    customerSuggestTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await posApi.suggestPosCustomers(trimmed)
+        setCustomerSuggestions(results)
+        setShowSuggestions(results.length > 0)
+
+        // Nếu đã nhập từ 9 số trở lên và có kết quả trùng khớp chính xác
+        if (digits.length >= 9) {
+          const exact = results.find((c) => c.phone.replace(/\D/g, '') === digits)
+          if (exact) {
+            handleSelectCustomer(exact)
+            return
+          }
+          const lookupRes = await posApi.lookupPosCustomer(trimmed)
+          if (lookupRes.found && lookupRes.data) {
+            handleSelectCustomer(lookupRes.data)
+            return
+          }
+        }
+      } catch {
+        // bỏ qua lỗi gợi ý
+      } finally {
+        setLookupLoading(false)
       }
-    } catch {
-      setMatchedCustomer(null)
-    } finally {
-      setLookupLoading(false)
-    }
+    }, 250)
   }
 
   // Thêm vào giỏ (Đồng bộ logic IMEI chính xác từ Web POS)
@@ -2034,37 +2047,96 @@ export default function PosScreen() {
               ))}
             </View>
 
-            {/* TRA CỨU KHÁCH HÀNG */}
+            {/* TRA CỨU & GỢI Ý KHÁCH HÀNG (ĐỒNG BỘ 100% VỚI WEB ADMIN) */}
             <View style={styles.cartSection}>
-              <Text style={styles.sectionTitle}>THÔNG TIN KHÁCH HÀNG & BẢO HÀNH</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>THÔNG TIN KHÁCH HÀNG & BẢO HÀNH</Text>
+                {matchedCustomer && (
+                  <Pressable hitSlop={8} onPress={handleClearCustomer}>
+                    <Text style={styles.clearCustText}>Đổi khách khác</Text>
+                  </Pressable>
+                )}
+              </View>
+
               <View style={styles.customerInputRow}>
                 <Ionicons name="call-outline" size={18} color="#8C716E" style={{ marginLeft: 12 }} />
                 <TextInput
                   style={styles.customerInput}
-                  placeholder="Nhập SĐT khách (gợi ý & tích điểm)..."
+                  placeholder="Nhập SĐT hoặc tên khách (từ 2 ký tự)..."
                   placeholderTextColor="#8C716E"
                   keyboardType="phone-pad"
                   value={customerPhone}
-                  onChangeText={(val) => {
-                    setCustomerPhone(val)
-                    handleLookupCustomer(val)
+                  onChangeText={handlePhoneInputChange}
+                  onFocus={() => {
+                    if (customerSuggestions.length > 0 && !matchedCustomer) {
+                      setShowSuggestions(true)
+                    }
                   }}
                 />
-                {lookupLoading && (
+                {lookupLoading ? (
                   <ActivityIndicator size="small" color={Colors.primaryContainer} style={{ marginRight: 12 }} />
-                )}
+                ) : customerPhone.length > 0 ? (
+                  <Pressable hitSlop={8} onPress={handleClearCustomer} style={{ marginRight: 12 }}>
+                    <Ionicons name="close-circle" size={18} color="#8C716E" />
+                  </Pressable>
+                ) : null}
               </View>
 
+              {/* DANH SÁCH GỢI Ý KHÁCH HÀNG CŨ (HIỆN NGAY KHI GÕ TỪ 2 KÝ TỰ) */}
+              {showSuggestions && customerSuggestions.length > 0 && !matchedCustomer && (
+                <View style={styles.suggestionsContainer}>
+                  <View style={styles.suggestionsHeader}>
+                    <Ionicons name="people-outline" size={14} color="#7A0C10" />
+                    <Text style={styles.suggestionsTitle}>
+                      Khách hàng cũ ({customerSuggestions.length} gợi ý):
+                    </Text>
+                  </View>
+                  <ScrollView style={styles.suggestionsScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                    {customerSuggestions.map((cust) => (
+                      <Pressable
+                        key={cust.id}
+                        style={styles.suggestionItem}
+                        onPress={() => handleSelectCustomer(cust)}
+                      >
+                        <View style={styles.suggestionAvatar}>
+                          <Ionicons name="person" size={14} color="#7A0C10" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.suggestionHeader}>
+                            <Text style={styles.suggestionName}>{cust.name}</Text>
+                            <Text style={styles.suggestionPhone}>{cust.phone}</Text>
+                          </View>
+                          {cust.address ? (
+                            <Text style={styles.suggestionAddress} numberOfLines={1}>
+                              {cust.address}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#8C716E" />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* THÔNG TIN KHÁCH ĐÃ CHỌN */}
               {matchedCustomer ? (
                 <View style={styles.matchedCard}>
                   <View style={styles.matchedRow}>
-                    <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-                    <Text style={styles.matchedName}>{matchedCustomer.name}</Text>
-                    <Text style={styles.matchedBadge}>Khách VIP (Vàng)</Text>
+                    <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+                    <View style={{ flex: 1, marginLeft: 6 }}>
+                      <Text style={styles.matchedName}>{matchedCustomer.name}</Text>
+                      <Text style={styles.matchedPhoneSub}>SĐT: {matchedCustomer.phone}</Text>
+                    </View>
+                    <View style={styles.matchedBadgePill}>
+                      <Text style={styles.matchedBadgeText}>Khách hàng cũ</Text>
+                    </View>
                   </View>
-                  <Text style={styles.matchedAddress}>
-                    Địa chỉ: {matchedCustomer.address || 'Chi nhánh Cầu Giấy - Hà Nội'}
-                  </Text>
+                  {matchedCustomer.address ? (
+                    <Text style={styles.matchedAddress}>
+                      Địa chỉ: {matchedCustomer.address}
+                    </Text>
+                  ) : null}
                 </View>
               ) : (
                 <View style={styles.newCustForm}>
@@ -3181,6 +3253,17 @@ const styles = StyleSheet.create({
   },
 
   // Customer
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  clearCustText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
   customerInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3193,6 +3276,74 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#191C1E',
     paddingHorizontal: 8,
+  },
+  suggestionsContainer: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    shadowColor: '#DC2626',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FEE2E2',
+  },
+  suggestionsTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#7A0C10',
+  },
+  suggestionsScroll: {
+    maxHeight: 180,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F4F6',
+    gap: 10,
+  },
+  suggestionAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  suggestionName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1E',
+  },
+  suggestionPhone: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7A0C10',
+  },
+  suggestionAddress: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
   },
   matchedCard: {
     backgroundColor: '#DCFCE7',
@@ -3207,6 +3358,23 @@ const styles = StyleSheet.create({
   },
   matchedName: {
     fontSize: 13,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  matchedPhoneSub: {
+    fontSize: 11,
+    color: '#15803D',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  matchedBadgePill: {
+    backgroundColor: '#BBF7D0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  matchedBadgeText: {
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#166534',
   },

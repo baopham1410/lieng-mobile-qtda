@@ -203,7 +203,7 @@ export default function HomeScreen() {
     onRefresh()
     const timer = setInterval(() => {
       onRefresh()
-    }, 4000)
+    }, 15000)
     return () => clearInterval(timer)
   }, [onRefresh])
 

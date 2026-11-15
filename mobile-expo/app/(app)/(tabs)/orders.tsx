@@ -347,10 +347,10 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     loadOrders()
-    // Tự động đồng bộ đơn hàng thời gian thực mỗi 4 giây (Realtime Auto-Sync)
+    // Tự động đồng bộ đơn hàng thời gian thực mỗi 15 giây (Realtime Auto-Sync)
     const timer = setInterval(() => {
       loadOrders()
-    }, 4000)
+    }, 15000)
     return () => clearInterval(timer)
   }, [loadOrders])
   const copyOrderCode = (code: string) => {

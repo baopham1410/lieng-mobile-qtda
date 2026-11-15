@@ -470,10 +470,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshStoreData()
-    // Đồng bộ thời gian thực tự động mỗi 4 giây (Realtime Auto-Sync với Neon DB)
+    // Đồng bộ thời gian thực tự động mỗi 15 giây (Realtime Auto-Sync với Neon DB)
     const interval = setInterval(() => {
       refreshStoreData()
-    }, 4000)
+    }, 15000)
     return () => clearInterval(interval)
   }, [refreshStoreData])
 

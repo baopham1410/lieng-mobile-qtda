@@ -99,13 +99,13 @@ onMounted(() => {
   )
   applyPage(initial)
 
-  // Tự động đồng bộ danh sách phiếu nhập thời gian thực mỗi 4 giây
+  // Tự động đồng bộ danh sách phiếu nhập thời gian thực mỗi 12 giây
   const timer = setInterval(async () => {
     try {
       const page = await fetchStockImportPage(silentRequest)
       applyPage(page)
     } catch {}
-  }, 4000)
+  }, 12000)
 
   onUnmounted(() => {
     clearInterval(timer)

@@ -107,13 +107,13 @@ onMounted(() => {
     deviceShareChart.value = initial.deviceShareChart
   }
 
-  // Tự động đồng bộ thời gian thực mỗi 4 giây (Realtime Auto-Sync với Neon DB)
+  // Tự động đồng bộ thời gian thực mỗi 12 giây (Realtime Auto-Sync với Neon DB)
   const realTimeTimer = setInterval(async () => {
     try {
       const data = await fetchDashboard(silentRequest)
       applyData(data)
     } catch {}
-  }, 4000)
+  }, 12000)
 
   onUnmounted(() => {
     clearInterval(realTimeTimer)

@@ -29,8 +29,17 @@ class PosController extends Controller
 
     public function available(Request $request): JsonResponse
     {
+        $this->releaseExpiredOrders();
+
         $query = ImeiCode::with(['productVariant.product.category', 'productVariant.prices'])
-            ->where('status', 'in_stock');
+            ->where('status', 'in_stock')
+            ->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('order_items')
+                    ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->whereColumn('order_items.imei_code_id', 'imei_codes.id')
+                    ->whereNotIn('orders.status', ['cancelled']);
+            });
 
         if ($categoryId = $request->query('category_id')) {
             $query->whereHas('productVariant.product', fn ($p) => $p->where('category_id', $categoryId));
@@ -85,6 +94,8 @@ class PosController extends Controller
 
     public function checkout(Request $request): JsonResponse
     {
+        $this->releaseExpiredOrders();
+
         if ($request->has('discount_amount') && ! $request->has('discount')) {
             $request->merge(['discount' => $request->input('discount_amount')]);
         }
@@ -93,9 +104,18 @@ class PosController extends Controller
         }
         if ($request->has('items') && is_array($request->input('items'))) {
             $items = $request->input('items');
-            $fallbackImeiId = \App\Models\ImeiCode::value('id');
+            $fallbackImeiId = ImeiCode::where('status', 'in_stock')
+                ->whereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('order_items')
+                        ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                        ->whereColumn('order_items.imei_code_id', 'imei_codes.id')
+                        ->whereNotIn('orders.status', ['cancelled']);
+                })
+                ->value('id');
+
             foreach ($items as &$it) {
-                if (empty($it['imei_code_id']) || ! \App\Models\ImeiCode::where('id', $it['imei_code_id'])->exists()) {
+                if (empty($it['imei_code_id']) || ! ImeiCode::where('id', $it['imei_code_id'])->exists()) {
                     if ($fallbackImeiId) {
                         $it['imei_code_id'] = $fallbackImeiId;
                     }
@@ -578,5 +598,34 @@ class PosController extends Controller
                 ...$rows->toArray(),
             ],
         ]);
+    }
+
+    private function releaseExpiredOrders(): void
+    {
+        try {
+            $expiredOrders = Order::where('status', 'pending_payment')
+                ->where(function ($q) {
+                    $q->where('payment_expires_at', '<', now())
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('payment_expires_at')
+                                ->where('created_at', '<', now()->subMinutes(15));
+                        });
+                })
+                ->get();
+
+            foreach ($expiredOrders as $order) {
+                $this->finalizeOrderPaymentService->release($order, 'expired', $order->payment_payload);
+                foreach ($order->items as $item) {
+                    if ($item->imei_code_id) {
+                        ImeiCode::where('id', $item->imei_code_id)->update([
+                            'status' => 'in_stock',
+                            'order_item_id' => null,
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }
