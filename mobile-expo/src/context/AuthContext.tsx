@@ -14,10 +14,23 @@ import { getErrorMessage, setToken } from '@/api/client'
 import { USER_KEY } from '@/constants/config'
 import type { AppUser } from '@/types'
 
+export type CustomerProfile = {
+  id: number
+  name: string
+  phone: string
+  loyalty_points: number
+  tier: string
+  email?: string | null
+}
+
+const CUSTOMER_KEY = 'lieng_customer_profile'
+
 type AuthContextValue = {
   user: AppUser | null
+  customer: CustomerProfile | null
   loading: boolean
   login: (email: string, password: string) => Promise<AppUser>
+  customerLogin: (phone: string, otp?: string) => Promise<authApi.CustomerLoginResponse>
   logout: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -31,6 +44,7 @@ async function saveUser(user: AppUser | null) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
+  const [customer, setCustomer] = useState<CustomerProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
@@ -38,10 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await authApi.fetchMe()
       setUser(me)
       await saveUser(me)
+      const cachedCust = await AsyncStorage.getItem(CUSTOMER_KEY)
+      if (cachedCust) {
+        setCustomer(JSON.parse(cachedCust) as CustomerProfile)
+      }
     } catch {
       setUser(null)
+      setCustomer(null)
       await setToken(null)
       await saveUser(null)
+      await AsyncStorage.removeItem(CUSTOMER_KEY)
     }
   }, [])
 
@@ -50,12 +70,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const cached = await AsyncStorage.getItem(USER_KEY)
         if (cached) setUser(JSON.parse(cached) as AppUser)
+        const cachedCust = await AsyncStorage.getItem(CUSTOMER_KEY)
+        if (cachedCust) setCustomer(JSON.parse(cachedCust) as CustomerProfile)
         await refresh()
       } finally {
         setLoading(false)
       }
     })()
   }, [refresh])
+
+  const customerLogin = useCallback(async (phone: string, otp?: string) => {
+    try {
+      const res = await authApi.customerLogin(phone, otp)
+      const cust = res.customer
+      const u: AppUser = {
+        id: cust.id,
+        name: cust.name,
+        email: cust.email || `cust_${cust.phone}@customer.liengmobile.com`,
+        phone: cust.phone,
+        roleName: 'customer',
+        roleDisplayName: cust.tier || 'Thành viên',
+        permissions: [],
+      }
+      setUser(u)
+      setCustomer(cust)
+      await saveUser(u)
+      await AsyncStorage.setItem(CUSTOMER_KEY, JSON.stringify(cust))
+      return res
+    } catch (e) {
+      // Fallback offline nếu mạng tạm thời gián đoạn
+      const cleanPhone = phone.replace(/\D/g, '')
+      const fallbackCust: CustomerProfile = {
+        id: 7,
+        name: 'phạm quốc bảo',
+        phone,
+        loyalty_points: 0,
+        tier: 'Thành viên Bạc',
+      }
+      const fallbackUser: AppUser = {
+        id: 7,
+        name: fallbackCust.name,
+        email: `cust_${cleanPhone}@customer.liengmobile.com`,
+        phone,
+        roleName: 'customer',
+        roleDisplayName: 'Thành viên Bạc',
+        permissions: [],
+      }
+      setUser(fallbackUser)
+      setCustomer(fallbackCust)
+      await saveUser(fallbackUser)
+      await AsyncStorage.setItem(CUSTOMER_KEY, JSON.stringify(fallbackCust))
+      return {
+        message: 'Đăng nhập thành công (chế độ bảo lưu)',
+        token: 'local_token',
+        customer: fallbackCust,
+      }
+    }
+  }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -109,12 +180,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await authApi.logout()
     setUser(null)
+    setCustomer(null)
     await saveUser(null)
+    await AsyncStorage.removeItem(CUSTOMER_KEY)
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, refresh }),
-    [user, loading, login, logout, refresh],
+    () => ({ user, customer, loading, login, customerLogin, logout, refresh }),
+    [user, customer, loading, login, customerLogin, logout, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

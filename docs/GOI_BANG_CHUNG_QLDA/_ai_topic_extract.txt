@@ -1,0 +1,49 @@
+ĐỀ CƯƠNG ĐỀ TÀI
+1. Thông tin sinh viên thực hiện:
+2. Tên đồ án: Hệ thống AI hỗ trợ thẩm định và định giá thu mua điện thoại cũ
+3. Lý do chọn đề tài:
+3.1. Quy mô thị trường bùng nổ: Theo báo cáo của tổ chức phân tích dữ liệu IDC, thị trường điện thoại thông minh đã qua sử dụng (Secondary & Refurbished Smartphone) đạt quy mô giao dịch trên 300 triệu thiết bị mỗi năm và duy trì tốc độ tăng trưởng kép (CAGR) trên 10%. Tại Việt Nam, xu hướng "Thu cũ đổi mới" (Trade-in) đang trở thành đòn bẩy kích cầu tiêu dùng hàng đầu tại hầu hết các chuỗi bán lẻ lớn như Thế Giới Di Động, FPT Shop, CellphoneS và hàng nghìn cửa hàng bán lẻ công nghệ.
+3.2. Ý nghĩa xã hội và kinh tế tuần hoàn: Rác thải điện tử (e-waste) hiện là một trong những nguồn ô nhiễm độc hại gia tăng nhanh nhất toàn cầu do chứa nhiều chì, thủy ngân và kim loại nặng. Bằng việc tối ưu hóa quy trình thu gom và phân loại smartphone cũ, đề tài trực tiếp kéo dài vòng đời sản phẩm, thúc đẩy mô hình kinh tế tuần hoàn, giảm thiểu gánh nặng rác thải công nghệ ra môi trường tự nhiên, mang lại giá trị thiết thực vì một cuộc sống xanh và bền vững.
+4. Bài toán cần giải quyết:
+Mặc dù nhu cầu thị trường rất lớn, quy trình thu mua điện thoại cũ hiện nay vẫn phụ thuộc hoàn toàn vào phương thức thủ công, dẫn tới 3 điểm nghẽn nghiêm trọng:
+Định giá cảm tính và thiếu chuẩn mực: Việc phân loại tình trạng máy (loại A, B, C; 99% hay 95%) hoàn toàn dựa trên kinh nghiệm chủ quan bằng mắt thường của từng nhân viên. Cùng một chiếc máy, hai nhân viên tại hai chi nhánh khác nhau có thể đưa ra mức định giá chênh lệch hàng triệu đồng.
+Rủi ro thất thoát vốn cho cửa hàng: Nhân viên quầy rất dễ bỏ sót các khuyết tật kỹ thuật tiềm ẩn như nứt viền kính sâu, lưu ảnh màn hình (burn-in trên màn OLED), đốm sáng phản quang, điểm chết cảm ứng, chai pin hoặc các thiết bị đã bị thay thế linh kiện kém chất lượng (màn hình lô, camera thay ngoài). Nhập phải một máy lỗi có thể xóa sạch lợi nhuận của toàn bộ lô hàng.
+Bất đối xứng thông tin và mất niềm tin từ người dùng: Khách hàng muốn bán máy thường không nắm được giá trị thực tế của thiết bị, luôn có tâm lý e ngại bị nhân viên "soi lỗi để ép giá". Thời gian kiểm tra thủ công kéo dài từ 15–20 phút gây tắc nghẽn quầy thu ngân và giảm tỷ lệ chốt giao dịch.
+5. Các tính năng của sản phẩm / giải pháp:
+Hệ thống được thiết kế theo kiến trúc O2O (Online-to-Offline) toàn diện, phục vụ đồng thời hai nhóm đối tượng:
+5.1. Phân hệ Cổng Người dùng (Public Web Portal)
+Tự quét và chẩn đoán tại nhà: Cho phép người dùng chụp ảnh ngoại quan 3 góc máy và tải ảnh màn hình cài đặt lên hệ thống.
+Tương tác kiểm tra cảm ứng (Canvas Touch Test): Web cung cấp bài kiểm tra vuốt kín ô lưới trên toàn màn hình để người dùng tự kiểm tra độ nhạy cảm ứng.
+Báo cáo định giá minh bạch: Xuất khoảng giá ước tính lập tức kèm phiếu đặt lịch (Mã định giá / QR Code) để mang máy ra cửa hàng gần nhất.
+5.2. Phân hệ Bảng Quản trị Cửa hàng (Admin & POS Module)
+Tiếp nhận mã định giá: Nhân viên quét mã QR của khách để đồng bộ toàn bộ lịch sử chẩn đoán trước đó mà không cần nhập liệu lại.
+Xác thực nhanh bằng AI: Tự động khoanh vùng tọa độ lỗi nứt, xước và tính toán chi phí khấu hao theo ma trận bảng giá linh kiện động.
+Xuất phiếu thu mua & quản lý kho: Tự động lập biên bản thu mua có chữ ký điện tử, đồng bộ thiết bị vào kho quản lý hàng cũ (Inventory).
+6. Ứng dụng Trí tuệ Nhân tạo (AI):
+6.1. Chi tiết ứng dụng AI vào các tính năng nghiệp vụ
+6.2. Phương pháp kỹ thuật thực hiện
+Thị giác máy tính phát hiện khuyết tật: Sử dụng kiến trúc mạng tích chập Single-Stage (YOLOv8 nano/small). Mô hình được huấn luyện trên tập dữ liệu hình ảnh màn hình nứt vỡ thực tế (Cracked Screen Datasets kết hợp dữ liệu thu thập thực tế tại cửa hàng). Nhờ cơ chế truyền xuôi một lượt, thời gian suy luận (Inference time) chỉ mất dưới 50ms trên máy chủ CPU thông thường.
+Bóc tách văn bản cấu hình qua OCR: Tích hợp mạng phát hiện vùng chữ (DBNet) và mạng nhận diện ký tự (CRNN/SVTR) từ PaddleOCR. Module này tự động cắt lọc vùng thông tin quan trọng trong ảnh chụp phần "Giới thiệu" và "Pin", phân loại dữ liệu chuẩn để đưa vào công thức tính toán.
+Thuật toán định giá động (Dynamic Valuation Formula):
+Công thức: P(Thu mua) = P(Gốc theo Model & ROM) - C(Khấu hao ngoại quan) - C(Linh kiện lỗi) - M(Biên lợi nhuận)
+Trong đó: Chi phí thay linh kiện (màn hình, ép kính, pin) được truy vấn tự động từ cơ sở dữ liệu bảng giá linh kiện theo đúng dòng máy vừa được OCR nhận dạng.
+7. Giá trị và hiệu quả mang lại:
+Tối ưu thời gian thẩm định vượt bậc: Rút ngắn tổng thời gian kiểm tra và báo giá từ 15–20 phút xuống dưới 2 phút cho mỗi thiết bị, khách hàng có thể tự tra cứu khoảng giá chính xác ngay tại nhà trước khi đến cửa hàng mà không phải chờ đợi lâu.
+Loại bỏ 100% định giá cảm tính: Mọi khấu trừ chi phí đều có bằng chứng trực quan (ảnh khoanh vùng lỗi từ AI) và bảng giá minh bạch, triệt tiêu mâu thuẫn giữa nhân viên và khách hàng.
+Bảo toàn lợi nhuận cho chuỗi bán lẻ: Hạn chế tối đa rủi ro mua hớ thiết bị lỗi màn hình, mất cảm ứng hay máy đã bị luộc linh kiện; hỗ trợ nhân viên mới chưa có kinh nghiệm vẫn thẩm định chính xác như thợ lành nghề.
+Thúc đẩy chuyển đổi số và sống xanh: Chuẩn hóa dữ liệu kho thiết bị cũ, tạo điều kiện mở rộng mạng lưới kiosk thu gom tự động trong tương lai, góp phần bảo vệ môi trường thông qua việc giảm thiểu rác thải điện tử.
+---TABLES---
+==TABLE 0==
+TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG VIỆT- HÀN KHOA KHOA HỌC MÁY TÍNH | CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc            	          	Đà Nẵng, ngày 24 tháng 09 năm 2026
+==TABLE 1==
+STT | Họ và tên | MSSV | Lớp | Email
+1 | Phạm Quốc Bảo | 23IT.EB009 | 23ITe1 | baopq.23ite@vku.udn.vn
+2 | Nguyễn Thị Hồng | 23IT.EB039 | 23ITe1 | hongnt.23ite@vku.udn.vn
+3 | Khổng Thị Lệ Giang | 23IT.EB027 | 23ITe1 | giangktl.23ite@vku.udn.vn
+==TABLE 2==
+Tính năng nghiệp vụ | Công nghệ AI ứng dụng | Đầu ra của mô hình
+Thẩm định ngoại quan thân vỏ & mặt kính | Mô hình thị giác máy tính YOLOv8 / YOLOv11 (Object Detection) | Tọa độ bounding box, nhãn lỗi (nứt kính, xước viền, cấn góc, vỡ cam) và độ tin cậy.
+Trích xuất cấu hình máy & tình trạng pin | Mô hình OCR đa ngôn ngữ (PaddleOCR / EasyOCR) | Văn bản số hóa: Tên Model, Dung lượng bộ nhớ (ROM), Mã thị trường, Dung lượng pin tối đa (%).
+Phát hiện linh kiện bị tráo đổi / mất zin | OCR kết hợp xử lý ngôn ngữ dựa trên luật (Rule-based NLP) | Nhận diện thông báo cảnh báo "Linh kiện không xác định" (Unknown Part) trên màn hình iOS.
+==TABLE 3==
+GIẢNG VIÊN HƯỚNG DẪN (Ký và ghi rõ họ tên) | Đà Nẵng, ngày ... tháng ... năm 2026 ĐẠI DIỆN NHÓM THỰC HIỆN (Ký và ghi rõ họ tên)

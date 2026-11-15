@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import AppEmptyState from '@/components/common/AppEmptyState.vue'
@@ -98,6 +98,18 @@ onMounted(() => {
     applyPage,
   )
   applyPage(initial)
+
+  // Tự động đồng bộ danh sách phiếu nhập thời gian thực mỗi 12 giây
+  const timer = setInterval(async () => {
+    try {
+      const page = await fetchStockImportPage(silentRequest)
+      applyPage(page)
+    } catch {}
+  }, 12000)
+
+  onUnmounted(() => {
+    clearInterval(timer)
+  })
 })
 
 const statCards = computed(() => [

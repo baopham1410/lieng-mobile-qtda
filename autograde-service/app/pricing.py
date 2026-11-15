@@ -41,6 +41,30 @@ MODEL_TO_PARTS_GROUP = {
     "iphone 15 plus": "iPhone 15 / iPhone 15 Plus",
     "iphone 15 pro": "iPhone 15 Pro",
     "iphone 15 pro max": "iPhone 15 Pro Max",
+    # Samsung
+    "samsung galaxy s24 ultra": "Samsung Galaxy S24 Series",
+    "samsung galaxy s24+": "Samsung Galaxy S24 Series",
+    "samsung galaxy s24": "Samsung Galaxy S24 Series",
+    "samsung galaxy s23 ultra": "Samsung Galaxy S23 Series",
+    "samsung galaxy s23": "Samsung Galaxy S23 Series",
+    "samsung galaxy s22 ultra": "Samsung Galaxy S22 Series",
+    "samsung galaxy z fold5": "Samsung Galaxy Z Series",
+    "samsung galaxy z flip5": "Samsung Galaxy Z Series",
+    "samsung galaxy a55 5g": "Samsung Galaxy A Series",
+    "samsung galaxy a54 5g": "Samsung Galaxy A Series",
+    # Xiaomi
+    "xiaomi 14t pro": "Xiaomi 14 Series",
+    "xiaomi 14": "Xiaomi 14 Series",
+    "xiaomi 13 pro": "Xiaomi 13 Series",
+    "xiaomi 13": "Xiaomi 13 Series",
+    "redmi note 13 pro": "Xiaomi Redmi Series",
+    "redmi note 12 pro": "Xiaomi Redmi Series",
+    # OPPO
+    "oppo find n3": "OPPO Find Series",
+    "oppo find n3 flip": "OPPO Find Series",
+    "oppo reno12 5g": "OPPO Reno Series",
+    "oppo reno11 5g": "OPPO Reno Series",
+    "oppo reno10 5g": "OPPO Reno Series",
 }
 
 

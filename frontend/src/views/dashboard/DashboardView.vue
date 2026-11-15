@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import AppEmptyState from '@/components/common/AppEmptyState.vue'
@@ -46,8 +46,17 @@ const visibleActions = computed(() =>
     .map((a) => ({ ...a, label: locale.t(actionLabelKeys[a.to] ?? a.label) })),
 )
 
-const stats = ref({ ...mockStats })
-const recentOrders = ref([...mockRecentOrders])
+const emptyStats = {
+  revenueToday: 0,
+  ordersToday: 0,
+  imeiInStock: 0,
+  revenueMonth: 0,
+  pendingImports: 0,
+  lowStockVariants: 0,
+}
+
+const stats = ref({ ...emptyStats })
+const recentOrders = ref([])
 const staffActivity = ref([])
 const revenueCostChart = ref(null)
 const deviceShareChart = ref(null)
@@ -97,6 +106,18 @@ onMounted(() => {
   if (initial.deviceShareChart) {
     deviceShareChart.value = initial.deviceShareChart
   }
+
+  // Tự động đồng bộ thời gian thực mỗi 12 giây (Realtime Auto-Sync với Neon DB)
+  const realTimeTimer = setInterval(async () => {
+    try {
+      const data = await fetchDashboard(silentRequest)
+      applyData(data)
+    } catch {}
+  }, 12000)
+
+  onUnmounted(() => {
+    clearInterval(realTimeTimer)
+  })
 })
 
 const statCards = computed(() => [

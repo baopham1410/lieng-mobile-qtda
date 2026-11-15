@@ -29,8 +29,17 @@ class PosController extends Controller
 
     public function available(Request $request): JsonResponse
     {
+        $this->releaseExpiredOrders();
+
         $query = ImeiCode::with(['productVariant.product.category', 'productVariant.prices'])
-            ->where('status', 'in_stock');
+            ->where('status', 'in_stock')
+            ->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('order_items')
+                    ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->whereColumn('order_items.imei_code_id', 'imei_codes.id')
+                    ->whereNotIn('orders.status', ['cancelled']);
+            });
 
         if ($categoryId = $request->query('category_id')) {
             $query->whereHas('productVariant.product', fn ($p) => $p->where('category_id', $categoryId));
@@ -45,7 +54,7 @@ class PosController extends Controller
             });
         }
 
-        $items = $query->orderByDesc('updated_at')->limit(100)->get();
+        $items = $query->orderByDesc('updated_at')->limit(500)->get();
 
         $stockByVariant = ImeiCode::query()
             ->selectRaw('product_variant_id, COUNT(*) as in_stock_count')
@@ -85,6 +94,8 @@ class PosController extends Controller
 
     public function checkout(Request $request): JsonResponse
     {
+        $this->releaseExpiredOrders();
+
         if ($request->has('discount_amount') && ! $request->has('discount')) {
             $request->merge(['discount' => $request->input('discount_amount')]);
         }
@@ -93,9 +104,18 @@ class PosController extends Controller
         }
         if ($request->has('items') && is_array($request->input('items'))) {
             $items = $request->input('items');
-            $fallbackImeiId = \App\Models\ImeiCode::value('id');
+            $fallbackImeiId = ImeiCode::where('status', 'in_stock')
+                ->whereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('order_items')
+                        ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                        ->whereColumn('order_items.imei_code_id', 'imei_codes.id')
+                        ->whereNotIn('orders.status', ['cancelled']);
+                })
+                ->value('id');
+
             foreach ($items as &$it) {
-                if (empty($it['imei_code_id']) || ! \App\Models\ImeiCode::where('id', $it['imei_code_id'])->exists()) {
+                if (empty($it['imei_code_id']) || ! ImeiCode::where('id', $it['imei_code_id'])->exists()) {
                     if ($fallbackImeiId) {
                         $it['imei_code_id'] = $fallbackImeiId;
                     }
@@ -190,7 +210,7 @@ class PosController extends Controller
         }
 
         $order = $this->finalizeOrderPaymentService->finalize($order, [
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()?->id ?? \App\Models\User::first()?->id ?? 1,
             'paid_at' => now(),
         ]);
 
@@ -227,7 +247,7 @@ class PosController extends Controller
 
         if ($transferAmount <= 0) {
             $order = $this->finalizeOrderPaymentService->finalize($order->fresh(), [
-                'user_id' => $request->user()->id,
+                'user_id' => $request->user()?->id ?? \App\Models\User::first()?->id ?? 1,
                 'paid_at' => now(),
             ]);
 
@@ -260,6 +280,8 @@ class PosController extends Controller
             $responseData['cashAmount'] = (float) ($breakdown['cash_amount'] ?? 0);
             $responseData['paymentBreakdown'] = $breakdown;
         }
+
+        StoreOwnerController::bustOwnerCaches();
 
         return response()->json([
             'data' => $responseData,
@@ -345,6 +367,52 @@ class PosController extends Controller
         ]);
     }
 
+    public function confirmPayment(Order $order, Request $request): JsonResponse
+    {
+        $userId = $request->user()?->id ?? \App\Models\User::first()?->id ?? 1;
+        $order = $this->finalizeOrderPaymentService->finalize($order, [
+            'user_id' => $userId,
+            'paid_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xác nhận thanh toán thành công!',
+            'data' => $this->buildCheckoutResponseData($order, $order->items()->count()),
+        ]);
+    }
+
+    public function cancel(Order $order, Request $request): JsonResponse
+    {
+        if (! in_array($order->status, ['draft', 'pending_payment', 'pending_discount'], true)) {
+            return response()->json(['message' => 'Không thể hủy đơn ở trạng thái này.'], 422);
+        }
+
+        if ($order->status === 'pending_payment') {
+            $this->finalizeOrderPaymentService->release($order, 'failed', $order->payment_payload);
+        }
+
+        foreach ($order->items as $item) {
+            $item->imeiCode?->update([
+                'status' => 'in_stock',
+                'order_item_id' => null,
+            ]);
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+            'payment_status' => $order->payment_status === 'pending' ? 'failed' : $order->payment_status,
+            'notes' => trim(($order->notes ?? '').' [Hủy quầy POS: '.now()->format('d/m/Y H:i').']'),
+        ]);
+
+        StoreOwnerController::bustOwnerCaches();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã hủy đơn {$order->code} thành công.",
+        ]);
+    }
+
     private function createOrderWithItems(
         array $validated,
         string $paymentMethod,
@@ -361,7 +429,7 @@ class PosController extends Controller
                 '0',
                 STR_PAD_LEFT
             ),
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()?->id ?? \App\Models\User::first()?->id ?? 1,
             'customer_id' => $validated['customer_id'] ?? null,
             'status' => $awaitingTransfer ? 'pending_payment' : 'draft',
             'payment_status' => $awaitingTransfer ? 'pending' : 'unpaid',
@@ -534,5 +602,34 @@ class PosController extends Controller
                 ...$rows->toArray(),
             ],
         ]);
+    }
+
+    private function releaseExpiredOrders(): void
+    {
+        try {
+            $expiredOrders = Order::where('status', 'pending_payment')
+                ->where(function ($q) {
+                    $q->where('payment_expires_at', '<', now())
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('payment_expires_at')
+                                ->where('created_at', '<', now()->subMinutes(15));
+                        });
+                })
+                ->get();
+
+            foreach ($expiredOrders as $order) {
+                $this->finalizeOrderPaymentService->release($order, 'expired', $order->payment_payload);
+                foreach ($order->items as $item) {
+                    if ($item->imei_code_id) {
+                        ImeiCode::where('id', $item->imei_code_id)->update([
+                            'status' => 'in_stock',
+                            'order_item_id' => null,
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

@@ -1,21 +1,26 @@
 import Constants from 'expo-constants'
 
 function resolveApiBaseUrl(): string {
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const host = window.location.hostname
-    if (!host.includes('exp.direct')) {
-      return `http://${host}:8080/api/v1`
-    }
-  }
   const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+  if (envUrl && !envUrl.includes('depot-seasons')) {
     return envUrl
   }
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://127.0.0.1:8080/api/v1'
+    }
+    // Khi chạy qua Cloudflare tunnel Web Admin
+    if (host.includes('trycloudflare.com') && window.location.port === '5173') {
+      return `${window.location.origin}/api/v1`
+    }
+    return 'https://lane-mat-discounted-more.trycloudflare.com/api/v1'
+  }
   const host = Constants.expoConfig?.hostUri?.split(':')[0]
-  if (host) {
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('on.expo.app')) {
     return `http://${host}:8080/api/v1`
   }
-  return envUrl || 'http://localhost:8080/api/v1'
+  return 'https://lane-mat-discounted-more.trycloudflare.com/api/v1'
 }
 
 /**

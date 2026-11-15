@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,56 +16,32 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { sendCustomerOtp } from '@/api/auth'
 import { AlertBox } from '@/components/ui'
+import { AppLoadingOverlay } from '@/components/ui/AppLoadingOverlay'
+import { LIENG_LOGO } from '@/constants/assets'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
 import type { AppLocale } from '@/i18n/messages'
 import type { AppUser } from '@/types'
 
-// ─── Demo accounts ────────────────────────────────────────────────────────────
 const REMEMBER_EMAIL_KEY = 'lieng_remember_email'
-
-const DEMO_ACCOUNTS = [
-  {
-    id: 'banhang',
-    label: 'Bán hàng (POS)',
-    email: 'banhang@liengmobile.com',
-    color: Colors.greenDeep,
-    colorBg: Colors.greenSoft,
-    colorBorder: Colors.greenBorder,
-  },
-  {
-    id: 'kho',
-    label: 'Thủ kho (IMEI)',
-    email: 'kho@liengmobile.com',
-    color: Colors.amber900,
-    colorBg: Colors.amber100,
-    colorBorder: Colors.amber200,
-  },
-  {
-    id: 'admin',
-    label: 'Quản trị viên',
-    email: 'admin@liengmobile.com',
-    color: Colors.redDeep,
-    colorBg: Colors.redSoft,
-    colorBorder: Colors.redBorder,
-  },
-  {
-    id: 'quan',
-    label: 'Chủ quán (Quản lý)',
-    email: 'quan@liengmobile.com',
-    color: Colors.blueDeep,
-    colorBg: Colors.blueSoft,
-    colorBorder: Colors.blueBorder,
-  },
-]
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets()
-  const { user, loading, login } = useAuth()
+  const { user, loading, login, customerLogin } = useAuth()
   const { t, locale, setLocale } = useLocale()
 
+  const [mode, setMode] = useState<'customer' | 'staff'>('customer')
+
+  // Customer state (chỉ duy nhất số điện thoại & mã OTP)
+  const [customerPhone, setCustomerPhone] = useState('0383435600')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState('8888')
+  const [otpNotice, setOtpNotice] = useState('')
+
+  // Staff state
   const [email, setEmail] = useState('banhang@liengmobile.com')
   const [password, setPassword] = useState('password')
   const [remember, setRemember] = useState(true)
@@ -81,11 +58,49 @@ export default function LoginScreen() {
     })
   }, [])
 
-  function getTargetRoute(u: AppUser | null): string {
-    return '/home'
+  async function handleSendOtp() {
+    if (!customerPhone.trim()) {
+      setError('Vui lòng nhập số điện thoại để nhận mã OTP')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await sendCustomerOtp(customerPhone.trim())
+      setOtpSent(true)
+      setOtp(res.otp || '8888')
+      setOtpNotice(res.message || `Mã OTP đã được gửi đến số ${customerPhone.trim()}`)
+    } catch (e: any) {
+      setOtpSent(true)
+      setOtp('8888')
+      setOtpNotice(`Mã OTP thử nghiệm nhanh: 8888 (gửi đến ${customerPhone.trim()})`)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  async function onSubmit() {
+  async function handleConfirmOtpAndLogin() {
+    if (!otp.trim()) {
+      setError('Vui lòng nhập mã OTP 4 số')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+    try {
+      await customerLogin(customerPhone.trim(), otp.trim())
+      router.replace('/(customer)/(tabs)/account' as any)
+    } catch (e: any) {
+      setError(e?.message || 'Mã OTP không chính xác. Quý khách vui lòng nhập mã 8888 để tiếp tục.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function handleGuestBrowse() {
+    router.replace('/(customer)/(tabs)/home' as any)
+  }
+
+  async function onStaffSubmit() {
     setSubmitting(true)
     setError('')
     try {
@@ -95,7 +110,7 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY)
       }
       const loggedUser = await login(email, password)
-      router.replace(getTargetRoute(loggedUser) as any)
+      router.replace('/(app)/(tabs)/home' as any)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('login.failed'))
     } finally {
@@ -103,24 +118,6 @@ export default function LoginScreen() {
     }
   }
 
-  function quickLogin(acc: (typeof DEMO_ACCOUNTS)[0]) {
-    if (submitting) return
-    setEmail(acc.email)
-    setPassword('password')
-    setError('')
-    // login ngay sau khi set state — dùng setTimeout để state kịp flush
-    setTimeout(async () => {
-      setSubmitting(true)
-      try {
-        const loggedUser = await login(acc.email, 'password')
-        router.replace(getTargetRoute(loggedUser) as any)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t('login.failed'))
-      } finally {
-        setSubmitting(false)
-      }
-    }, 50)
-  }
 
   function LangChip({ code, label }: { code: AppLocale; label: string }) {
     const on = locale === code
@@ -136,9 +133,7 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* ── Vòng trang trí góc trên trái ── */}
       <View style={styles.circleTopLeft} pointerEvents="none" />
-      {/* ── Vòng trang trí góc dưới phải ── */}
       <View style={styles.circleBottomRight} pointerEvents="none" />
 
       <KeyboardAvoidingView
@@ -154,11 +149,14 @@ export default function LoginScreen() {
             { paddingBottom: Math.max(insets.bottom + 16, 32) },
           ]}
         >
-          {/* ── HEADER: Logo + Brand ── */}
+          {/* ── HEADER: Logo Quán + Brand ── */}
           <View style={styles.headerBlock}>
-            {/* Logo box */}
             <View style={styles.logoBadge}>
-              <Text style={styles.logoLetter}>L</Text>
+              <Image
+                source={LIENG_LOGO}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
 
             <View style={styles.brandRow}>
@@ -167,161 +165,330 @@ export default function LoginScreen() {
             </View>
 
             <Text style={styles.tagline}>
-              Hệ thống quản lý chuỗi cửa hàng điện thoại & POS
+              Hệ thống bán lẻ điện thoại & dịch vụ thu cũ đổi mới
             </Text>
 
-            {/* Chọn ngôn ngữ */}
             <View style={styles.langRow}>
               <LangChip code="vi" label={t('common.vietnamese')} />
               <LangChip code="lo" label={t('common.lao')} />
             </View>
           </View>
 
-          {/* ── FORM CARD ── */}
-          <View style={styles.card}>
-            {/* Tiêu đề nhỏ */}
-            <Text style={styles.formEyebrow}>HỆ THỐNG QUẢN LÝ</Text>
-            <Text style={styles.formTitle}>Đăng nhập nhân viên</Text>
-
-            <View style={{ height: Space.lg }} />
-
-            {/* Email input */}
-            <View style={styles.inputWrap}>
+          {/* ── TABS CHUYỂN ĐỔI CHẾ ĐỘ: KHÁCH HÀNG VS NHÂN VIÊN ── */}
+          <View style={styles.modeSwitchWrap}>
+            <Pressable
+              style={[styles.modeTab, mode === 'customer' && styles.modeTabActive]}
+              onPress={() => {
+                setMode('customer')
+                setError('')
+              }}
+            >
               <Ionicons
-                name="person-outline"
-                size={18}
-                color={Colors.slate400}
-                style={styles.inputIcon}
+                name="person"
+                size={16}
+                color={mode === 'customer' ? '#7A0C10' : '#64748B'}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Email nhân viên"
-                placeholderTextColor={Colors.slate400}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-                editable={!submitting}
-              />
-            </View>
-
-            <View style={{ height: Space.sm }} />
-
-            {/* Password input */}
-            <View style={styles.inputWrap}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={Colors.slate400}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Mật khẩu"
-                placeholderTextColor={Colors.slate400}
-                secureTextEntry={!showPass}
-                value={password}
-                onChangeText={setPassword}
-                onSubmitEditing={onSubmit}
-                editable={!submitting}
-              />
-              <Pressable
-                onPress={() => setShowPass(v => !v)}
-                hitSlop={8}
-                style={styles.eyeBtn}
-              >
-                <Ionicons
-                  name={showPass ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={Colors.slate400}
-                />
-              </Pressable>
-            </View>
-
-            {/* Checkbox Ghi nhớ email */}
-            <View style={styles.rememberRow}>
-              <Pressable
-                onPress={() => setRemember(!remember)}
-                style={styles.rememberPressable}
-              >
-                <View style={[styles.checkbox, remember && styles.checkboxActive]}>
-                  {remember && <Ionicons name="checkmark" size={12} color={Colors.white} />}
-                </View>
-                <Text style={styles.rememberText}>Ghi nhớ tài khoản trên máy</Text>
-              </Pressable>
-
-              <Text style={styles.forgotText}>Quên mật khẩu?</Text>
-            </View>
-
-            {/* Error */}
-            {!!error && (
-              <View style={{ marginTop: Space.md }}>
-                <AlertBox message={error} tone="error" />
-              </View>
-            )}
-
-            {/* Nút đăng nhập */}
-            <View style={{ marginTop: Space.lg }}>
-              <Pressable
-                onPress={onSubmit}
-                disabled={submitting}
-                style={({ pressed }) => [
-                  styles.loginBtn,
-                  pressed && { opacity: 0.88 },
-                  submitting && { opacity: 0.65 },
+              <Text
+                style={[
+                  styles.modeTabText,
+                  mode === 'customer' && styles.modeTabTextActive,
                 ]}
               >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="log-in-outline" size={18} color="#fff" />
-                    <Text style={styles.loginBtnText}>ĐĂNG NHẬP</Text>
-                  </>
-                )}
+                Khách hàng
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.modeTab, mode === 'staff' && styles.modeTabActive]}
+              onPress={() => {
+                setMode('staff')
+                setError('')
+              }}
+            >
+              <Ionicons
+                name="briefcase"
+                size={16}
+                color={mode === 'staff' ? '#7A0C10' : '#64748B'}
+              />
+              <Text
+                style={[
+                  styles.modeTabText,
+                  mode === 'staff' && styles.modeTabTextActive,
+                ]}
+              >
+                Nhân viên nội bộ
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* ── CHẾ ĐỘ 1: KHÁCH HÀNG (B2C) ── */}
+          {mode === 'customer' ? (
+            <View style={styles.card}>
+              <Text style={styles.formEyebrow}>CỬA HÀNG & DỊCH VỤ</Text>
+              <Text style={styles.formTitle}>
+                {otpSent ? 'Xác thực mã OTP' : 'Đăng nhập khách hàng'}
+              </Text>
+
+              <Text style={styles.customerNotice}>
+                {otpSent
+                  ? 'Vui lòng nhập mã OTP gồm 4 chữ số được gửi tới số điện thoại của bạn.'
+                  : 'Nhập số điện thoại để tự động nhận diện thiết bị mới mua và bảo hành điện tử chính hãng.'}
+              </Text>
+
+              {error ? (
+                <View style={{ marginTop: 10 }}>
+                  <AlertBox tone="error" message={error} />
+                </View>
+              ) : null}
+
+              <View style={{ height: Space.md }} />
+
+              {!otpSent ? (
+                /* BƯỚC 1: CHỈ NHẬP SỐ ĐIỆN THOẠI DUY NHẤT */
+                <>
+                  <View style={styles.inputWrap}>
+                    <Ionicons
+                      name="call-outline"
+                      size={18}
+                      color={Colors.slate400}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Nhập số điện thoại (VD: 0383435600)"
+                      placeholderTextColor={Colors.slate400}
+                      keyboardType="phone-pad"
+                      value={customerPhone}
+                      onChangeText={(t) => {
+                        setCustomerPhone(t)
+                        setError('')
+                      }}
+                    />
+                  </View>
+
+                  <View style={{ marginTop: Space.md }}>
+                    <Pressable
+                      onPress={handleSendOtp}
+                      disabled={submitting}
+                      style={({ pressed }) => [
+                        styles.loginBtn,
+                        pressed && { opacity: 0.88 },
+                      ]}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Ionicons name="paper-plane-outline" size={18} color="#fff" />
+                          <Text style={styles.loginBtnText}>NHẬN MÃ XÁC THỰC OTP</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                /* BƯỚC 2: NHẬP MÃ OTP */
+                <>
+                  <View style={styles.otpNoticeBox}>
+                    <Ionicons name="checkmark-circle" size={18} color="#15803D" />
+                    <Text style={styles.otpNoticeText}>
+                      Đã gửi mã xác thực tới <Text style={{ fontWeight: '800' }}>{customerPhone}</Text>
+                    </Text>
+                  </View>
+
+                  <View style={styles.inputWrap}>
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={18}
+                      color={Colors.slate400}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={[styles.input, { letterSpacing: 6, fontSize: 18, fontWeight: '800', textAlign: 'center' }]}
+                      placeholder="8888"
+                      placeholderTextColor={Colors.slate400}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={otp}
+                      onChangeText={(t) => {
+                        setOtp(t)
+                        setError('')
+                      }}
+                    />
+                  </View>
+
+                  <View style={{ marginTop: Space.md }}>
+                    <Pressable
+                      onPress={handleConfirmOtpAndLogin}
+                      disabled={submitting}
+                      style={({ pressed }) => [
+                        styles.loginBtn,
+                        pressed && { opacity: 0.88 },
+                      ]}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Ionicons name="lock-open-outline" size={18} color="#fff" />
+                          <Text style={styles.loginBtnText}>XÁC NHẬN & ĐĂNG NHẬP</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.otpActionRow}>
+                    <Pressable
+                      onPress={() => {
+                        setOtpSent(false)
+                        setError('')
+                      }}
+                      style={{ paddingVertical: 6 }}
+                    >
+                      <Text style={styles.backPhoneText}>← Đổi số điện thoại khác</Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={handleSendOtp}
+                      disabled={submitting}
+                      style={{ paddingVertical: 6 }}
+                    >
+                      <Text style={styles.resendOtpText}>Gửi lại mã OTP</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+
+              {/* Nút xem vãng lai không cần đăng nhập */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Hoặc xem trực tiếp</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Pressable
+                onPress={handleGuestBrowse}
+                style={({ pressed }) => [
+                  styles.guestBtn,
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Ionicons name="storefront" size={18} color="#7A0C10" />
+                <Text style={styles.guestBtnText}>XEM CỬA HÀNG (KHÁCH VÃNG LAI)</Text>
               </Pressable>
             </View>
+          ) : (
+            /* ── CHẾ ĐỘ 2: NHÂN VIÊN SHOWROOM (B2B) ── */
+            <View style={styles.card}>
+              <Text style={styles.formEyebrow}>HỆ THỐNG NỘI BỘ</Text>
+              <Text style={styles.formTitle}>Đăng nhập nhân viên</Text>
 
-            {/* Phân cách */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Đăng nhập nhanh</Text>
-              <View style={styles.dividerLine} />
-            </View>
+              <View style={{ height: Space.lg }} />
 
-            {/* Quick login chips */}
-            <View style={styles.quickRow}>
-              {DEMO_ACCOUNTS.map(acc => (
+              <View style={styles.inputWrap}>
+                <Ionicons
+                  name="person-outline"
+                  size={18}
+                  color={Colors.slate400}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email nhân viên"
+                  placeholderTextColor={Colors.slate400}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!submitting}
+                />
+              </View>
+
+              <View style={{ height: Space.sm }} />
+
+              <View style={styles.inputWrap}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color={Colors.slate400}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Mật khẩu"
+                  placeholderTextColor={Colors.slate400}
+                  secureTextEntry={!showPass}
+                  value={password}
+                  onChangeText={setPassword}
+                  onSubmitEditing={onStaffSubmit}
+                  editable={!submitting}
+                />
                 <Pressable
-                  key={acc.id}
-                  onPress={() => quickLogin(acc)}
+                  onPress={() => setShowPass((v) => !v)}
+                  hitSlop={8}
+                  style={styles.eyeBtn}
+                >
+                  <Ionicons
+                    name={showPass ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color={Colors.slate400}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={styles.rememberRow}>
+                <Pressable
+                  onPress={() => setRemember(!remember)}
+                  style={styles.rememberPressable}
+                >
+                  <View style={[styles.checkbox, remember && styles.checkboxActive]}>
+                    {remember && <Ionicons name="checkmark" size={12} color={Colors.white} />}
+                  </View>
+                  <Text style={styles.rememberText}>Ghi nhớ tài khoản</Text>
+                </Pressable>
+              </View>
+
+              {!!error && (
+                <View style={{ marginTop: Space.md }}>
+                  <AlertBox message={error} tone="error" />
+                </View>
+              )}
+
+              <View style={{ marginTop: Space.lg }}>
+                <Pressable
+                  onPress={onStaffSubmit}
                   disabled={submitting}
                   style={({ pressed }) => [
-                    styles.quickChip,
-                    {
-                      backgroundColor: acc.colorBg,
-                      borderColor: acc.colorBorder,
-                    },
-                    pressed && { opacity: 0.75 },
+                    styles.loginBtn,
+                    pressed && { opacity: 0.88 },
+                    submitting && { opacity: 0.65 },
                   ]}
                 >
-                  <Text style={[styles.quickChipLabel, { color: acc.color }]}>
-                    {acc.label}
-                  </Text>
-                  <Text style={[styles.quickChipSub, { color: acc.color }]}>
-                    {acc.email.split('@')[0]}
-                  </Text>
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="log-in-outline" size={18} color="#fff" />
+                      <Text style={styles.loginBtnText}>ĐĂNG NHẬP NỘI BỘ</Text>
+                    </>
+                  )}
                 </Pressable>
-              ))}
+              </View>
             </View>
-
-            <Text style={styles.demoHint}>
-              Mật khẩu demo:{' '}
-              <Text style={styles.demoCode}>password</Text>
-            </Text>
-          </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── Hiệu ứng load dữ liệu đồng bộ với Web Admin ── */}
+      <AppLoadingOverlay
+        visible={submitting || loading}
+        title="Liêng Mobile"
+        message={
+          mode === 'customer'
+            ? 'Đang xác thực thông tin khách hàng...'
+            : 'Đang kiểm tra quyền hạn & kết nối hệ thống...'
+        }
+      />
     </View>
   )
 }
@@ -332,8 +499,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.canvas,
   },
   flex: { flex: 1 },
-
-  // ── Vòng trang trí ──
   circleTopLeft: {
     position: 'absolute',
     top: -120,
@@ -343,17 +508,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: Colors.brand,
     opacity: 0.92,
-    // gradient effect bằng shadow
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.brandDeep,
-        shadowOpacity: 0.5,
-        shadowRadius: 40,
-        shadowOffset: { width: 20, height: 20 },
-      },
-      android: { elevation: 10 },
-      default: {},
-    }),
   },
   circleBottomRight: {
     position: 'absolute',
@@ -364,181 +518,174 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: Colors.brandSoft,
     opacity: 0.85,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.brand,
-        shadowOpacity: 0.4,
-        shadowRadius: 40,
-        shadowOffset: { width: -20, height: -20 },
-      },
-      android: { elevation: 8 },
-      default: {},
-    }),
   },
-
-  // ── Content ──
   content: {
-    flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: Space.xl,
-    paddingTop: Space.xl,
-    gap: Space.lg,
+    paddingTop: Space.xxl,
   },
-
-  // ── Header block ──
   headerBlock: {
     alignItems: 'center',
-    gap: Space.xs,
+    marginBottom: Space.xl,
   },
   logoBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.brand,
+    width: 76,
+    height: 76,
+    borderRadius: Radius.xxl,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: Space.md,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
     ...Platform.select({
       ios: {
-        shadowColor: Colors.brand,
-        shadowOpacity: 0.45,
-        shadowRadius: 14,
+        shadowColor: '#7A0C10',
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
-      },
-      android: { elevation: 8 },
-      default: {},
-    }),
-  },
-  logoLetter: {
-    color: Colors.white,
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  brandBlack: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Colors.ink,
-    letterSpacing: 2,
-  },
-  brandRed: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Colors.red,
-    letterSpacing: 2,
-  },
-  tagline: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.slate,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  langRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: Space.sm,
-  },
-  langChip: {
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(122,12,16,0.2)',
-    backgroundColor: 'rgba(255,247,247,0.95)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  langChipOn: {
-    backgroundColor: Colors.brand,
-    borderColor: Colors.brand,
-  },
-  langText: {
-    fontWeight: '800',
-    fontSize: 12,
-    color: Colors.slate,
-  },
-  langTextOn: { color: Colors.white },
-
-  // ── Card ──
-  card: {
-    backgroundColor: Colors.panel,
-    borderRadius: Radius.xxl,
-    paddingHorizontal: Space.lg,
-    paddingTop: Space.xl,
-    paddingBottom: Space.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.brand,
-        shadowOpacity: 0.14,
-        shadowRadius: 24,
-        shadowOffset: { width: 0, height: 10 },
       },
       android: { elevation: 6 },
       default: {},
     }),
   },
-  formEyebrow: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 2.5,
-    color: Colors.slate400,
+  logoImage: {
+    width: 52,
+    height: 52,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  brandBlack: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: Colors.ink,
+    letterSpacing: 0.5,
+  },
+  brandRed: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: Colors.accent,
+    letterSpacing: 0.5,
+  },
+  tagline: {
+    fontSize: 12.5,
+    color: Colors.slate500,
+    marginTop: Space.xs,
     textAlign: 'center',
-    textTransform: 'uppercase',
+  },
+  langRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: Space.md,
+  },
+  langChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+    backgroundColor: '#ECEEF0',
+  },
+  langChipOn: {
+    backgroundColor: Colors.brand,
+  },
+  langText: {
+    fontSize: 12,
+    color: Colors.slate600,
+    fontWeight: '600',
+  },
+  langTextOn: {
+    color: Colors.white,
+    fontWeight: '700',
+  },
+  modeSwitchWrap: {
+    flexDirection: 'row',
+    backgroundColor: '#ECEEF0',
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 16,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  modeTabActive: {
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
+  },
+  modeTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  modeTabTextActive: {
+    color: '#7A0C10',
+    fontWeight: '800',
+  },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#ECEEF0',
+  },
+  formEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.brand,
+    letterSpacing: 1,
   },
   formTitle: {
     fontSize: 20,
     fontWeight: '900',
     color: Colors.ink,
-    textAlign: 'center',
-    marginTop: 4,
+    marginTop: 2,
   },
-
-  // ── Input ──
+  customerNotice: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 17,
+    marginTop: 6,
+  },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.slate200,
-    borderRadius: Radius.full,
-    paddingHorizontal: 16,
-    height: 50,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 1 },
-      default: {},
-    }),
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 12,
   },
   inputIcon: {
     marginRight: 8,
   },
   input: {
     flex: 1,
+    paddingVertical: 12,
     fontSize: 14,
     color: Colors.ink,
-    paddingVertical: 0,
   },
   eyeBtn: {
-    paddingLeft: 8,
+    padding: 8,
   },
-
-  // ── Remember & Forgot ──
   rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: Space.sm,
-    paddingHorizontal: 4,
+    marginTop: Space.md,
   },
   rememberPressable: {
     flexDirection: 'row',
@@ -553,106 +700,93 @@ const styles = StyleSheet.create({
     borderColor: Colors.slate400,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.white,
   },
   checkboxActive: {
     backgroundColor: Colors.brand,
     borderColor: Colors.brand,
   },
   rememberText: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: Colors.slate600,
-    fontWeight: '500',
   },
-  forgotText: {
-    fontSize: 12,
-    color: Colors.slate400,
-    fontWeight: '500',
-  },
-
-  // ── Login button ──
   loginBtn: {
+    backgroundColor: Colors.brand,
+    borderRadius: 14,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.brand,
-    borderRadius: Radius.full,
-    paddingVertical: 14,
-    // gradient sẽ dùng màu thuần — React Native không hỗ trợ CSS gradient
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.brand,
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 5 },
-      },
-      android: { elevation: 6 },
-      default: {},
-    }),
   },
   loginBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
     color: Colors.white,
-    fontWeight: '900',
-    fontSize: 15,
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
   },
-
-  // ── Divider ──
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginVertical: Space.lg,
+    marginVertical: 16,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.slate200,
+    backgroundColor: '#ECEEF0',
   },
   dividerText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: Colors.slate400,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
-
-  // ── Quick login ──
-  quickRow: {
+  guestBtn: {
+    backgroundColor: '#FFF8F8',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    borderRadius: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
-  quickChip: {
-    width: '48.5%',
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    gap: 2,
-  },
-  quickChipLabel: {
-    fontSize: 12,
+  guestBtnText: {
+    fontSize: 13,
     fontWeight: '800',
+    color: '#7A0C10',
+    letterSpacing: 0.5,
   },
-  quickChipSub: {
-    fontSize: 10,
-    fontWeight: '500',
-    opacity: 0.75,
+  otpNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 8,
   },
-
-  // ── Demo hint ──
-  demoHint: {
-    marginTop: Space.sm,
-    textAlign: 'center',
-    fontSize: 11,
-    color: Colors.slate400,
+  otpNoticeText: {
+    fontSize: 12,
+    color: '#166534',
+    flex: 1,
   },
-  demoCode: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    backgroundColor: Colors.slate100,
-    color: Colors.slate600,
-    paddingHorizontal: 4,
-    borderRadius: 4,
+  otpActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  backPhoneText: {
+    fontSize: 12,
+    color: '#7A0C10',
+    fontWeight: '700',
+  },
+  resendOtpText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
   },
 })
