@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ordersApi from '@/api/orders'
 import { fetchDashboardReport } from '@/api/reports'
 import { Colors, Radius, Space } from '@/constants/config'
+import { LIENG_LOGO } from '@/constants/assets'
 import { useAuth } from '@/context/AuthContext'
 import { useStore } from '@/context/StoreContext'
 import { useLocale } from '@/context/LocaleContext'
@@ -232,8 +233,12 @@ export default function HomeScreen() {
       {/* ── Top Header chuẩn Stitch Mobile ── */}
       <View style={styles.topHeader}>
         <View style={styles.brandGroup}>
-          <View style={styles.brandIconBox}>
-            <Ionicons name="storefront" size={18} color="#FFFFFF" />
+          <View style={[styles.brandIconBox, { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#FECACA' }]}>
+            <Image
+              source={LIENG_LOGO}
+              style={{ width: 22, height: 22 }}
+              resizeMode="contain"
+            />
           </View>
           <View>
             <View style={styles.brandTitleRow}>

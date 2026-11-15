@@ -25,6 +25,7 @@ import {
 } from '@/api/warranty'
 
 import { Colors, Radius, Space } from '@/constants/config'
+import { LIENG_LOGO } from '@/constants/assets'
 import { useAuth } from '@/context/AuthContext'
 import { getProductImageSource } from '@/utils/productImages'
 
@@ -226,7 +227,11 @@ export default function CustomerHomeScreen() {
         <View style={styles.headerRow}>
           <View style={styles.brandRow}>
             <View style={styles.logoBox}>
-              <Text style={styles.logoLetter}>L</Text>
+              <Image
+                source={LIENG_LOGO}
+                style={{ width: 28, height: 28 }}
+                resizeMode="contain"
+              />
             </View>
             <View>
               <Text style={styles.brandName}>

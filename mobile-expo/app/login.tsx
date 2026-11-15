@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { sendCustomerOtp } from '@/api/auth'
 import { AlertBox } from '@/components/ui'
+import { AppLoadingOverlay } from '@/components/ui/AppLoadingOverlay'
+import { LIENG_LOGO } from '@/constants/assets'
 import { Colors, Radius, Space } from '@/constants/config'
 import { useAuth } from '@/context/AuthContext'
 import { useLocale } from '@/context/LocaleContext'
@@ -24,41 +27,6 @@ import type { AppLocale } from '@/i18n/messages'
 import type { AppUser } from '@/types'
 
 const REMEMBER_EMAIL_KEY = 'lieng_remember_email'
-
-const DEMO_ACCOUNTS = [
-  {
-    id: 'banhang',
-    label: 'Bán hàng (POS)',
-    email: 'banhang@liengmobile.com',
-    color: Colors.greenDeep,
-    colorBg: Colors.greenSoft,
-    colorBorder: Colors.greenBorder,
-  },
-  {
-    id: 'kho',
-    label: 'Thủ kho (IMEI)',
-    email: 'kho@liengmobile.com',
-    color: Colors.amber900,
-    colorBg: Colors.amber100,
-    colorBorder: Colors.amber200,
-  },
-  {
-    id: 'admin',
-    label: 'Quản trị viên',
-    email: 'admin@liengmobile.com',
-    color: Colors.redDeep,
-    colorBg: Colors.redSoft,
-    colorBorder: Colors.redBorder,
-  },
-  {
-    id: 'quan',
-    label: 'Chủ quán (Quản lý)',
-    email: 'quan@liengmobile.com',
-    color: Colors.blueDeep,
-    colorBg: Colors.blueSoft,
-    colorBorder: Colors.blueBorder,
-  },
-]
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets()
@@ -150,23 +118,6 @@ export default function LoginScreen() {
     }
   }
 
-  function quickStaffLogin(acc: (typeof DEMO_ACCOUNTS)[0]) {
-    if (submitting) return
-    setEmail(acc.email)
-    setPassword('password')
-    setError('')
-    setTimeout(async () => {
-      setSubmitting(true)
-      try {
-        const loggedUser = await login(acc.email, 'password')
-        router.replace('/(app)/(tabs)/home' as any)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t('login.failed'))
-      } finally {
-        setSubmitting(false)
-      }
-    }, 50)
-  }
 
   function LangChip({ code, label }: { code: AppLocale; label: string }) {
     const on = locale === code
@@ -198,10 +149,14 @@ export default function LoginScreen() {
             { paddingBottom: Math.max(insets.bottom + 16, 32) },
           ]}
         >
-          {/* ── HEADER: Logo + Brand ── */}
+          {/* ── HEADER: Logo Quán + Brand ── */}
           <View style={styles.headerBlock}>
             <View style={styles.logoBadge}>
-              <Text style={styles.logoLetter}>L</Text>
+              <Image
+                source={LIENG_LOGO}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
 
             <View style={styles.brandRow}>
@@ -332,19 +287,12 @@ export default function LoginScreen() {
                   </View>
                 </>
               ) : (
-                /* BƯỚC 2: NHẬP MÃ OTP VÀ THÔNG BÁO MÃ THỬ NGHIỆM */
+                /* BƯỚC 2: NHẬP MÃ OTP */
                 <>
                   <View style={styles.otpNoticeBox}>
                     <Ionicons name="checkmark-circle" size={18} color="#15803D" />
                     <Text style={styles.otpNoticeText}>
                       Đã gửi mã xác thực tới <Text style={{ fontWeight: '800' }}>{customerPhone}</Text>
-                    </Text>
-                  </View>
-
-                  <View style={styles.demoOtpBox}>
-                    <Ionicons name="key" size={16} color="#B45309" />
-                    <Text style={styles.demoOtpText}>
-                      Mã OTP thử nghiệm nhanh: <Text style={{ fontWeight: '900', color: '#B45309' }}>8888</Text>
                     </Text>
                   </View>
 
@@ -526,41 +474,21 @@ export default function LoginScreen() {
                   )}
                 </Pressable>
               </View>
-
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Tài khoản demo nội bộ</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <View style={styles.quickRow}>
-                {DEMO_ACCOUNTS.map((acc) => (
-                  <Pressable
-                    key={acc.id}
-                    onPress={() => quickStaffLogin(acc)}
-                    disabled={submitting}
-                    style={({ pressed }) => [
-                      styles.quickChip,
-                      {
-                        backgroundColor: acc.colorBg,
-                        borderColor: acc.colorBorder,
-                      },
-                      pressed && { opacity: 0.75 },
-                    ]}
-                  >
-                    <Text style={[styles.quickChipLabel, { color: acc.color }]}>
-                      {acc.label}
-                    </Text>
-                    <Text style={[styles.quickChipSub, { color: acc.color }]}>
-                      {acc.email.split('@')[0]}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
             </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── Hiệu ứng load dữ liệu đồng bộ với Web Admin ── */}
+      <AppLoadingOverlay
+        visible={submitting || loading}
+        title="Liêng Mobile"
+        message={
+          mode === 'customer'
+            ? 'Đang xác thực thông tin khách hàng...'
+            : 'Đang kiểm tra quyền hạn & kết nối hệ thống...'
+        }
+      />
     </View>
   )
 }
@@ -600,16 +528,18 @@ const styles = StyleSheet.create({
     marginBottom: Space.xl,
   },
   logoBadge: {
-    width: 64,
-    height: 64,
+    width: 76,
+    height: 76,
     borderRadius: Radius.xxl,
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Space.md,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#7A0C10',
         shadowOpacity: 0.15,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
@@ -618,10 +548,9 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
-  logoLetter: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: Colors.brand,
+  logoImage: {
+    width: 52,
+    height: 52,
   },
   brandRow: {
     flexDirection: 'row',
@@ -828,28 +757,6 @@ const styles = StyleSheet.create({
     color: '#7A0C10',
     letterSpacing: 0.5,
   },
-  quickRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  quickChip: {
-    flex: 1,
-    minWidth: '47%',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  quickChipLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  quickChipSub: {
-    fontSize: 10.5,
-    opacity: 0.75,
-    marginTop: 2,
-  },
   otpNoticeBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -865,23 +772,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#166534',
     flex: 1,
-  },
-  demoOtpBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    marginBottom: 12,
-  },
-  demoOtpText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '600',
   },
   otpActionRow: {
     flexDirection: 'row',
