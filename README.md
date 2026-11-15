@@ -13,7 +13,7 @@
   <b>Nền tảng hợp nhất quản trị chuỗi bán lẻ thiết bị di động & không gian trải nghiệm Liêng Mobile, tích hợp AI thị giác máy tính thẩm định ngoại quan máy cũ (AutoGrade AI), Trợ lý nội bộ RAG và Cổng di động Khách hàng B2C 5 Tab.</b>
 </p>
 
-[🌐 Web Live 24/7 (Cloudflare Pages)](https://lieng-mobile-qtda.pages.dev) • [🎥 Video Demo (Google Drive)](https://drive.google.com/file/d/1c5fAd1nVGbjfWkS7eT8VqeswLRHsxPO0/view?usp=sharing) • [📱 Cổng Mobile Khách hàng (Live)](https://alt-steady-submit-drives.trycloudflare.com) • [📋 Bảng Quản trị Projects](https://github.com/users/baopham1410/projects/1) • [📦 Gói Bằng Chứng QLDA](docs/GOI_BANG_CHUNG_QLDA/README.md)
+[🌐 Web Live 24/7 (Cloudflare Pages)](https://lieng-mobile-qtda.pages.dev) • [🎥 Video Demo (Google Drive)](https://drive.google.com/file/d/1c5fAd1nVGbjfWkS7eT8VqeswLRHsxPO0/view?usp=sharing) • [📱 Cổng Mobile Khách hàng (Live)](https://rebecca-transcript-recognised-memory.trycloudflare.com) • [📋 Bảng Quản trị Projects](https://github.com/users/baopham1410/projects/1) • [📦 Gói Bằng Chứng QLDA](docs/GOI_BANG_CHUNG_QLDA/README.md)
 
 ---
 
@@ -50,8 +50,8 @@ Hệ thống được triển khai trên nền tảng **Cloudflare Pages** (ch�
 | :--- | :--- | :--- | :--- |
 | **🌐 Web Production (Cloudflare Pages)** | [https://lieng-mobile-qtda.pages.dev](https://lieng-mobile-qtda.pages.dev) | `admin` / `password` | **Bản Web Live chính thức 24/7** (Toàn bộ Web Admin, Quầy POS, Sổ quỹ, Thẩm định). |
 | **🎥 Video Demo & Quy trình QLDA** | [Xem Video Demo (Google Drive)](https://drive.google.com/file/d/1c5fAd1nVGbjfWkS7eT8VqeswLRHsxPO0/view?usp=sharing) | Thời lượng ~4 phút | **Demo sản phẩm chạy thật & Quy trình quản lý task trên GitHub Projects.** |
-| **💻 Web Admin & Quầy POS (Tunnel)** | [https://lane-mat-discounted-more.trycloudflare.com](https://lane-mat-discounted-more.trycloudflare.com) | `admin` / `password` | Quản lý kho IMEI, quầy POS thanh toán VietQR, Sổ quỹ két và phân hệ Quán. |
-| **📱 Cổng Mobile Khách hàng & Bán hàng** | [https://alt-steady-submit-drives.trycloudflare.com](https://alt-steady-submit-drives.trycloudflare.com) | Khách hàng: Tự do<br>NV: `sales` / `password` | 5 Tab khách hàng B2C (Trang chủ, Cửa hàng, Thu cũ AI, Bảo hành, Tôi) & POS di động. |
+| **💻 Web Admin & Quầy POS (Live Demo)** | [https://scientific-cargo-hewlett-dialog.trycloudflare.com](https://scientific-cargo-hewlett-dialog.trycloudflare.com) | `admin` / `password` | Quản lý kho IMEI, quầy POS thanh toán VietQR, Sổ quỹ két và phân hệ Quán. |
+| **📱 Cổng Mobile Khách hàng & Bán hàng** | [https://rebecca-transcript-recognised-memory.trycloudflare.com](https://rebecca-transcript-recognised-memory.trycloudflare.com) | Khách hàng: Tự do<br>NV: `sales` / `password` | 5 Tab khách hàng B2C (Trang chủ, Cửa hàng, Thu cũ AI, Bảo hành, Tôi) & POS di động. |
 | **📋 Bảng Quản lý Dự án (Kanban)** | [https://github.com/users/baopham1410/projects/1](https://github.com/users/baopham1410/projects/1) | Công khai (Public) | 5 Sprint, Backlog, Ready, In Progress, In Review, Done. |
 | **🏷️ Bản Phát Hành v1.0.0** | [Release v1.0.0 Tag](https://github.com/baopham1410/lieng-mobile-qtda/releases/tag/v1.0.0) | Đã tag chính thức | Đóng gói sản phẩm hoàn thiện phục vụ bảo vệ đồ án. |
 
