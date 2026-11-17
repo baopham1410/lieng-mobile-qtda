@@ -14,13 +14,13 @@ function resolveApiBaseUrl(): string {
     if (host.includes('trycloudflare.com') && window.location.port === '5173') {
       return `${window.location.origin}/api/v1`
     }
-    return 'https://lane-mat-discounted-more.trycloudflare.com/api/v1'
+    return 'https://manga-nyc-subcommittee-keys.trycloudflare.com/api/v1'
   }
   const host = Constants.expoConfig?.hostUri?.split(':')[0]
   if (host && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('on.expo.app')) {
     return `http://${host}:8080/api/v1`
   }
-  return 'https://lane-mat-discounted-more.trycloudflare.com/api/v1'
+  return 'https://manga-nyc-subcommittee-keys.trycloudflare.com/api/v1'
 }
 
 /**
