@@ -25,6 +25,17 @@ const isAutoRotate = ref(true)
 const isDragging = ref(false)
 const isHudVisible = ref(true)
 
+// Interactive 3D Hotspot Mode State (Option 2)
+const isHotspotMode = ref(false)
+const selectedHotspot = ref(null)
+const projectedHotspots = ref([])
+const isHoveringPhone = ref(false)
+let targetUserYaw = null
+let mouseDownPos = { x: 0, y: 0 }
+let mouseDownTime = 0
+const raycaster = new THREE.Raycaster()
+const mouse = new THREE.Vector2()
+
 // 5 Flagship Stations specifications
 const stations = [
   {
@@ -39,6 +50,44 @@ const stations = [
     price: '34.990.000₫',
     oldPrice: '38.990.000₫',
     specs: ['Màn hình 6.9" 120Hz ProMotion', 'Độ sáng cực đại 3000 nits', 'Khung Titan Grade 5 siêu bền', 'Cụm 3 Camera 48MP AI'],
+    hotspots: [
+      {
+        id: 'camera',
+        title: 'Cụm 3 Camera 48MP AI',
+        badge: 'PHOTONIC ENGINE PRO',
+        icon: '📸',
+        description: 'Hệ thống 3 ống kính 48MP đồng nhất cảm biến thế hệ mới, hỗ trợ quay video điện ảnh 8K 60fps ProRes và khử rung gimbal quang học tích hợp.',
+        localPos: [-0.35, 0.95, 0.15],
+        targetRotY: Math.PI,
+      },
+      {
+        id: 'screen',
+        title: 'Màn hình Super Retina XDR 6.9"',
+        badge: 'PROMOTION 120HZ',
+        icon: '✨',
+        description: 'Tấm nền OLED ProMotion 1-120Hz độ sáng đỉnh 3000 nits, viền mỏng vô cực không khiếm khuyết, kính Ceramic Shield chống trầy thế hệ mới.',
+        localPos: [0.0, 0.2, -0.15],
+        targetRotY: 0,
+      },
+      {
+        id: 'frame',
+        title: 'Khung Titan Hàng Không Grade 5',
+        badge: 'AEROSPACE GRADE',
+        icon: '🛡️',
+        description: 'Hợp kim titan Grade 5 gia công chuẩn xác bằng phay CNC vi mô, vừa siêu nhẹ vừa tản nhiệt tối ưu cho chip xử lý.',
+        localPos: [0.65, 0.0, 0.0],
+        targetRotY: Math.PI * 0.4,
+      },
+      {
+        id: 'action',
+        title: 'Phím Tác Vụ Cảm Biến Lực',
+        badge: 'HAPTIC FEEDBACK',
+        icon: '🔘',
+        description: 'Phím Action thế hệ mới cảm ứng điện dung nhận diện chạm vuốt mượt mà để đổi nhanh chế độ zoom, khẩu độ và chụp tức thì.',
+        localPos: [-0.68, 0.5, 0.0],
+        targetRotY: -Math.PI * 0.4,
+      },
+    ],
     themeHex: 0xf43f5e,
     themeColor: '#f43f5e',
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(244, 63, 94, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
@@ -61,6 +110,44 @@ const stations = [
     price: '26.990.000₫',
     oldPrice: '31.990.000₫',
     specs: ['Bút S-Pen độ trễ 2.8ms', 'Camera 108MP 100x Space Zoom', 'Màn hình 6.8" Quad HD+ 120Hz', 'Khung Armor Aluminum'],
+    hotspots: [
+      {
+        id: 'zoom',
+        title: 'Ống Kính 100x Space Zoom',
+        badge: 'CẢM BIẾN 108MP PRO',
+        icon: '🔭',
+        description: 'Camera siêu zoom 100x kết hợp thuật toán Galaxy AI xử lý đa khung hình, cho ảnh chụp thiên văn và vật thể từ xa sắc nét ngoạn mục.',
+        localPos: [-0.32, 0.95, -0.15],
+        targetRotY: 0,
+      },
+      {
+        id: 'spen',
+        title: 'Bút S-Pen Tích Hợp Thân Máy',
+        badge: 'ĐỘ TRỄ 2.8MS',
+        icon: '✍️',
+        description: 'Cây bút S-Pen quyền năng ẩn trong thân máy, hỗ trợ viết vẽ như bút thật, chuyển đổi chữ viết tay và điều khiển cử chỉ không chạm.',
+        localPos: [0.55, -1.3, 0.0],
+        targetRotY: Math.PI * 0.5,
+      },
+      {
+        id: 'display',
+        title: 'Màn Hình Dynamic AMOLED 2X',
+        badge: 'VISION BOOSTER 120HZ',
+        icon: '📱',
+        description: 'Màn hình 6.8 inch cong tràn 120Hz siêu nét với công nghệ Vision Booster tự động điều chỉnh tương phản sắc sảo theo ánh sáng môi trường.',
+        localPos: [0.0, 0.1, 0.15],
+        targetRotY: Math.PI,
+      },
+      {
+        id: 'frame',
+        title: 'Khung Armor Aluminum & IP68',
+        badge: 'BẢO VỆ TOÀN DIỆN',
+        icon: '🛡️',
+        description: 'Khung hợp kim nhôm Armor Aluminum cứng cáp cùng chuẩn kháng nước bụi IP68 bảo vệ thiết bị an tâm trong mọi điều kiện vận hành.',
+        localPos: [-0.65, 0.0, 0.0],
+        targetRotY: -Math.PI * 0.4,
+      },
+    ],
     themeHex: 0x0ea5e9,
     themeColor: '#0ea5e9',
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(14, 165, 233, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
@@ -83,6 +170,44 @@ const stations = [
     price: '31.490.000₫',
     oldPrice: '34.990.000₫',
     specs: ['Viền mỏng kỷ lục 1.15mm', 'Phím Camera Control điện dung', 'Chip Apple A18 Pro 3nm', 'Thời lượng pin vượt trội 33h'],
+    hotspots: [
+      {
+        id: 'control',
+        title: 'Phím Camera Control Cảm Ứng Lực',
+        badge: 'CÔNG NGHỆ MỚI 2024',
+        icon: '🔘',
+        description: 'Phím bấm xúc giác phủ đá sapphire nhạy áp lực và điện dung, cho phép trượt ngón tay để zoom mượt, đổi tiêu cự và bấm 2 nấc chụp chuẩn DSLR.',
+        localPos: [0.65, -0.2, 0.0],
+        targetRotY: Math.PI * 0.45,
+      },
+      {
+        id: 'tetra',
+        title: 'Camera Tiềm Vọng Tetraprism 5x',
+        badge: 'QUANG HỌC 120MM',
+        icon: '📸',
+        description: 'Thiết kế lăng kính phản xạ 4 lần đột phá đem lại tiêu cự 120mm quang học 5x sắc nét, bắt trọn từng khoảnh khắc chân dung từ xa.',
+        localPos: [-0.32, 0.95, 0.15],
+        targetRotY: Math.PI,
+      },
+      {
+        id: 'titan',
+        title: 'Vỏ Titan Sa Mạc (Desert Titanium)',
+        badge: 'VIỀN SIÊU MỎNG 1.15MM',
+        icon: '✨',
+        description: 'Màu Titan Sa Mạc sang trọng với lớp hoàn thiện satin cao cấp, viền màn hình siêu mỏng kỷ lục thế giới chỉ 1.15mm.',
+        localPos: [0.0, -0.8, 0.15],
+        targetRotY: Math.PI,
+      },
+      {
+        id: 'a18',
+        title: 'Chip Apple A18 Pro 3nm',
+        badge: 'APPLE INTELLIGENCE',
+        icon: '⚡',
+        description: 'Bộ vi xử lý 3nm thế hệ thứ 2 với Neural Engine 16 lõi xử lý AI trực tiếp trên máy và Ray Tracing phần cứng tăng tốc đồ họa game AAA.',
+        localPos: [0.0, 0.1, -0.15],
+        targetRotY: 0,
+      },
+    ],
     themeHex: 0xd97706,
     themeColor: '#d97706',
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(217, 119, 6, 0.26) 0%, rgba(9, 9, 11, 0) 70%)',
@@ -105,6 +230,44 @@ const stations = [
     price: '28.490.000₫',
     oldPrice: '32.990.000₫',
     specs: ['Khung Titan Tự Nhiên siêu nhẹ', 'Phím Action Button đa nhiệm', 'Chip Apple A17 Pro 3nm', 'Camera tiềm vọng Zoom 5x quang học'],
+    hotspots: [
+      {
+        id: 'action',
+        title: 'Phím Tác Vụ Action Button',
+        badge: 'ĐA NHIỆM TÙY BIẾN',
+        icon: '🔔',
+        description: 'Thay thế cần gạt rung truyền thống bằng phím vật lý tùy biến đa năng: mở camera, bật đèn pin, ghi âm hay kích hoạt phím tắt chỉ với 1 nhấn.',
+        localPos: [-0.65, 0.7, 0.0],
+        targetRotY: -Math.PI * 0.45,
+      },
+      {
+        id: 'usbc',
+        title: 'Cổng USB-C Tốc Độ 10Gbps',
+        badge: 'CHUẨN USB 3 CAO CẤP',
+        icon: '🔌',
+        description: 'Cổng USB-C tốc độ cao truyền tệp ProRes 4K trực tiếp sang ổ cứng ngoài và hỗ trợ sạc ngược cho phụ kiện AirPods, Apple Watch.',
+        localPos: [0.0, -1.5, 0.0],
+        targetRotY: 0,
+      },
+      {
+        id: 'back',
+        title: 'Mặt Lưng Kính Nhám Titan Tự Nhiên',
+        badge: 'CHỐNG BÁM VÂN TAY',
+        icon: '🛡️',
+        description: 'Kính cường lực nhám cao cấp kết hợp khung titan cấp 5 đem lại cảm giác cầm nắm chắc tay, nhẹ hơn 19g so với thế hệ tiền nhiệm.',
+        localPos: [0.0, 0.1, 0.15],
+        targetRotY: Math.PI,
+      },
+      {
+        id: 'screen',
+        title: 'Màn Hình Dynamic Island 2000 Nits',
+        badge: 'OLED SUPER RETINA XDR',
+        icon: '📱',
+        description: 'Màn hình Super Retina XDR với cụm Dynamic Island biến ảo linh hoạt hiển thị thông báo, bản đồ và nhạc theo thời gian thực.',
+        localPos: [0.0, 0.4, -0.15],
+        targetRotY: 0,
+      },
+    ],
     themeHex: 0xa1a1aa,
     themeColor: '#a1a1aa',
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(161, 161, 170, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
@@ -127,6 +290,44 @@ const stations = [
     price: '42.990.000₫',
     oldPrice: '48.990.000₫',
     specs: ['Màn hình gập Flex OLED 8.1"', 'Bản lề giọt nước Zero-Gap', 'Đa nhiệm 3 cửa sổ song song', 'Kính siêu mỏng Ultra-Thin'],
+    hotspots: [
+      {
+        id: 'hinge',
+        title: 'Bản Lề Titan Giọt Nước Zero-Gap',
+        badge: 'CƠ KHÍ SIÊU CHÍNH XÁC',
+        icon: '🔗',
+        description: 'Cơ cấu gập mở giọt nước đa khớp bằng titan hàng không giúp 2 nửa màn hình khép khít hoàn toàn và triệt tiêu tối đa nếp gấp màn hình.',
+        localPos: [0.0, 0.0, 0.0],
+        targetRotY: 0,
+      },
+      {
+        id: 'flex',
+        title: 'Màn Hình Flex OLED Kép 8.1"',
+        badge: 'ULTRA-THIN GLASS (UTG)',
+        icon: '📖',
+        description: 'Mở rộng từ 6.2 inch thành tablet 8.1 inch tỷ lệ chuẩn, kính siêu mỏng UTG bền bỉ chịu hơn 400.000 lần gập mở liên tục.',
+        localPos: [0.5, 0.2, -0.1],
+        targetRotY: 0,
+      },
+      {
+        id: 'cam',
+        title: 'Camera Tiềm Vọng Siêu Mỏng',
+        badge: 'CẢM BIẾN DƯỚI MÀN HÌNH',
+        icon: '📸',
+        description: 'Cụm ống kính quang học siêu mỏng được tinh chỉnh riêng cho thân máy gập, hỗ trợ chụp selfie bằng camera chính với màn hình phụ.',
+        localPos: [-0.4, 0.8, 0.15],
+        targetRotY: Math.PI,
+      },
+      {
+        id: 'os',
+        title: 'Hệ Thống Đa Nhiệm 3 Cửa Sổ',
+        badge: 'DUO ENGINE TƯƠNG TÁC',
+        icon: '⚡',
+        description: 'Giao diện tối ưu hóa cho màn hình gập, cho phép kéo thả dữ liệu giữa 3 ứng dụng đồng thời và chế độ Flex Mode đặt nằm chụp rảnh tay.',
+        localPos: [-0.4, -0.5, -0.1],
+        targetRotY: 0,
+      },
+    ],
     themeHex: 0xa855f7,
     themeColor: '#a855f7',
     bgGradient: 'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.28) 0%, rgba(9, 9, 11, 0) 75%)',
@@ -732,10 +933,16 @@ function handleScroll() {
   const progress = Math.min(Math.max((offset - rect.top) / totalScrollable, 0), 1)
   scrollProgress.value = progress
 
-  // Determine active station (0 to 3)
+  // Determine active station (0 to 4)
   const newStation = Math.min(Math.floor(progress * stations.length), stations.length - 1)
   if (newStation !== currentStation.value) {
     currentStation.value = newStation
+    if (isHotspotMode.value) {
+      const nextSt = stations[newStation]
+      if (nextSt && nextSt.hotspots && nextSt.hotspots.length > 0) {
+        selectHotspot(nextSt.hotspots[0])
+      }
+    }
     isTextVisible.value = false
     setTimeout(() => {
       activeTextStation.value = newStation
@@ -756,10 +963,69 @@ function scrollToStation(idx) {
   })
 }
 
-// Mouse Drag Rotation
+// 3D Hotspot Interactive Actions (Option 2)
+function enterHotspotMode(hotspot = null) {
+  isHotspotMode.value = true
+  isAutoRotate.value = false
+  const currentSt = stations[currentStation.value]
+  if (hotspot) {
+    selectHotspot(hotspot)
+  } else if (currentSt.hotspots && currentSt.hotspots.length > 0) {
+    selectHotspot(currentSt.hotspots[0])
+  }
+}
+
+function exitHotspotMode() {
+  isHotspotMode.value = false
+  selectedHotspot.value = null
+  targetUserYaw = null
+  isAutoRotate.value = true
+}
+
+function selectHotspot(hs) {
+  selectedHotspot.value = hs
+  if (hs && typeof hs.targetRotY === 'number') {
+    targetUserYaw = hs.targetRotY
+  }
+}
+
+function nextHotspot() {
+  const currentSt = stations[currentStation.value]
+  if (!currentSt.hotspots || currentSt.hotspots.length === 0) return
+  const currentIdx = currentSt.hotspots.findIndex((h) => h.id === selectedHotspot.value?.id)
+  const nextIdx = (currentIdx + 1) % currentSt.hotspots.length
+  selectHotspot(currentSt.hotspots[nextIdx])
+}
+
+function prevHotspot() {
+  const currentSt = stations[currentStation.value]
+  if (!currentSt.hotspots || currentSt.hotspots.length === 0) return
+  const currentIdx = currentSt.hotspots.findIndex((h) => h.id === selectedHotspot.value?.id)
+  const prevIdx = (currentIdx - 1 + currentSt.hotspots.length) % currentSt.hotspots.length
+  selectHotspot(currentSt.hotspots[prevIdx])
+}
+
+function checkPhoneRaycast(clientX, clientY) {
+  if (!renderer || !camera) return false
+  const rect = renderer.domElement.getBoundingClientRect()
+  mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+  mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+  raycaster.setFromCamera(mouse, camera)
+  const currentObj = stationObjects[currentStation.value]
+  if (currentObj && currentObj.modelContainer) {
+    const hits = raycaster.intersectObjects(currentObj.modelContainer.children, true)
+    return hits.length > 0
+  }
+  return false
+}
+
+// Mouse & Touch Drag Rotation with Click Raycasting
 function onMouseDown(e) {
-  if (e.target && e.target.closest('button, a, input, select')) return
+  if (e.target && e.target.closest('button, a, input, select, .pointer-events-auto')) return
   isDragging.value = true
+  targetUserYaw = null
+  mouseDownPos = { x: e.clientX, y: e.clientY }
+  mouseDownTime = Date.now()
   previousMouseX = e.clientX
   const currentObj = stationObjects[currentStation.value]
   if (currentObj && currentObj.modelContainer) {
@@ -768,24 +1034,44 @@ function onMouseDown(e) {
 }
 
 function onMouseMove(e) {
-  if (!isDragging.value) return
-  const deltaX = e.clientX - previousMouseX
-  previousMouseX = e.clientX
-  activeUserYaw += deltaX * 0.009
-  const currentObj = stationObjects[currentStation.value]
-  if (currentObj && currentObj.modelContainer) {
-    currentObj.modelContainer.rotation.y = activeUserYaw
+  if (isDragging.value) {
+    const deltaX = e.clientX - previousMouseX
+    previousMouseX = e.clientX
+    activeUserYaw += deltaX * 0.009
+    const currentObj = stationObjects[currentStation.value]
+    if (currentObj && currentObj.modelContainer) {
+      currentObj.modelContainer.rotation.y = activeUserYaw
+    }
+  } else {
+    isHoveringPhone.value = checkPhoneRaycast(e.clientX, e.clientY)
   }
 }
 
-function onMouseUp() {
-  isDragging.value = false
+function onMouseUp(e) {
+  if (isDragging.value) {
+    const dist = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y)
+    const timeDiff = Date.now() - mouseDownTime
+    const isClick = dist < 6 && timeDiff < 350
+    isDragging.value = false
+
+    if (isClick) {
+      const hit = checkPhoneRaycast(e.clientX, e.clientY)
+      if (hit) {
+        if (!isHotspotMode.value) {
+          enterHotspotMode()
+        }
+      }
+    }
+  }
 }
 
 function onTouchStart(e) {
   if (e.touches.length > 0) {
-    if (e.target && e.target.closest('button, a, input, select')) return
+    if (e.target && e.target.closest('button, a, input, select, .pointer-events-auto')) return
     isDragging.value = true
+    targetUserYaw = null
+    mouseDownPos = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    mouseDownTime = Date.now()
     previousMouseX = e.touches[0].clientX
     const currentObj = stationObjects[currentStation.value]
     if (currentObj && currentObj.modelContainer) {
@@ -806,7 +1092,16 @@ function onTouchMove(e) {
 }
 
 function onTouchEnd() {
-  isDragging.value = false
+  if (isDragging.value) {
+    const timeDiff = Date.now() - mouseDownTime
+    isDragging.value = false
+    if (timeDiff < 300) {
+      const hit = checkPhoneRaycast(previousMouseX, mouseDownPos.y)
+      if (hit && !isHotspotMode.value) {
+        enterHotspotMode()
+      }
+    }
+  }
 }
 
 function animate(time = 0) {
@@ -816,12 +1111,11 @@ function animate(time = 0) {
   const sec = time * 0.001
   const p = scrollProgress.value
 
-  // 1. Calculate continuous Camera Rail Spline position across 4 stations
-  // p: 0.0 to 1.0 mapped along stations
+  // 1. Calculate continuous Camera Rail Spline position across stations
   const stCount = stations.length
   const segment = p * (stCount - 1)
   const baseIdx = Math.min(Math.floor(segment), stCount - 2)
-  const localT = segment - baseIdx // 0.0 to 1.0 between baseIdx and baseIdx+1
+  const localT = segment - baseIdx
 
   // Smooth easing for cinematic travel
   const easedT = THREE.MathUtils.smoothstep(localT, 0, 1)
@@ -854,12 +1148,25 @@ function animate(time = 0) {
 
     // Phone rotation
     if (obj.modelMesh) {
-      if (isCurrent && isDragging.value) {
-        // Direct user drag rotation
-        obj.modelContainer.rotation.y = activeUserYaw
+      if (isCurrent) {
+        if (targetUserYaw !== null && !isDragging.value) {
+          let diff = (targetUserYaw - obj.modelContainer.rotation.y) % (Math.PI * 2)
+          if (diff < -Math.PI) diff += Math.PI * 2
+          if (diff > Math.PI) diff -= Math.PI * 2
+          obj.modelContainer.rotation.y += diff * 0.08
+          activeUserYaw = obj.modelContainer.rotation.y
+          if (Math.abs(diff) < 0.005) {
+            obj.modelContainer.rotation.y = targetUserYaw
+            targetUserYaw = null
+          }
+        } else if (isDragging.value) {
+          obj.modelContainer.rotation.y = activeUserYaw
+        } else if (isAutoRotate.value && !isHotspotMode.value) {
+          obj.modelContainer.rotation.y += 0.005
+          activeUserYaw = obj.modelContainer.rotation.y
+        }
       } else {
         if (isAutoRotate.value) {
-          // Orbit smoothly from current angle
           obj.modelContainer.rotation.y += 0.005
         }
       }
@@ -884,6 +1191,40 @@ function animate(time = 0) {
       obj.spot.intensity = isCurrent ? 2.4 : 0.8
     }
   })
+
+  // 3. Project 3D Hotspots to 2D Screen Space
+  if (isHotspotMode.value && camera) {
+    const currentObj = stationObjects[currentStation.value]
+    if (currentObj && currentObj.modelContainer) {
+      const currentSt = stations[currentStation.value]
+      const currentHotspots = currentSt.hotspots || []
+      const projected = []
+      const stationWorldPos = new THREE.Vector3(...currentSt.pedestalPos)
+
+      currentHotspots.forEach((hs, idx) => {
+        const v = new THREE.Vector3(...hs.localPos)
+        v.applyEuler(currentObj.modelContainer.rotation)
+        v.add(currentObj.modelContainer.position)
+        v.add(stationWorldPos)
+
+        const proj = v.clone().project(camera)
+        const inFront = proj.z < 1
+
+        const screenX = (proj.x * 0.5 + 0.5) * width
+        const screenY = (-(proj.y * 0.5) + 0.5) * height
+
+        projected.push({
+          ...hs,
+          index: idx,
+          x: Math.round(screenX),
+          y: Math.round(screenY),
+          visible: inFront && screenX >= 20 && screenX <= width - 20 && screenY >= 20 && screenY <= height - 20,
+          depth: proj.z,
+        })
+      })
+      projectedHotspots.value = projected
+    }
+  }
 
   renderer.render(scene, camera)
 }
@@ -943,11 +1284,166 @@ onUnmounted(() => {
         class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_50%,#000_60%,transparent_100%)] pointer-events-none opacity-40"
       />
 
-      <!-- THREE.JS WEBGL CANVAS (INTERACTIVE 360 DRAG) -->
+      <!-- THREE.JS WEBGL CANVAS (INTERACTIVE 360 DRAG & HOTSPOT CLICK) -->
       <div
         ref="canvasContainer"
-        class="absolute inset-0 z-10 w-full h-full cursor-grab active:cursor-grabbing"
+        class="absolute inset-0 z-10 w-full h-full"
+        :class="isHoveringPhone ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'"
       />
+
+      <!-- FLOATING HOVER HINT OVER 3D PHONE -->
+      <div
+        v-if="!isHotspotMode && isHoveringPhone"
+        class="absolute bottom-28 left-1/2 -translate-x-1/2 z-25 pointer-events-none transition-all duration-300 animate-bounce"
+      >
+        <div class="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl bg-black/85 border border-cyan-400/60 shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-xs font-semibold text-white">
+          <span class="text-sm">👆</span>
+          <span>Bấm vào máy để <strong>soi điểm chạm công nghệ (Hotspots)</strong></span>
+        </div>
+      </div>
+
+      <!-- 3D PROJECTED HOTSPOT PINS LAYER -->
+      <div v-if="isHotspotMode" class="absolute inset-0 pointer-events-none z-25 overflow-hidden">
+        <div
+          v-for="hs in projectedHotspots"
+          :key="hs.id"
+          class="absolute pointer-events-auto transition-transform duration-100 transform -translate-x-1/2 -translate-y-1/2"
+          :style="{
+            left: `${hs.x}px`,
+            top: `${hs.y}px`,
+            opacity: hs.visible ? 1 : 0,
+            pointerEvents: hs.visible ? 'auto' : 'none',
+          }"
+        >
+          <button
+            type="button"
+            class="group relative flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full backdrop-blur-xl border transition-all duration-300 cursor-pointer shadow-2xl"
+            :class="
+              selectedHotspot?.id === hs.id
+                ? 'bg-white text-gray-950 border-white scale-110 ring-4 ring-cyan-400/50 shadow-cyan-500/30'
+                : 'bg-black/75 text-white border-white/30 hover:border-white hover:bg-black/90 hover:scale-105'
+            "
+            @click="selectHotspot(hs)"
+          >
+            <!-- Pulse wave animation -->
+            <span
+              v-if="selectedHotspot?.id !== hs.id"
+              class="animate-ping absolute inset-0 rounded-full opacity-60"
+              :style="{ backgroundColor: stations[currentStation].themeColor }"
+            />
+            <!-- Icon -->
+            <span class="text-sm sm:text-base leading-none select-none">{{ hs.icon }}</span>
+            <!-- Title -->
+            <span
+              class="text-xs font-semibold whitespace-nowrap pr-1 transition-all"
+              :class="selectedHotspot?.id === hs.id ? 'inline-block text-gray-950 font-bold' : 'hidden sm:inline-block text-white/90'"
+            >
+              {{ hs.title }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FLOATING STATUS BANNER WHEN IN HOTSPOT MODE -->
+      <div
+        v-if="isHotspotMode"
+        class="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-xl bg-black/85 border border-cyan-400/50 shadow-2xl pointer-events-auto animate-in fade-in slide-in-from-top-2"
+      >
+        <span class="flex h-2.5 w-2.5 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+        </span>
+        <span class="text-xs font-semibold text-white/95 hidden sm:inline">
+          Chế độ soi 3D • Nhấp vào các điểm radar để xoay máy góc cận
+        </span>
+        <span class="text-xs font-semibold text-white/95 sm:hidden">
+          Soi điểm chạm 3D
+        </span>
+        <button
+          type="button"
+          class="ml-1 px-3 py-1 rounded-full bg-white/20 hover:bg-rose-600 text-white text-xs font-bold transition cursor-pointer"
+          @click="exitHotspotMode"
+        >
+          ✕ Thoát
+        </button>
+      </div>
+
+      <!-- HOTSPOT DETAIL CARD (BOTTOM-RIGHT) -->
+      <div
+        v-if="isHotspotMode && selectedHotspot"
+        class="absolute bottom-6 right-6 md:bottom-10 md:right-12 z-30 max-w-md w-[calc(100%-3rem)] backdrop-blur-2xl bg-black/85 border border-white/20 rounded-3xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.85)] pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4 duration-300"
+      >
+        <!-- Header badge and close button -->
+        <div class="flex items-center justify-between gap-3">
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow"
+            :class="`bg-gradient-to-r ${stations[currentStation].accentBadge}`"
+          >
+            <span>{{ selectedHotspot.icon }}</span>
+            <span>{{ selectedHotspot.badge }}</span>
+          </span>
+
+          <button
+            type="button"
+            class="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition cursor-pointer"
+            title="Đóng chi tiết"
+            @click="exitHotspotMode"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Title -->
+        <h3 class="mt-3 text-lg sm:text-xl font-extrabold text-white leading-snug">
+          {{ selectedHotspot.title }}
+        </h3>
+
+        <!-- Description -->
+        <p class="mt-2 text-xs sm:text-sm text-gray-300 leading-relaxed font-light">
+          {{ selectedHotspot.description }}
+        </p>
+
+        <!-- Bottom actions: Prev/Next switcher & CTA -->
+        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+              title="Điểm trước"
+              @click="prevHotspot"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span class="text-xs font-mono text-white/60">
+              {{ (stations[currentStation].hotspots.findIndex(h => h.id === selectedHotspot.id) + 1) }}/{{ stations[currentStation].hotspots.length }}
+            </span>
+            <button
+              type="button"
+              class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+              title="Điểm kế tiếp"
+              @click="nextHotspot"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <a
+            href="#san-pham"
+            class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-950 text-xs font-bold transition shadow-lg flex items-center gap-1.5"
+          >
+            <span>Đặt mua ngay</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+        </div>
+      </div>
 
       <!-- FLOATING RESTORE HUD BUTTON (Appears when in Zen Fullscreen view) -->
       <button
@@ -1085,6 +1581,20 @@ onUnmounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </a>
+
+              <!-- 3D HOTSPOTS TOGGLE BUTTON -->
+              <button
+                type="button"
+                class="rounded-xl border backdrop-blur-md px-4 py-3 text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-lg"
+                :class="
+                  isHotspotMode
+                    ? 'bg-rose-600/90 hover:bg-rose-700 text-white border-rose-500 shadow-rose-500/30'
+                    : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-cyan-400/50'
+                "
+                @click="isHotspotMode ? exitHotspotMode() : enterHotspotMode()"
+              >
+                <span>{{ isHotspotMode ? '✕ Thoát soi 3D' : '🔍 Soi điểm chạm' }}</span>
+              </button>
 
               <a
                 :href="`tel:${storeInfo.hotline}`"
