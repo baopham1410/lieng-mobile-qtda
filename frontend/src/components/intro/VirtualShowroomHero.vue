@@ -30,6 +30,10 @@ const isHotspotMode = ref(false)
 const selectedHotspot = ref(null)
 const projectedHotspots = ref([])
 const isHoveringPhone = ref(false)
+const cardRefs = ref({})
+function setCardRef(id, el) {
+  if (el) cardRefs.value[id] = el
+}
 let targetUserYaw = null
 let mouseDownPos = { x: 0, y: 0 }
 let mouseDownTime = 0
@@ -1192,16 +1196,16 @@ function animate(time = 0) {
     }
   })
 
-  // 3. Project 3D Hotspots to 2D Screen Space
-  if (isHotspotMode.value && camera) {
+  // 3. Project 3D Hotspots to 2D Screen Space with Leader Lines to Right Column
+  if (isHotspotMode.value && camera && canvasContainer.value) {
     const currentObj = stationObjects[currentStation.value]
     if (currentObj && currentObj.modelContainer) {
       const currentSt = stations[currentStation.value]
       const currentHotspots = currentSt.hotspots || []
-      const projected = []
       const stationWorldPos = new THREE.Vector3(...currentSt.pedestalPos)
+      const containerRect = canvasContainer.value.getBoundingClientRect()
 
-      currentHotspots.forEach((hs, idx) => {
+      const projected = currentHotspots.map((hs, idx) => {
         const v = new THREE.Vector3(...hs.localPos)
         v.applyEuler(currentObj.modelContainer.rotation)
         v.add(currentObj.modelContainer.position)
@@ -1213,15 +1217,40 @@ function animate(time = 0) {
         const screenX = (proj.x * 0.5 + 0.5) * width
         const screenY = (-(proj.y * 0.5) + 0.5) * height
 
-        projected.push({
+        // Live target position from card DOM element
+        let targetX = width - 330
+        let targetY = screenY
+        const cardEl = cardRefs.value[hs.id]
+        if (cardEl && containerRect.width > 0) {
+          const cardRect = cardEl.getBoundingClientRect()
+          targetX = cardRect.left - containerRect.left
+          targetY = cardRect.top - containerRect.top + cardRect.height / 2
+        }
+
+        const ax = Math.round(screenX)
+        const ay = Math.round(screenY)
+        const tx = Math.round(targetX)
+        const ty = Math.round(targetY)
+
+        // Stepped technical leader line path
+        const elbow1X = Math.round(ax + Math.max(16, (tx - ax) * 0.35))
+        const elbow2X = Math.round(tx - 16)
+        const pathD = `M ${ax} ${ay} L ${elbow1X} ${ay} L ${elbow2X} ${ty} L ${tx} ${ty}`
+
+        return {
           ...hs,
           index: idx,
-          x: Math.round(screenX),
-          y: Math.round(screenY),
-          visible: inFront && screenX >= 20 && screenX <= width - 20 && screenY >= 20 && screenY <= height - 20,
+          anchorX: ax,
+          anchorY: ay,
+          targetX: tx,
+          targetY: ty,
+          inFront,
+          visible: inFront && screenX >= 10 && screenX <= width - 10 && screenY >= 10 && screenY <= height - 10,
           depth: proj.z,
-        })
+          pathD,
+        }
       })
+
       projectedHotspots.value = projected
     }
   }
@@ -1302,48 +1331,6 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 3D PROJECTED HOTSPOT PINS LAYER -->
-      <div v-if="isHotspotMode" class="absolute inset-0 pointer-events-none z-25 overflow-hidden">
-        <div
-          v-for="hs in projectedHotspots"
-          :key="hs.id"
-          class="absolute pointer-events-auto transition-transform duration-100 transform -translate-x-1/2 -translate-y-1/2"
-          :style="{
-            left: `${hs.x}px`,
-            top: `${hs.y}px`,
-            opacity: hs.visible ? 1 : 0,
-            pointerEvents: hs.visible ? 'auto' : 'none',
-          }"
-        >
-          <button
-            type="button"
-            class="group relative flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full backdrop-blur-xl border transition-all duration-300 cursor-pointer shadow-2xl"
-            :class="
-              selectedHotspot?.id === hs.id
-                ? 'bg-white text-gray-950 border-white scale-110 ring-4 ring-cyan-400/50 shadow-cyan-500/30'
-                : 'bg-black/75 text-white border-white/30 hover:border-white hover:bg-black/90 hover:scale-105'
-            "
-            @click="selectHotspot(hs)"
-          >
-            <!-- Pulse wave animation -->
-            <span
-              v-if="selectedHotspot?.id !== hs.id"
-              class="animate-ping absolute inset-0 rounded-full opacity-60"
-              :style="{ backgroundColor: stations[currentStation].themeColor }"
-            />
-            <!-- Icon -->
-            <span class="text-sm sm:text-base leading-none select-none">{{ hs.icon }}</span>
-            <!-- Title -->
-            <span
-              class="text-xs font-semibold whitespace-nowrap pr-1 transition-all"
-              :class="selectedHotspot?.id === hs.id ? 'inline-block text-gray-950 font-bold' : 'hidden sm:inline-block text-white/90'"
-            >
-              {{ hs.title }}
-            </span>
-          </button>
-        </div>
-      </div>
-
       <!-- FLOATING STATUS BANNER WHEN IN HOTSPOT MODE -->
       <div
         v-if="isHotspotMode"
@@ -1354,7 +1341,7 @@ onUnmounted(() => {
           <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
         </span>
         <span class="text-xs font-semibold text-white/95 hidden sm:inline">
-          Chế độ soi 3D • Nhấp vào các điểm radar để xoay máy góc cận
+          Chế độ soi 3D • Nhấp vào nhãn hoặc điểm radar để xoay góc cận
         </span>
         <span class="text-xs font-semibold text-white/95 sm:hidden">
           Soi điểm chạm 3D
@@ -1368,80 +1355,140 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- HOTSPOT DETAIL CARD (BOTTOM-RIGHT) -->
-      <div
-        v-if="isHotspotMode && selectedHotspot"
-        class="absolute bottom-6 right-6 md:bottom-10 md:right-12 z-30 max-w-md w-[calc(100%-3rem)] backdrop-blur-2xl bg-black/85 border border-white/20 rounded-3xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.85)] pointer-events-auto transition-all animate-in fade-in slide-in-from-bottom-4 duration-300"
-      >
-        <!-- Header badge and close button -->
-        <div class="flex items-center justify-between gap-3">
-          <span
-            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow"
-            :class="`bg-gradient-to-r ${stations[currentStation].accentBadge}`"
+      <!-- 3D HOTSPOT ANNOTATION SYSTEM (WHITE LEADER LINES & RIGHT COLUMN LABELS) -->
+      <div v-if="isHotspotMode" class="absolute inset-0 pointer-events-none z-25 overflow-hidden">
+        <!-- SVG LAYER FOR CRISP WHITE LEADER LINES & PRECISION ANCHOR DOTS -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none">
+          <defs>
+            <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <g v-for="hs in projectedHotspots" :key="`line-${hs.id}`">
+            <!-- Background glow line when active -->
+            <path
+              v-if="selectedHotspot?.id === hs.id"
+              :d="hs.pathD"
+              fill="none"
+              stroke="#38bdf8"
+              stroke-width="3"
+              opacity="0.5"
+              filter="url(#lineGlow)"
+            />
+
+            <!-- Crisp White Leader Line -->
+            <path
+              :d="hs.pathD"
+              fill="none"
+              :stroke="selectedHotspot?.id === hs.id ? '#ffffff' : 'rgba(255, 255, 255, 0.65)'"
+              :stroke-width="selectedHotspot?.id === hs.id ? '2' : '1.25'"
+              :stroke-dasharray="selectedHotspot?.id === hs.id ? 'none' : '4, 2'"
+              class="transition-all duration-300"
+            />
+
+            <!-- Component Anchor: Outer Pulsing Radar Ring on the phone -->
+            <circle
+              :cx="hs.anchorX"
+              :cy="hs.anchorY"
+              :r="selectedHotspot?.id === hs.id ? 10 : 7"
+              :stroke="selectedHotspot?.id === hs.id ? '#38bdf8' : 'rgba(255, 255, 255, 0.7)'"
+              stroke-width="1.5"
+              fill="none"
+              opacity="0.8"
+            />
+
+            <!-- Component Anchor: Precision Core Dot on the phone -->
+            <circle
+              :cx="hs.anchorX"
+              :cy="hs.anchorY"
+              :r="selectedHotspot?.id === hs.id ? 4 : 3"
+              :fill="selectedHotspot?.id === hs.id ? '#38bdf8' : '#ffffff'"
+              class="transition-all duration-300"
+            />
+            <circle
+              :cx="hs.anchorX"
+              :cy="hs.anchorY"
+              r="1.2"
+              fill="#09090b"
+            />
+          </g>
+        </svg>
+
+        <!-- RIGHT-SIDE ANNOTATION COLUMN (FLEX CONTAINER - GUARANTEED ZERO OVERLAP) -->
+        <div
+          class="absolute right-4 sm:right-8 lg:right-12 top-1/2 -translate-y-1/2 flex flex-col gap-2.5 sm:gap-3 w-[260px] sm:w-[290px] lg:w-[330px] max-h-[82vh] overflow-y-auto no-scrollbar pointer-events-auto py-2 z-25"
+        >
+          <div
+            v-for="hs in stations[currentStation].hotspots"
+            :key="`card-${hs.id}`"
+            :ref="el => setCardRef(hs.id, el)"
+            class="group rounded-2xl backdrop-blur-2xl border transition-all duration-300 p-3 sm:p-3.5 cursor-pointer shadow-2xl select-none"
+            :class="
+              selectedHotspot?.id === hs.id
+                ? 'bg-black/90 border-cyan-400 ring-2 ring-cyan-400/40 scale-[1.02] shadow-[0_12px_36px_rgba(6,182,212,0.3)]'
+                : 'bg-black/70 border-white/20 hover:border-white/50 hover:bg-black/85 hover:scale-[1.01]'
+            "
+            @click="selectHotspot(hs)"
           >
-            <span>{{ selectedHotspot.icon }}</span>
-            <span>{{ selectedHotspot.badge }}</span>
-          </span>
+            <!-- Card Header: Icon & Badge -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm sm:text-base select-none leading-none">{{ hs.icon }}</span>
+                <span
+                  class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  :class="
+                    selectedHotspot?.id === hs.id
+                      ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40'
+                      : 'bg-white/10 text-white/70 border border-white/10'
+                  "
+                >
+                  {{ hs.badge }}
+                </span>
+              </div>
 
-          <button
-            type="button"
-            class="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition cursor-pointer"
-            title="Đóng chi tiết"
-            @click="exitHotspotMode"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+              <span
+                class="text-xs transition-transform duration-300"
+                :class="selectedHotspot?.id === hs.id ? 'text-cyan-400 translate-x-0.5 font-bold' : 'text-white/40 group-hover:text-white/80'"
+              >
+                ✦
+              </span>
+            </div>
 
-        <!-- Title -->
-        <h3 class="mt-3 text-lg sm:text-xl font-extrabold text-white leading-snug">
-          {{ selectedHotspot.title }}
-        </h3>
-
-        <!-- Description -->
-        <p class="mt-2 text-xs sm:text-sm text-gray-300 leading-relaxed font-light">
-          {{ selectedHotspot.description }}
-        </p>
-
-        <!-- Bottom actions: Prev/Next switcher & CTA -->
-        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
-              title="Điểm trước"
-              @click="prevHotspot"
+            <!-- Title -->
+            <h4
+              class="mt-1.5 text-xs sm:text-sm font-bold transition-colors leading-snug"
+              :class="selectedHotspot?.id === hs.id ? 'text-white' : 'text-white/90 group-hover:text-white'"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span class="text-xs font-mono text-white/60">
-              {{ (stations[currentStation].hotspots.findIndex(h => h.id === selectedHotspot.id) + 1) }}/{{ stations[currentStation].hotspots.length }}
-            </span>
-            <button
-              type="button"
-              class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
-              title="Điểm kế tiếp"
-              @click="nextHotspot"
+              {{ hs.title }}
+            </h4>
+
+            <!-- Expanded Details when Selected -->
+            <div
+              v-if="selectedHotspot?.id === hs.id"
+              class="mt-2 pt-2 border-t border-white/15 text-[11px] sm:text-xs text-gray-300 leading-relaxed font-light animate-in fade-in duration-200"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              <p>{{ hs.description }}</p>
+
+              <div class="mt-2.5 flex items-center justify-between pt-1">
+                <span class="text-[10px] font-mono text-cyan-400 flex items-center gap-1">
+                  <span>🎯 Góc soi cận cảnh</span>
+                </span>
+                <a
+                  href="#san-pham"
+                  class="px-2.5 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-950 text-[11px] font-bold transition flex items-center gap-1 shadow hover:scale-105"
+                  @click.stop
+                >
+                  <span>Đặt mua</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
           </div>
-
-          <a
-            href="#san-pham"
-            class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-950 text-xs font-bold transition shadow-lg flex items-center gap-1.5"
-          >
-            <span>Đặt mua ngay</span>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </a>
         </div>
       </div>
 
