@@ -6,6 +6,7 @@ import StoreProductCard from '@/components/intro/StoreProductCard.vue'
 import StoreCartDrawer from '@/components/intro/StoreCartDrawer.vue'
 import StoreProductModal from '@/components/intro/StoreProductModal.vue'
 import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
+import StoreLotteryCounter from '@/components/intro/StoreLotteryCounter.vue'
 import ScrollStorytellingHero from '@/components/intro/ScrollStorytellingHero.vue'
 import VirtualShowroomHero from '@/components/intro/VirtualShowroomHero.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
@@ -220,32 +221,23 @@ function selectCategory(id) {
         @open-cart="cartOpen = true"
       />
 
-      <!-- Trust bar -->
-      <section class="border-b border-white/10 bg-[#0c0d12]/90 backdrop-blur-xl">
-        <div class="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-8 md:grid-cols-4">
-          <div
-            v-for="stat in trustStats"
-            :key="stat.label"
-            class="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center transition hover:border-red-500/20"
-          >
-            <p class="text-2xl font-black bg-gradient-to-r from-red-500 via-rose-400 to-amber-400 bg-clip-text text-transparent md:text-3xl">
-              {{ stat.value }}
-            </p>
-            <p class="mt-1 text-xs font-medium uppercase tracking-wider text-gray-400">{{ stat.label }}</p>
-          </div>
-        </div>
-      </section>
+      <!-- Trust bar: Slot Machine Lottery Quay Số Ngẫu Nhiên & Chốt Số -->
+      <StoreLotteryCounter
+        v-scroll-reveal="{ distance: '24px' }"
+        :stats="trustStats"
+      />
 
       <!-- Categories ban đầu với Icon vector mới -->
       <section class="mx-auto max-w-7xl px-4 py-14">
-        <div class="text-center">
+        <div v-scroll-reveal="{ distance: '20px' }" class="text-center">
           <h2 class="text-2xl font-black tracking-tight text-white md:text-3xl">Danh mục nổi bật</h2>
           <p class="mt-2 text-sm text-gray-400">Chọn nhanh theo nhu cầu thiết bị của bạn</p>
         </div>
         <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <a
-            v-for="cat in categories"
+            v-for="(cat, idx) in categories"
             :key="cat.name"
+            v-scroll-reveal="{ delay: idx * 70, distance: '30px' }"
             v-tilt-3d="{ max: 12, scale: 1.05 }"
             href="#san-pham"
             class="group flex flex-col items-center rounded-2xl border border-white/10 bg-[#121318]/90 p-5 text-center shadow-xl backdrop-blur-xl transition-all duration-300 hover:border-red-500/50 hover:shadow-2xl hover:shadow-red-500/10 cursor-pointer"
@@ -266,7 +258,7 @@ function selectCategory(id) {
       <!-- Featured -->
       <section class="bg-[#09090b] py-14 border-t border-white/5">
         <div class="mx-auto max-w-7xl px-4">
-          <div class="flex flex-wrap items-end justify-between gap-4">
+          <div v-scroll-reveal="{ distance: '20px' }" class="flex flex-wrap items-end justify-between gap-4">
             <div>
               <div class="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 mb-2">
                 <span class="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -277,13 +269,17 @@ function selectCategory(id) {
             </div>
           </div>
           <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <StoreProductCard
-              v-for="product in featuredProducts"
+            <div
+              v-for="(product, idx) in featuredProducts"
               :key="product.id"
-              :product="product"
-              @view="openProduct"
-              @add-to-cart="addToCart"
-            />
+              v-scroll-reveal="{ delay: idx * 90, distance: '35px' }"
+            >
+              <StoreProductCard
+                :product="product"
+                @view="openProduct"
+                @add-to-cart="addToCart"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -291,7 +287,7 @@ function selectCategory(id) {
       <!-- Catalog -->
       <section id="san-pham" class="bg-[#0c0d12]/70 border-t border-white/10 py-14">
         <div class="mx-auto max-w-7xl px-4">
-          <div class="flex flex-wrap items-end justify-between gap-4">
+          <div v-scroll-reveal="{ distance: '20px' }" class="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 class="text-2xl font-black tracking-tight text-white md:text-3xl">Cửa hàng trực tuyến</h2>
               <p class="mt-2 text-sm text-gray-400">{{ filteredProducts.length }} sản phẩm — Lọc, so sánh và thêm giỏ hàng</p>
@@ -299,7 +295,10 @@ function selectCategory(id) {
           </div>
 
           <div class="mt-8 flex flex-col gap-6 lg:flex-row">
-            <aside class="shrink-0 lg:w-56">
+            <aside
+              v-scroll-reveal="{ direction: 'left', distance: '25px', delay: 100 }"
+              class="shrink-0 lg:w-56"
+            >
               <div class="rounded-2xl border border-white/10 bg-[#121318]/90 p-4 shadow-xl backdrop-blur-xl">
                 <p class="text-xs font-bold uppercase tracking-widest text-red-400">Danh mục</p>
                 <div class="mt-3 flex flex-wrap gap-2 lg:flex-col lg:gap-1.5">
@@ -331,7 +330,10 @@ function selectCategory(id) {
             </aside>
 
             <div class="min-w-0 flex-1">
-              <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#121318]/90 px-4 py-3 shadow-xl backdrop-blur-xl">
+              <div
+                v-scroll-reveal="{ distance: '15px', delay: 150 }"
+                class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#121318]/90 px-4 py-3 shadow-xl backdrop-blur-xl"
+              >
                 <p class="text-sm text-gray-400">
                   Hiển thị <span class="font-bold text-red-400">{{ filteredProducts.length }}</span> kết quả
                 </p>
@@ -341,13 +343,17 @@ function selectCategory(id) {
               </div>
 
               <div v-if="filteredProducts.length" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                <StoreProductCard
-                  v-for="product in filteredProducts"
+                <div
+                  v-for="(product, idx) in filteredProducts"
                   :key="product.id"
-                  :product="product"
-                  @view="openProduct"
-                  @add-to-cart="addToCart"
-                />
+                  v-scroll-reveal="{ delay: (idx % 6) * 60, distance: '25px' }"
+                >
+                  <StoreProductCard
+                    :product="product"
+                    @view="openProduct"
+                    @add-to-cart="addToCart"
+                  />
+                </div>
               </div>
               <div v-else class="rounded-2xl border border-dashed border-white/10 bg-[#121318]/50 py-16 text-center text-gray-400">
                 Không tìm thấy sản phẩm phù hợp. Thử đổi bộ lọc hoặc từ khóa tìm kiếm.
@@ -360,6 +366,7 @@ function selectCategory(id) {
       <!-- Promo banner -->
       <section id="khuyen-mai" class="mx-auto max-w-7xl px-4 py-10">
         <div
+          v-scroll-reveal="{ direction: 'scale', duration: '800ms' }"
           class="overflow-hidden rounded-3xl bg-gradient-to-r from-red-700 via-rose-700 to-red-900 border border-red-500/30 p-8 text-white md:p-12 shadow-2xl shadow-red-600/20 relative"
         >
           <!-- Background decorative glow -->
@@ -397,31 +404,36 @@ function selectCategory(id) {
 
       <!-- Promo products -->
       <section class="mx-auto max-w-7xl px-4 py-14">
-        <div class="text-center md:text-left">
+        <div v-scroll-reveal="{ distance: '20px' }" class="text-center md:text-left">
           <h2 class="text-2xl font-black tracking-tight text-white md:text-3xl">Phụ kiện &amp; khuyến mãi</h2>
           <p class="mt-2 text-sm text-gray-400">Mua kèm máy — Giảm thêm khi mua trọn gói phụ kiện chính hãng</p>
         </div>
         <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <StoreProductCard
-            v-for="product in promoProducts"
+          <div
+            v-for="(product, idx) in promoProducts"
             :key="product.name"
-            :product="{ ...product, id: product.name, inStock: true, rating: 4.7, sold: 50 }"
-            @view="openProduct"
-            @add-to-cart="addToCart"
-          />
+            v-scroll-reveal="{ delay: idx * 80, distance: '30px' }"
+          >
+            <StoreProductCard
+              :product="{ ...product, id: product.name, inStock: true, rating: 4.7, sold: 50 }"
+              @view="openProduct"
+              @add-to-cart="addToCart"
+            />
+          </div>
         </div>
       </section>
 
       <!-- Brands -->
       <section class="border-y border-white/10 bg-[#0c0d12]/60 py-10">
         <div class="mx-auto max-w-7xl px-4">
-          <p class="text-center text-xs font-bold uppercase tracking-widest text-gray-400">
+          <p v-scroll-reveal="{ distance: '15px' }" class="text-center text-xs font-bold uppercase tracking-widest text-gray-400">
             Thương hiệu đối tác chính hãng
           </p>
           <div class="mt-6 flex flex-wrap items-center justify-center gap-4 md:gap-8">
             <span
-              v-for="brand in brands"
+              v-for="(brand, idx) in brands"
               :key="brand"
+              v-scroll-reveal="{ delay: idx * 45, distance: '15px' }"
               class="rounded-xl border border-white/10 bg-[#121318] px-6 py-3 text-sm font-semibold text-gray-300 hover:text-white hover:border-red-500/40 hover:bg-white/5 transition"
             >
               {{ brand }}
@@ -432,14 +444,15 @@ function selectCategory(id) {
 
       <!-- Services với Icon vector mới -->
       <section id="dich-vu" class="mx-auto max-w-7xl px-4 py-14">
-        <div class="text-center">
+        <div v-scroll-reveal="{ distance: '20px' }" class="text-center">
           <h2 class="text-2xl font-black tracking-tight text-white md:text-3xl">Dịch vụ tại cửa hàng</h2>
           <p class="mt-2 text-sm text-gray-400">Trải nghiệm mua sắm an tâm từ A đến Z cùng Liêng Mobile</p>
         </div>
         <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <article
-            v-for="service in services"
+            v-for="(service, idx) in services"
             :key="service.title"
+            v-scroll-reveal="{ delay: idx * 90, distance: '30px' }"
             class="rounded-2xl border border-white/10 bg-[#121318]/90 p-6 shadow-xl backdrop-blur-xl hover:border-red-500/40 hover:shadow-2xl hover:shadow-red-500/10 transition group"
           >
             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-600/10 border border-red-500/20 text-red-400 transition-all duration-300 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-red-600 group-hover:to-rose-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-red-600/30">
@@ -457,12 +470,15 @@ function selectCategory(id) {
       <!-- Testimonials -->
       <section class="bg-[#0c0d12]/80 border-y border-white/10 py-14">
         <div class="mx-auto max-w-7xl px-4">
-          <h2 class="text-center text-2xl font-black tracking-tight text-white md:text-3xl">Khách hàng nói gì?</h2>
-          <p class="mt-2 text-center text-sm text-gray-400">Hơn 50,000+ khách hàng tin tưởng và đồng hành</p>
+          <div v-scroll-reveal="{ distance: '20px' }" class="text-center">
+            <h2 class="text-2xl font-black tracking-tight text-white md:text-3xl">Khách hàng nói gì?</h2>
+            <p class="mt-2 text-sm text-gray-400">Hơn 50,000+ khách hàng tin tưởng và đồng hành</p>
+          </div>
           <div class="mt-10 grid gap-6 md:grid-cols-3">
             <blockquote
-              v-for="item in testimonials"
+              v-for="(item, idx) in testimonials"
               :key="item.name"
+              v-scroll-reveal="{ delay: idx * 100, distance: '30px' }"
               class="rounded-2xl border border-white/10 bg-[#121318]/90 p-6 shadow-xl backdrop-blur-xl"
             >
               <div class="flex gap-0.5 text-amber-400">
@@ -477,14 +493,15 @@ function selectCategory(id) {
 
       <!-- Branches -->
       <section id="cua-hang" class="mx-auto max-w-7xl px-4 py-14">
-        <div class="text-center">
+        <div v-scroll-reveal="{ distance: '20px' }" class="text-center">
           <h2 class="text-2xl font-black tracking-tight text-white md:text-3xl">Hệ thống {{ storeInfo.branches }} cửa hàng</h2>
           <p class="mt-2 text-sm text-gray-400">Ghé trực tiếp showroom để trải nghiệm máy thật và nhận tư vấn chuyên sâu</p>
         </div>
         <div class="mt-10 grid gap-6 lg:grid-cols-3">
           <article
-            v-for="branch in branches"
+            v-for="(branch, idx) in branches"
             :key="branch.name"
+            v-scroll-reveal="{ delay: idx * 90, distance: '30px' }"
             class="relative overflow-hidden rounded-2xl border border-white/10 bg-[#121318]/90 p-6 shadow-xl backdrop-blur-xl"
           >
             <span
@@ -519,7 +536,10 @@ function selectCategory(id) {
           </article>
         </div>
 
-        <div class="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[#121318]/70 shadow-xl">
+        <div
+          v-scroll-reveal="{ delay: 180, direction: 'scale' }"
+          class="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[#121318]/70 shadow-xl"
+        >
           <div class="flex h-56 items-center justify-center bg-gradient-to-br from-[#161822] to-[#0e1017] text-gray-300 md:h-72">
             <div class="text-center">
               <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-600/40 mb-2">
@@ -537,7 +557,10 @@ function selectCategory(id) {
 
       <!-- Contact CTA -->
       <section class="mx-auto max-w-7xl px-4 pb-14">
-        <div class="rounded-3xl bg-gradient-to-b from-[#181a24] to-[#0e1017] border border-white/10 px-6 py-12 text-center text-white md:px-12 shadow-2xl relative overflow-hidden">
+        <div
+          v-scroll-reveal="{ direction: 'scale', duration: '800ms' }"
+          class="rounded-3xl bg-gradient-to-b from-[#181a24] to-[#0e1017] border border-white/10 px-6 py-12 text-center text-white md:px-12 shadow-2xl relative overflow-hidden"
+        >
           <div class="absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-96 rounded-full bg-red-600/20 blur-3xl pointer-events-none" />
 
           <h2 class="relative z-10 text-2xl font-black md:text-3xl text-white">Cần tư vấn chọn máy?</h2>
