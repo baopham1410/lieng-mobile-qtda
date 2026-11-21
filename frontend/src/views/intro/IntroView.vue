@@ -211,8 +211,8 @@ function selectCategory(id) {
         @open-cart="cartOpen = true"
       />
 
-      <!-- CẦU NỐI MỀM MẠI: Gradient chuyển tiếp mượt mà từ 3D Showroom sang Cửa Hàng -->
-      <div class="relative z-30 h-20 -mt-20 bg-gradient-to-b from-transparent via-[#09090b]/80 to-[#09090b] pointer-events-none" />
+      <!-- CẦU NỐI MỀM MẠI: Gradient chuyển tiếp mượt mà từ 3D Showroom Cam Hoàng Hôn sang Cửa Hàng -->
+      <div class="relative z-30 h-28 -mt-28 bg-gradient-to-b from-transparent via-[#7c2000]/60 via-[#260a03]/90 to-[#09090b] pointer-events-none" />
 
       <!-- STOREHEADER: STICKY Ở ĐỈNH KHI BẮT ĐẦU VÀO PHẦN CỬA HÀNG / BẢNG GIÁ -->
       <StoreHeader
