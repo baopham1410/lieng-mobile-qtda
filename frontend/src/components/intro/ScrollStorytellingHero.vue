@@ -17,6 +17,17 @@ const scrollProgress = ref(0)
 const currentChapter = ref(0) // 0, 1, 2, 3
 const isTextVisible = ref(true)
 const activeTextChapter = ref(0)
+const headerOffset = ref(112)
+
+function updateHeaderOffset() {
+  const headerEl = document.getElementById('top') || document.querySelector('header')
+  if (headerEl) {
+    const h = Math.round(headerEl.getBoundingClientRect().height)
+    if (h > 0) {
+      headerOffset.value = h
+    }
+  }
+}
 
 const chapters = [
   {
@@ -317,8 +328,10 @@ function createProceduralPhone(colorConfig) {
 function initThree() {
   if (!canvasContainer.value) return
 
+  updateHeaderOffset()
+
   width = canvasContainer.value.clientWidth
-  height = canvasContainer.value.clientHeight || window.innerHeight
+  height = canvasContainer.value.clientHeight || (window.innerHeight - headerOffset.value)
 
   // 1. Scene
   scene = new THREE.Scene()
@@ -436,14 +449,14 @@ function loadModel() {
       // Orient model so front OLED screen faces forward (+Z) and stands upright along Y
       model.rotation.set(0, Math.PI, 0)
 
-      // Compute bounding box and normalize scale (Prominent large size ~4.8 units filling ~85% viewport height)
+      // Compute bounding box and normalize scale (~82% viewport height with safe margins)
       const box = new THREE.Box3().setFromObject(model)
       const size = box.getSize(new THREE.Vector3())
       const center = box.getCenter(new THREE.Vector3())
       const maxDim = Math.max(size.x, size.y, size.z)
 
-      // USER REQUEST: Make it prominent & larger like in reference video (filling ~85% of screen height)
-      const scaleFactor = 4.8 / maxDim
+      // USER REQUEST: Make it prominent & large like in reference video with safe margins so top/bottom never cut off
+      const scaleFactor = 4.4 / maxDim
 
       model.scale.setScalar(scaleFactor)
       model.position.sub(center.clone().multiplyScalar(scaleFactor))
@@ -514,10 +527,11 @@ function setupProceduralFallback() {
 function handleScroll() {
   if (!sectionRef.value) return
   const rect = sectionRef.value.getBoundingClientRect()
-  const totalScrollable = rect.height - window.innerHeight
+  const offset = headerOffset.value
+  const totalScrollable = rect.height - (window.innerHeight - offset)
   if (totalScrollable <= 0) return
 
-  const progress = Math.min(Math.max(-rect.top / totalScrollable, 0), 1)
+  const progress = Math.min(Math.max((offset - rect.top) / totalScrollable, 0), 1)
   scrollProgress.value = progress
 
   // Determine chapter (0 to 3)
@@ -536,8 +550,9 @@ function handleScroll() {
 function scrollToChapter(idx) {
   if (!sectionRef.value) return
   const rect = sectionRef.value.getBoundingClientRect()
-  const totalScrollable = sectionRef.value.clientHeight - window.innerHeight
-  const targetScrollTop = window.scrollY + rect.top + (idx / 3.2) * totalScrollable
+  const offset = headerOffset.value
+  const totalScrollable = sectionRef.value.clientHeight - (window.innerHeight - offset)
+  const targetScrollTop = window.scrollY + rect.top - offset + (idx / 3.2) * totalScrollable
   window.scrollTo({
     top: targetScrollTop,
     behavior: 'smooth',
@@ -630,14 +645,16 @@ function animate(time = 0) {
 
 function onWindowResize() {
   if (!canvasContainer.value || !camera || !renderer) return
+  updateHeaderOffset()
   width = canvasContainer.value.clientWidth
-  height = canvasContainer.value.clientHeight || window.innerHeight
+  height = canvasContainer.value.clientHeight || (window.innerHeight - headerOffset.value)
   camera.aspect = width / height
   camera.updateProjectionMatrix()
   renderer.setSize(width, height)
 }
 
 onMounted(() => {
+  updateHeaderOffset()
   initThree()
 })
 
@@ -656,10 +673,16 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- SECTION 400VH CONTAINING STICKY 100VH FRAMEWORK -->
+  <!-- SECTION 400VH CONTAINING STICKY FRAMEWORK -->
   <section ref="sectionRef" class="relative w-full h-[400vh] bg-[#09090b] text-white select-none">
-    <!-- STICKY 100VH VIEWPORT -->
-    <div class="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
+    <!-- STICKY VIEWPORT DYNAMICALLY POSITIONED BELOW STOREHEADER (NEVER OVERLAPPED OR COVERED) -->
+    <div
+      class="sticky w-full overflow-hidden flex items-center justify-center transition-all"
+      :style="{
+        top: `${headerOffset}px`,
+        height: `calc(100vh - ${headerOffset}px)`
+      }"
+    >
       <!-- DYNAMIC 600MS SMOOTH RADIAL GRADIENT BACKDROP -->
       <div
         class="absolute inset-0 pointer-events-none transition-all duration-[600ms] ease-out"
@@ -678,9 +701,9 @@ onUnmounted(() => {
       />
 
       <!-- STORYTELLING CONTENT OVERLAY (Z-20) -->
-      <div class="relative z-20 mx-auto w-full max-w-[1440px] h-full flex flex-col justify-between px-6 py-12 md:px-12 lg:px-20 pointer-events-none">
+      <div class="relative z-20 mx-auto w-full max-w-[1440px] h-full flex flex-col justify-between px-6 py-6 md:px-12 lg:px-20 pointer-events-none">
         <!-- TOP BRAND STATUS HEADER -->
-        <div class="flex items-center justify-between w-full pt-4 pointer-events-auto">
+        <div class="flex items-center justify-between w-full pt-1 pointer-events-auto">
           <div class="flex items-center gap-2.5 backdrop-blur-xl bg-white/5 border border-white/10 px-4 py-2 rounded-full shadow-lg">
             <span class="flex h-2.5 w-2.5 relative">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -809,8 +832,11 @@ onUnmounted(() => {
             CHƯƠNG <span class="text-rose-400 font-bold">{{ chapters[currentChapter].number }}</span> / 04 — {{ chapters[currentChapter].badge.split('•')[0] }}
           </div>
 
-          <!-- RIGHT SIDE VERTICAL INDICATOR DOTS -->
-          <div class="fixed right-6 sm:right-10 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 backdrop-blur-xl bg-black/40 border border-white/15 p-2 rounded-full shadow-2xl">
+          <!-- RIGHT SIDE VERTICAL INDICATOR DOTS (CENTERED IN VISIBLE AREA) -->
+          <div
+            class="fixed right-6 sm:right-10 -translate-y-1/2 z-30 flex flex-col items-center gap-3 backdrop-blur-xl bg-black/40 border border-white/15 p-2 rounded-full shadow-2xl transition-all"
+            :style="{ top: `calc(50% + ${headerOffset / 2}px)` }"
+          >
             <button
               v-for="chap in chapters"
               :key="chap.index"
