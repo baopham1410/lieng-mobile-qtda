@@ -59,7 +59,6 @@ const stations = [
         id: 'camera',
         title: 'Cụm 3 Camera 48MP AI',
         badge: 'PHOTONIC ENGINE PRO',
-        icon: '📸',
         description: 'Hệ thống 3 ống kính 48MP đồng nhất cảm biến thế hệ mới, hỗ trợ quay video điện ảnh 8K 60fps ProRes và khử rung gimbal quang học tích hợp.',
         localPos: [-0.35, 0.95, 0.15],
         targetRotY: Math.PI,
@@ -68,7 +67,6 @@ const stations = [
         id: 'screen',
         title: 'Màn hình Super Retina XDR 6.9"',
         badge: 'PROMOTION 120HZ',
-        icon: '✨',
         description: 'Tấm nền OLED ProMotion 1-120Hz độ sáng đỉnh 3000 nits, viền mỏng vô cực không khiếm khuyết, kính Ceramic Shield chống trầy thế hệ mới.',
         localPos: [0.0, 0.2, -0.15],
         targetRotY: 0,
@@ -77,7 +75,6 @@ const stations = [
         id: 'frame',
         title: 'Khung Titan Hàng Không Grade 5',
         badge: 'AEROSPACE GRADE',
-        icon: '🛡️',
         description: 'Hợp kim titan Grade 5 gia công chuẩn xác bằng phay CNC vi mô, vừa siêu nhẹ vừa tản nhiệt tối ưu cho chip xử lý.',
         localPos: [0.65, 0.0, 0.0],
         targetRotY: Math.PI * 0.4,
@@ -86,7 +83,6 @@ const stations = [
         id: 'action',
         title: 'Phím Tác Vụ Cảm Biến Lực',
         badge: 'HAPTIC FEEDBACK',
-        icon: '🔘',
         description: 'Phím Action thế hệ mới cảm ứng điện dung nhận diện chạm vuốt mượt mà để đổi nhanh chế độ zoom, khẩu độ và chụp tức thì.',
         localPos: [-0.68, 0.5, 0.0],
         targetRotY: -Math.PI * 0.4,
@@ -119,7 +115,6 @@ const stations = [
         id: 'zoom',
         title: 'Ống Kính 100x Space Zoom',
         badge: 'CẢM BIẾN 108MP PRO',
-        icon: '🔭',
         description: 'Camera siêu zoom 100x kết hợp thuật toán Galaxy AI xử lý đa khung hình, cho ảnh chụp thiên văn và vật thể từ xa sắc nét ngoạn mục.',
         localPos: [-0.32, 0.95, -0.15],
         targetRotY: 0,
@@ -128,7 +123,6 @@ const stations = [
         id: 'spen',
         title: 'Bút S-Pen Tích Hợp Thân Máy',
         badge: 'ĐỘ TRỄ 2.8MS',
-        icon: '✍️',
         description: 'Cây bút S-Pen quyền năng ẩn trong thân máy, hỗ trợ viết vẽ như bút thật, chuyển đổi chữ viết tay và điều khiển cử chỉ không chạm.',
         localPos: [0.55, -1.3, 0.0],
         targetRotY: Math.PI * 0.5,
@@ -137,7 +131,6 @@ const stations = [
         id: 'display',
         title: 'Màn Hình Dynamic AMOLED 2X',
         badge: 'VISION BOOSTER 120HZ',
-        icon: '📱',
         description: 'Màn hình 6.8 inch cong tràn 120Hz siêu nét với công nghệ Vision Booster tự động điều chỉnh tương phản sắc sảo theo ánh sáng môi trường.',
         localPos: [0.0, 0.1, 0.15],
         targetRotY: Math.PI,
@@ -146,7 +139,6 @@ const stations = [
         id: 'frame',
         title: 'Khung Armor Aluminum & IP68',
         badge: 'BẢO VỆ TOÀN DIỆN',
-        icon: '🛡️',
         description: 'Khung hợp kim nhôm Armor Aluminum cứng cáp cùng chuẩn kháng nước bụi IP68 bảo vệ thiết bị an tâm trong mọi điều kiện vận hành.',
         localPos: [-0.65, 0.0, 0.0],
         targetRotY: -Math.PI * 0.4,
@@ -179,7 +171,6 @@ const stations = [
         id: 'control',
         title: 'Phím Camera Control Cảm Ứng Lực',
         badge: 'CÔNG NGHỆ MỚI 2024',
-        icon: '🔘',
         description: 'Phím bấm xúc giác phủ đá sapphire nhạy áp lực và điện dung, cho phép trượt ngón tay để zoom mượt, đổi tiêu cự và bấm 2 nấc chụp chuẩn DSLR.',
         localPos: [0.65, -0.2, 0.0],
         targetRotY: Math.PI * 0.45,
@@ -188,7 +179,6 @@ const stations = [
         id: 'tetra',
         title: 'Camera Tiềm Vọng Tetraprism 5x',
         badge: 'QUANG HỌC 120MM',
-        icon: '📸',
         description: 'Thiết kế lăng kính phản xạ 4 lần đột phá đem lại tiêu cự 120mm quang học 5x sắc nét, bắt trọn từng khoảnh khắc chân dung từ xa.',
         localPos: [-0.32, 0.95, 0.15],
         targetRotY: Math.PI,
@@ -197,7 +187,6 @@ const stations = [
         id: 'titan',
         title: 'Vỏ Titan Sa Mạc (Desert Titanium)',
         badge: 'VIỀN SIÊU MỎNG 1.15MM',
-        icon: '✨',
         description: 'Màu Titan Sa Mạc sang trọng với lớp hoàn thiện satin cao cấp, viền màn hình siêu mỏng kỷ lục thế giới chỉ 1.15mm.',
         localPos: [0.0, -0.8, 0.15],
         targetRotY: Math.PI,
@@ -206,7 +195,6 @@ const stations = [
         id: 'a18',
         title: 'Chip Apple A18 Pro 3nm',
         badge: 'APPLE INTELLIGENCE',
-        icon: '⚡',
         description: 'Bộ vi xử lý 3nm thế hệ thứ 2 với Neural Engine 16 lõi xử lý AI trực tiếp trên máy và Ray Tracing phần cứng tăng tốc đồ họa game AAA.',
         localPos: [0.0, 0.1, -0.15],
         targetRotY: 0,
@@ -239,7 +227,6 @@ const stations = [
         id: 'action',
         title: 'Phím Tác Vụ Action Button',
         badge: 'ĐA NHIỆM TÙY BIẾN',
-        icon: '🔔',
         description: 'Thay thế cần gạt rung truyền thống bằng phím vật lý tùy biến đa năng: mở camera, bật đèn pin, ghi âm hay kích hoạt phím tắt chỉ với 1 nhấn.',
         localPos: [-0.65, 0.7, 0.0],
         targetRotY: -Math.PI * 0.45,
@@ -248,7 +235,6 @@ const stations = [
         id: 'usbc',
         title: 'Cổng USB-C Tốc Độ 10Gbps',
         badge: 'CHUẨN USB 3 CAO CẤP',
-        icon: '🔌',
         description: 'Cổng USB-C tốc độ cao truyền tệp ProRes 4K trực tiếp sang ổ cứng ngoài và hỗ trợ sạc ngược cho phụ kiện AirPods, Apple Watch.',
         localPos: [0.0, -1.5, 0.0],
         targetRotY: 0,
@@ -257,7 +243,6 @@ const stations = [
         id: 'back',
         title: 'Mặt Lưng Kính Nhám Titan Tự Nhiên',
         badge: 'CHỐNG BÁM VÂN TAY',
-        icon: '🛡️',
         description: 'Kính cường lực nhám cao cấp kết hợp khung titan cấp 5 đem lại cảm giác cầm nắm chắc tay, nhẹ hơn 19g so với thế hệ tiền nhiệm.',
         localPos: [0.0, 0.1, 0.15],
         targetRotY: Math.PI,
@@ -266,7 +251,6 @@ const stations = [
         id: 'screen',
         title: 'Màn Hình Dynamic Island 2000 Nits',
         badge: 'OLED SUPER RETINA XDR',
-        icon: '📱',
         description: 'Màn hình Super Retina XDR với cụm Dynamic Island biến ảo linh hoạt hiển thị thông báo, bản đồ và nhạc theo thời gian thực.',
         localPos: [0.0, 0.4, -0.15],
         targetRotY: 0,
@@ -299,7 +283,6 @@ const stations = [
         id: 'hinge',
         title: 'Bản Lề Titan Giọt Nước Zero-Gap',
         badge: 'CƠ KHÍ SIÊU CHÍNH XÁC',
-        icon: '🔗',
         description: 'Cơ cấu gập mở giọt nước đa khớp bằng titan hàng không giúp 2 nửa màn hình khép khít hoàn toàn và triệt tiêu tối đa nếp gấp màn hình.',
         localPos: [0.0, 0.0, 0.0],
         targetRotY: 0,
@@ -308,7 +291,6 @@ const stations = [
         id: 'flex',
         title: 'Màn Hình Flex OLED Kép 8.1"',
         badge: 'ULTRA-THIN GLASS (UTG)',
-        icon: '📖',
         description: 'Mở rộng từ 6.2 inch thành tablet 8.1 inch tỷ lệ chuẩn, kính siêu mỏng UTG bền bỉ chịu hơn 400.000 lần gập mở liên tục.',
         localPos: [0.5, 0.2, -0.1],
         targetRotY: 0,
@@ -317,7 +299,6 @@ const stations = [
         id: 'cam',
         title: 'Camera Tiềm Vọng Siêu Mỏng',
         badge: 'CẢM BIẾN DƯỚI MÀN HÌNH',
-        icon: '📸',
         description: 'Cụm ống kính quang học siêu mỏng được tinh chỉnh riêng cho thân máy gập, hỗ trợ chụp selfie bằng camera chính với màn hình phụ.',
         localPos: [-0.4, 0.8, 0.15],
         targetRotY: Math.PI,
@@ -326,7 +307,6 @@ const stations = [
         id: 'os',
         title: 'Hệ Thống Đa Nhiệm 3 Cửa Sổ',
         badge: 'DUO ENGINE TƯƠNG TÁC',
-        icon: '⚡',
         description: 'Giao diện tối ưu hóa cho màn hình gập, cho phép kéo thả dữ liệu giữa 3 ứng dụng đồng thời và chế độ Flex Mode đặt nằm chụp rảnh tay.',
         localPos: [-0.4, -0.5, -0.1],
         targetRotY: 0,
@@ -1326,8 +1306,8 @@ onUnmounted(() => {
         class="absolute bottom-28 left-1/2 -translate-x-1/2 z-25 pointer-events-none transition-all duration-300 animate-bounce"
       >
         <div class="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl bg-black/85 border border-cyan-400/60 shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-xs font-semibold text-white">
-          <span class="text-sm">👆</span>
-          <span>Bấm vào máy để <strong>soi điểm chạm công nghệ (Hotspots)</strong></span>
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          <span>Bấm vào máy để <strong>soi điểm chạm công nghệ</strong></span>
         </div>
       </div>
 
@@ -1424,7 +1404,7 @@ onUnmounted(() => {
           class="absolute right-4 sm:right-8 lg:right-12 top-1/2 -translate-y-1/2 flex flex-col gap-2.5 sm:gap-3 w-[260px] sm:w-[290px] lg:w-[330px] max-h-[82vh] overflow-y-auto no-scrollbar pointer-events-auto py-2 z-25"
         >
           <div
-            v-for="hs in stations[currentStation].hotspots"
+            v-for="(hs, hsIdx) in stations[currentStation].hotspots"
             :key="`card-${hs.id}`"
             :ref="el => setCardRef(hs.id, el)"
             class="group rounded-2xl backdrop-blur-2xl border transition-all duration-300 p-3 sm:p-3.5 cursor-pointer shadow-2xl select-none"
@@ -1435,10 +1415,10 @@ onUnmounted(() => {
             "
             @click="selectHotspot(hs)"
           >
-            <!-- Card Header: Icon & Badge -->
+            <!-- Card Header: Index Number & Badge -->
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm sm:text-base select-none leading-none">{{ hs.icon }}</span>
+                <span class="font-mono text-[11px] font-bold text-white/40 tracking-wider">0{{ hsIdx + 1 }}</span>
                 <span
                   class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
                   :class="
@@ -1451,12 +1431,16 @@ onUnmounted(() => {
                 </span>
               </div>
 
-              <span
-                class="text-xs transition-transform duration-300"
-                :class="selectedHotspot?.id === hs.id ? 'text-cyan-400 translate-x-0.5 font-bold' : 'text-white/40 group-hover:text-white/80'"
+              <!-- Minimal chevron indicator -->
+              <svg
+                class="w-3.5 h-3.5 transition-transform duration-300"
+                :class="selectedHotspot?.id === hs.id ? 'text-cyan-400 rotate-90' : 'text-white/30 group-hover:text-white/70'"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                ✦
-              </span>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
             </div>
 
             <!-- Title -->
@@ -1475,8 +1459,9 @@ onUnmounted(() => {
               <p>{{ hs.description }}</p>
 
               <div class="mt-2.5 flex items-center justify-between pt-1">
-                <span class="text-[10px] font-mono text-cyan-400 flex items-center gap-1">
-                  <span>🎯 Góc soi cận cảnh</span>
+                <span class="text-[10px] font-mono text-cyan-400 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                  <span>Góc soi cận cảnh</span>
                 </span>
                 <a
                   href="#san-pham"
@@ -1499,7 +1484,10 @@ onUnmounted(() => {
         class="absolute top-5 left-5 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 backdrop-blur-xl text-xs font-semibold text-white shadow-2xl transition cursor-pointer pointer-events-auto"
         @click="isHudVisible = true"
       >
-        <span>👁️</span>
+        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
         <span>Hiện bảng điều khiển & thông số</span>
       </button>
 
@@ -1548,7 +1536,10 @@ onUnmounted(() => {
               :title="isHudVisible ? 'Ẩn các nút điều khiển để ngắm điện thoại toàn màn hình không vướng' : 'Hiện lại thông tin & điều khiển'"
               @click="isHudVisible = !isHudVisible"
             >
-              <span>👁️</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
               <span class="hidden sm:inline">Toàn cảnh</span>
             </button>
 
@@ -1640,7 +1631,13 @@ onUnmounted(() => {
                 "
                 @click="isHotspotMode ? exitHotspotMode() : enterHotspotMode()"
               >
-                <span>{{ isHotspotMode ? '✕ Thoát soi 3D' : '🔍 Soi điểm chạm' }}</span>
+                <svg v-if="!isHotspotMode" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+                <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>{{ isHotspotMode ? 'Thoát soi 3D' : 'Soi điểm chạm' }}</span>
               </button>
 
               <a
