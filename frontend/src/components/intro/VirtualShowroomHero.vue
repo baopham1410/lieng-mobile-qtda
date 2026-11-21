@@ -171,6 +171,88 @@ function updateHeaderOffset() {
   headerOffset.value = 0
 }
 
+function createIPhone15ScreenTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 1024
+  const ctx = canvas.getContext('2d')
+
+  // Wallpaper base - Apple Natural Titanium Silk Wallpaper
+  const grad = ctx.createLinearGradient(0, 0, 512, 1024)
+  grad.addColorStop(0, '#0a0a0e')
+  grad.addColorStop(0.25, '#16161c')
+  grad.addColorStop(0.5, '#232227')
+  grad.addColorStop(0.75, '#1b1b20')
+  grad.addColorStop(1, '#08080a')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, 512, 1024)
+
+  // Fluid glowing Natural Titanium silk ribbons / orbital arcs
+  const radGrad1 = ctx.createRadialGradient(256, 460, 20, 256, 460, 270)
+  radGrad1.addColorStop(0, 'rgba(195, 185, 170, 0.85)')
+  radGrad1.addColorStop(0.45, 'rgba(145, 135, 120, 0.35)')
+  radGrad1.addColorStop(0.8, 'rgba(75, 70, 65, 0.12)')
+  radGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = radGrad1
+  ctx.beginPath()
+  ctx.arc(256, 460, 270, 0, Math.PI * 2)
+  ctx.fill()
+
+  const radGrad2 = ctx.createRadialGradient(230, 690, 15, 230, 690, 230)
+  radGrad2.addColorStop(0, 'rgba(230, 220, 205, 0.55)')
+  radGrad2.addColorStop(0.55, 'rgba(160, 150, 135, 0.22)')
+  radGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = radGrad2
+  ctx.beginPath()
+  ctx.arc(230, 690, 230, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Dynamic Island
+  ctx.fillStyle = '#000000'
+  ctx.beginPath()
+  ctx.roundRect(196, 28, 120, 36, 18)
+  ctx.fill()
+  ctx.fillStyle = '#1e293b'
+  ctx.beginPath()
+  ctx.arc(295, 46, 4, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Clock
+  ctx.fillStyle = '#f5f5f4'
+  ctx.font = 'bold 94px system-ui, -apple-system, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('09:41', 256, 225)
+
+  // Date
+  ctx.font = '500 24px system-ui, -apple-system, sans-serif'
+  ctx.fillStyle = 'rgba(231, 229, 228, 0.9)'
+  ctx.fillText('Thứ Bảy, 21 Tháng 11', 256, 275)
+
+  // Liêng Mobile Brand Badge on Lockscreen
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
+  ctx.beginPath()
+  ctx.roundRect(76, 750, 360, 76, 38)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 20px system-ui, -apple-system, sans-serif'
+  ctx.fillText('LIÊNG MOBILE • TITAN TỰ NHIÊN', 256, 796)
+
+  // Home Indicator
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.roundRect(176, 990, 160, 6, 3)
+  ctx.fill()
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.flipY = false
+  return texture
+}
+
 function createHolographicPedestal(station) {
   const group = new THREE.Group()
   const basePosY = -2.15
@@ -457,9 +539,9 @@ function loadStationModel(station, record) {
             // Fix 1: Desert Titanium Frame & Camera Rings
             if (['metalframe.002', 'metaL.001', 'gray.001'].includes(mat.name)) {
               mat.color.setHex(0xd4af37) // Premium Desert Titanium gold metallic
-              mat.metalness = 0.85
+              mat.metalness = 0.88
               mat.roughness = 0.18
-              mat.envMapIntensity = 2.6
+              mat.envMapIntensity = 2.4
             }
             // Fix 2: Camera Lenses - Sapphire glass optical reflections
             if (mat.name === 'lensinglass' || child.name.includes('lensinglass')) {
@@ -468,43 +550,78 @@ function loadStationModel(station, record) {
               mat.metalness = 0.4
               mat.envMapIntensity = 3.2
             }
-            // Fix 3: Camera Glass Island Plate
+            // Fix 3: Camera Glass Island Plate (Desert Titanium warm satin tint)
             if (mat.name === 'glass.002') {
-              mat.roughness = 0.06
-              mat.metalness = 0.1
-              mat.envMapIntensity = 2.2
-            }
-            // Fix 4: Desert Titanium Backplate
-            if (mat.name === 'basecolor.001') {
-              mat.roughness = 0.36
-              mat.metalness = 0.2
+              mat.color.setHex(0xb59477) // Warm desert titanium camera island tint
+              mat.roughness = 0.08
+              mat.metalness = 0.15
               mat.envMapIntensity = 2.0
             }
-            // Fix 5: Apple Logo
+            // Fix 4: Desert Titanium Backplate (Authentic warm golden sand frosted glass)
+            if (mat.name === 'basecolor.001') {
+              mat.color.setHex(0xbe9f83) // Authentic Desert Titanium satin glass
+              mat.roughness = 0.32
+              mat.metalness = 0.18
+              mat.envMapIntensity = 1.4
+            }
+            // Fix 5: Apple Logo (Polished Desert Titanium Gold)
             if (mat.name === 'apple_logo.001') {
+              mat.color.setHex(0xd4af37)
               mat.metalness = 0.95
-              mat.roughness = 0.1
-              mat.envMapIntensity = 3.0
+              mat.roughness = 0.08
+              mat.envMapIntensity = 2.8
             }
           }
 
           // === STATION 4: iPhone 15 Pro Max ===
           if (station.id === 'ip15') {
+            // Fix 1: Natural Titanium frosted backpanel
             if (mat.name === 'backpanel') {
               mat.color.setHex(0x8e877e) // Natural Titanium back
               mat.roughness = 0.35
               mat.metalness = 0.25
               mat.envMapIntensity = 2.2
             }
-            if (['metalframe', 'Material.001'].includes(mat.name)) {
+            // Fix 2: Natural Titanium brushed frame (separated from screen!)
+            if (mat.name === 'metalframe') {
               mat.color.setHex(0xa8a29e) // Natural Titanium brushed frame
               mat.metalness = 0.88
               mat.roughness = 0.18
               mat.envMapIntensity = 2.6
             }
+            // Fix 3: Camera sapphire lenses
             if (mat.name === 'lens') {
               mat.roughness = 0.05
               mat.envMapIntensity = 2.8
+            }
+            // Fix 4: Front screen bezel
+            if (mat.name === 'black') {
+              mat.color.setHex(0x0a0a0c)
+              mat.roughness = 0.25
+              mat.metalness = 0.1
+            }
+            // Fix 5: Front Super Retina XDR OLED Display Screen (Original material was named Material.001)
+            if (mat.name === 'Material.001') {
+              if (child.geometry && child.geometry.attributes.uv && !child.userData.uvFixed) {
+                child.userData.uvFixed = true
+                const uv = child.geometry.attributes.uv
+                const minU = 0.37808, maxU = 0.62192
+                const minV = 0.50644, maxV = 0.74356
+                for (let k = 0; k < uv.count; k++) {
+                  const origU = uv.getX(k)
+                  const origV = uv.getY(k)
+                  // Remap 90-deg rotated atlas UVs to standard 2D canvas texture coordinates
+                  const newX = (maxV - origV) / (maxV - minV)
+                  const newY = 1.0 - (origU - minU) / (maxU - minU)
+                  uv.setXY(k, newX, newY)
+                }
+                uv.needsUpdate = true
+              }
+              mat.map = createIPhone15ScreenTexture()
+              mat.color.setHex(0xffffff)
+              mat.roughness = 0.08
+              mat.metalness = 0.04
+              mat.envMapIntensity = 1.6
             }
           }
 
