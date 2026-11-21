@@ -83,43 +83,75 @@ let observer = null
 
 // Colors for 4 cloned phones in Chapter 4
 const colorPalette = [
-  { name: 'Titan Tự Nhiên', hex: 0x9e9891, rough: 0.18, metal: 0.88 },
-  { name: 'Titan Đen Không Gian', hex: 0x1c1e22, rough: 0.22, metal: 0.9 },
-  { name: 'Titan Xanh Biển Sâu', hex: 0x1f364d, rough: 0.2, metal: 0.86 },
-  { name: 'Titan Trắng Bạc', hex: 0xe6e8ed, rough: 0.16, metal: 0.85 },
+  {
+    name: 'Titan Tự Nhiên',
+    hex: 0x9e9891,
+    rough: 0.22,
+    metal: 0.88,
+    glow1: 'rgba(217, 119, 6, 0.85)',
+    glow2: 'rgba(244, 63, 94, 0.75)',
+  },
+  {
+    name: 'Titan Đen Không Gian',
+    hex: 0x181a1e,
+    rough: 0.24,
+    metal: 0.92,
+    glow1: 'rgba(225, 29, 72, 0.85)',
+    glow2: 'rgba(168, 85, 247, 0.7)',
+  },
+  {
+    name: 'Titan Xanh Biển Sâu',
+    hex: 0x1f364d,
+    rough: 0.2,
+    metal: 0.88,
+    glow1: 'rgba(14, 165, 233, 0.9)',
+    glow2: 'rgba(56, 189, 248, 0.75)',
+  },
+  {
+    name: 'Titan Trắng Bạc',
+    hex: 0xe6e8ed,
+    rough: 0.16,
+    metal: 0.85,
+    glow1: 'rgba(248, 250, 252, 0.85)',
+    glow2: 'rgba(192, 132, 252, 0.7)',
+  },
 ]
 
-function createScreenTexture() {
+function createScreenTexture(colorConfig = colorPalette[0]) {
   const canvas = document.createElement('canvas')
   canvas.width = 512
   canvas.height = 1024
   const ctx = canvas.getContext('2d')
 
+  // Wallpaper base gradient
   const grad = ctx.createLinearGradient(0, 0, 512, 1024)
   grad.addColorStop(0, '#09090f')
-  grad.addColorStop(0.35, '#220812')
-  grad.addColorStop(0.7, '#5b0f1f')
-  grad.addColorStop(1, '#05050a')
+  grad.addColorStop(0.35, '#151520')
+  grad.addColorStop(0.7, '#241019')
+  grad.addColorStop(1, '#050508')
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, 512, 1024)
 
-  // Fluid glowing circular waves
-  const radGrad1 = ctx.createRadialGradient(256, 430, 20, 256, 430, 260)
-  radGrad1.addColorStop(0, 'rgba(244, 63, 94, 0.9)')
-  radGrad1.addColorStop(0.5, 'rgba(190, 18, 60, 0.4)')
+  // Fluid glowing circular waves matching the finish
+  const accent1 = colorConfig?.glow1 || 'rgba(244, 63, 94, 0.9)'
+  const accent2 = colorConfig?.glow2 || 'rgba(56, 189, 248, 0.75)'
+
+  const radGrad1 = ctx.createRadialGradient(256, 440, 20, 256, 440, 270)
+  radGrad1.addColorStop(0, accent1)
+  radGrad1.addColorStop(0.55, 'rgba(190, 18, 60, 0.25)')
   radGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)')
   ctx.fillStyle = radGrad1
   ctx.beginPath()
-  ctx.arc(256, 430, 260, 0, Math.PI * 2)
+  ctx.arc(256, 440, 270, 0, Math.PI * 2)
   ctx.fill()
 
-  const radGrad2 = ctx.createRadialGradient(200, 680, 10, 200, 680, 220)
-  radGrad2.addColorStop(0, 'rgba(56, 189, 248, 0.75)')
-  radGrad2.addColorStop(0.6, 'rgba(14, 165, 233, 0.25)')
+  const radGrad2 = ctx.createRadialGradient(220, 680, 10, 220, 680, 230)
+  radGrad2.addColorStop(0, accent2)
+  radGrad2.addColorStop(0.6, 'rgba(14, 165, 233, 0.2)')
   radGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)')
   ctx.fillStyle = radGrad2
   ctx.beginPath()
-  ctx.arc(200, 680, 220, 0, Math.PI * 2)
+  ctx.arc(220, 680, 230, 0, Math.PI * 2)
   ctx.fill()
 
   // Dynamic Island
@@ -164,6 +196,7 @@ function createScreenTexture() {
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
+  texture.flipY = false
   return texture
 }
 
@@ -380,37 +413,42 @@ function loadModel() {
       // Model loaded successfully!
       const model = gltf.scene
 
-      // Hide floor plane slab from model so only phone floats cleanly
-      const screenTex = createScreenTexture()
+      const screenTex = createScreenTexture(colorPalette[0])
       model.traverse((child) => {
         if (child.name.includes('Plane') || child.name === 'Object_22' || (child.material && child.material.name === 'Material.003')) {
           child.visible = false
         }
         if (child.isMesh && child.material) {
           const matName = (child.material.name || '').toLowerCase()
-          if (matName.includes('glass') || matName.includes('17promax_g') || matName.includes('screen')) {
+          if (matName.includes('oled') || matName.includes('screen')) {
             child.material = child.material.clone()
             child.material.map = screenTex
             child.material.emissiveMap = screenTex
             child.material.emissive = new THREE.Color(0xffffff)
-            child.material.emissiveIntensity = 0.95
+            child.material.emissiveIntensity = 1.0
+            child.material.roughness = 0.05
+            child.material.metalness = 0.1
             child.material.needsUpdate = true
           }
         }
       })
 
-      // Compute bounding box and normalize scale of phone only
+      // Orient model so front OLED screen faces forward (+Z) and stands upright along Y
+      model.rotation.set(0, Math.PI, 0)
+
+      // Compute bounding box and normalize scale (Prominent large size ~4.8 units filling ~85% viewport height)
       const box = new THREE.Box3().setFromObject(model)
       const size = box.getSize(new THREE.Vector3())
       const center = box.getCenter(new THREE.Vector3())
       const maxDim = Math.max(size.x, size.y, size.z)
-      const scaleFactor = 4.6 / maxDim
+
+      // USER REQUEST: Make it prominent & larger like in reference video (filling ~85% of screen height)
+      const scaleFactor = 4.8 / maxDim
 
       model.scale.setScalar(scaleFactor)
       model.position.sub(center.clone().multiplyScalar(scaleFactor))
 
       const baseWrapper = new THREE.Group()
-      model.rotation.y = Math.PI // Rotate 180 deg so front display faces camera at rotation.y = 0
       baseWrapper.add(model)
 
       // Create 4 instances for Chapter 4 color parade
@@ -420,16 +458,29 @@ function loadModel() {
           instance = baseWrapper
         } else {
           instance = baseWrapper.clone(true)
-          // Tint metal materials of cloned instances
+          const customScreenTex = createScreenTexture(col)
+          // Tint materials of cloned instances (chassis, aluminum, frosted glass, screen)
           instance.traverse((child) => {
             if (child.isMesh && child.material) {
               const matName = (child.material.name || '').toLowerCase()
-              if (matName.includes('color') || matName.includes('frame') || matName.includes('back') || !matName.includes('glass')) {
+              if (
+                matName.includes('aluminum') ||
+                matName.includes('frosted') ||
+                matName.includes('metal') ||
+                matName.includes('color') ||
+                matName.includes('frame') ||
+                matName.includes('back')
+              ) {
                 const tinted = child.material.clone()
                 tinted.color = new THREE.Color(col.hex)
                 tinted.metalness = col.metal
                 tinted.roughness = col.rough
                 child.material = tinted
+              } else if (matName.includes('oled') || matName.includes('screen')) {
+                const customMat = child.material.clone()
+                customMat.map = customScreenTex
+                customMat.emissiveMap = customScreenTex
+                child.material = customMat
               }
             }
           })
@@ -510,9 +561,9 @@ function animate(time = 0) {
   if (p < 0.25) {
     // Chapter 1: Front Face View (0% -> 25%)
     const localP = p / 0.25
-    mainPhone.rotation.y = THREE.MathUtils.lerp(0, -0.2, localP)
-    mainPhone.rotation.x = THREE.MathUtils.lerp(0, 0.05, localP)
-    mainPhone.position.set(defaultBaseX, Math.sin(sec * 1.5) * 0.06, 0)
+    mainPhone.rotation.y = THREE.MathUtils.lerp(0, -0.22, localP)
+    mainPhone.rotation.x = THREE.MathUtils.lerp(0, 0.04, localP)
+    mainPhone.position.set(defaultBaseX, Math.sin(sec * 1.5) * 0.05, 0)
     mainPhone.scale.setScalar(1.0)
     mainPhone.visible = true
 
@@ -523,10 +574,10 @@ function animate(time = 0) {
   } else if (p < 0.5) {
     // Chapter 2: 45° Side Titanium Chamfer View (25% -> 50%)
     const localP = (p - 0.25) / 0.25
-    mainPhone.rotation.y = THREE.MathUtils.lerp(-0.2, -Math.PI * 0.28, localP) // ~ -50 deg
-    mainPhone.rotation.x = THREE.MathUtils.lerp(0.05, 0.12, localP)
-    mainPhone.position.set(defaultBaseX, Math.sin(sec * 1.5) * 0.06, 0)
-    mainPhone.scale.setScalar(1.05)
+    mainPhone.rotation.y = THREE.MathUtils.lerp(-0.22, -Math.PI * 0.32, localP) // ~ -58 deg, displays sleek titanium side profile
+    mainPhone.rotation.x = THREE.MathUtils.lerp(0.04, 0.08, localP)
+    mainPhone.position.set(defaultBaseX, Math.sin(sec * 1.5) * 0.05, 0)
+    mainPhone.scale.setScalar(1.04)
     mainPhone.visible = true
 
     for (let i = 1; i < phoneInstances.length; i++) {
@@ -535,10 +586,10 @@ function animate(time = 0) {
   } else if (p < 0.75) {
     // Chapter 3: Rear Camera Glass View (50% -> 75%)
     const localP = (p - 0.5) / 0.25
-    mainPhone.rotation.y = THREE.MathUtils.lerp(-Math.PI * 0.28, -Math.PI, localP) // -180 deg (back view)
-    mainPhone.rotation.x = THREE.MathUtils.lerp(0.12, 0.06, localP)
-    mainPhone.position.set(defaultBaseX, Math.sin(sec * 1.5) * 0.06, 0)
-    mainPhone.scale.setScalar(1.08)
+    mainPhone.rotation.y = THREE.MathUtils.lerp(-Math.PI * 0.32, -Math.PI, localP) // turns around to back view
+    mainPhone.rotation.x = THREE.MathUtils.lerp(0.08, 0.04, localP)
+    mainPhone.position.set(defaultBaseX, Math.sin(sec * 1.5) * 0.05, 0)
+    mainPhone.scale.setScalar(1.06)
     mainPhone.visible = true
 
     for (let i = 1; i < phoneInstances.length; i++) {
@@ -549,10 +600,11 @@ function animate(time = 0) {
     const localP = (p - 0.75) / 0.25 // 0.0 to 1.0
 
     // Targets for the 4 phones in row (X positions)
-    const targetX = isMobile ? [-1.8, -0.6, 0.6, 1.8] : [-3.3, -1.1, 1.1, 3.3]
-    const targetRotY = [-Math.PI + 0.32, -Math.PI + 0.1, -Math.PI - 0.1, -Math.PI - 0.32]
+    const targetX = isMobile ? [-1.6, -0.55, 0.55, 1.6] : [-3.3, -1.1, 1.1, 3.3]
+    // Elegant perspective tilt showing the 4 color finishes on the frosted back & titanium chassis
+    const targetRotY = [-Math.PI + 0.35, -Math.PI + 0.12, -Math.PI - 0.12, -Math.PI - 0.35]
     const startX = [-9.0, -5.0, 5.0, 9.0]
-    const targetScale = isMobile ? 0.65 : 0.88
+    const targetScale = isMobile ? 0.65 : 0.85
 
     phoneInstances.forEach((phone, idx) => {
       phone.visible = true
@@ -562,7 +614,7 @@ function animate(time = 0) {
 
       phone.position.set(curX, Math.sin(sec * 1.5 + idx * 0.6) * 0.05, idx === 0 || idx === 3 ? -0.3 : 0)
       phone.rotation.y = curRotY
-      phone.rotation.x = 0.05
+      phone.rotation.x = 0.04
       phone.scale.setScalar(curScale)
     })
   }
