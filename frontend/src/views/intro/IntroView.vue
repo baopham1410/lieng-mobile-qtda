@@ -212,15 +212,17 @@ function selectCategory(id) {
       />
 
       <!-- PHẦN CỬA HÀNG VỚI BẢNG MÀU ĐỐI XỨNG & ĐIỂM NHẤN HOÀNG HÔN STUDIO -->
-      <div class="relative w-full bg-[#09090b] text-gray-100 overflow-hidden">
+      <div class="relative w-full bg-[#09090b] text-gray-100">
         <!-- CẦU NỐI MỀM MẠI: Gradient chuyển tiếp mượt mà từ 3D Showroom sang Cửa Hàng -->
         <div class="relative z-30 h-24 -mt-24 bg-gradient-to-b from-transparent via-[#09090b]/80 to-[#09090b] pointer-events-none" />
 
-        <!-- QUẦNG SÁNG STUDIO NGHỆ THUẬT (Ambient Studio Lighting: Sunset Amber ấm áp & Cyan đối xứng) -->
-        <div class="absolute top-16 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-gradient-to-b from-amber-500/12 via-orange-600/8 to-transparent blur-3xl pointer-events-none" />
-        <div class="absolute top-[35%] -left-36 w-[600px] h-[600px] bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent blur-3xl pointer-events-none" />
-        <div class="absolute top-[55%] -right-36 w-[600px] h-[600px] bg-gradient-to-l from-cyan-500/10 via-teal-500/5 to-transparent blur-3xl pointer-events-none" />
-        <div class="absolute bottom-28 left-1/3 w-[800px] h-[400px] bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-cyan-500/10 blur-3xl pointer-events-none" />
+        <!-- QUẦNG SÁNG STUDIO NGHỆ THUẬT (Bọc trong container absolute overflow-hidden để chống cuộn ngang và KHÔNG ảnh hưởng thuộc tính sticky của StoreHeader) -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+          <div class="absolute top-16 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-gradient-to-b from-amber-500/12 via-orange-600/8 to-transparent blur-3xl" />
+          <div class="absolute top-[35%] -left-36 w-[600px] h-[600px] bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent blur-3xl" />
+          <div class="absolute top-[55%] -right-36 w-[600px] h-[600px] bg-gradient-to-l from-cyan-500/10 via-teal-500/5 to-transparent blur-3xl" />
+          <div class="absolute bottom-28 left-1/3 w-[800px] h-[400px] bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-cyan-500/10 blur-3xl" />
+        </div>
 
         <!-- STOREHEADER: STICKY Ở ĐỈNH KHI BẮT ĐẦU VÀO PHẦN CỬA HÀNG / BẢNG GIÁ -->
         <StoreHeader
