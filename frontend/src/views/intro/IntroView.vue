@@ -7,6 +7,7 @@ import StoreCartDrawer from '@/components/intro/StoreCartDrawer.vue'
 import StoreProductModal from '@/components/intro/StoreProductModal.vue'
 import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 import ScrollStorytellingHero from '@/components/intro/ScrollStorytellingHero.vue'
+import VirtualShowroomHero from '@/components/intro/VirtualShowroomHero.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
 import { withApiFallback } from '@/utils/apiFallback'
 import {
@@ -42,6 +43,7 @@ const catalogProducts = ref([...mockProducts])
 const catalogBrands = ref([...mockBrands])
 const catalogCategories = ref([...mockCategories])
 const useMockCatalog = ref(true)
+const activeHeroMode = ref('showroom')
 
 const featuredProducts = computed(() => catalogProducts.value.slice(0, 4))
 
@@ -172,8 +174,35 @@ function selectCategory(id) {
     </div>
 
     <main>
-      <!-- Dark-Mode Cinematic Scroll-Driven 3D Storytelling (400vh) -->
-      <ScrollStorytellingHero :store-info="storeInfo" />
+      <!-- Mode Switcher: Virtual Showroom 4 Máy vs Storytelling iPhone 18 -->
+      <div class="relative z-30 bg-[#09090b] py-2.5 px-4 flex items-center justify-center border-b border-white/10">
+        <div class="inline-flex items-center gap-1.5 p-1 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl text-xs font-medium text-white shadow-xl">
+          <button
+            type="button"
+            class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
+            :class="activeHeroMode === 'showroom' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
+            @click="activeHeroMode = 'showroom'"
+          >
+            <span>🏛️</span>
+            <span>Virtual Showroom 4 Máy (Mô hình 3)</span>
+          </button>
+          <button
+            type="button"
+            class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
+            :class="activeHeroMode === 'story' ? 'bg-gradient-to-r from-rose-500 to-amber-500 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
+            @click="activeHeroMode = 'story'"
+          >
+            <span>🎬</span>
+            <span>Storytelling iPhone 18</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode 3: 3D Virtual Showroom Tour (450vh) -->
+      <VirtualShowroomHero v-if="activeHeroMode === 'showroom'" :store-info="storeInfo" />
+
+      <!-- Mode 1: Dark-Mode Cinematic Scroll-Driven 3D Storytelling (400vh) -->
+      <ScrollStorytellingHero v-else :store-info="storeInfo" />
 
       <!-- Trust bar -->
       <section class="border-b border-gray-200 bg-white">
