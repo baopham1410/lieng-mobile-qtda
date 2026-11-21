@@ -249,7 +249,6 @@ function createIPhone15ScreenTexture() {
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
-  texture.flipY = false
   return texture
 }
 
@@ -363,7 +362,7 @@ function initThree() {
   renderer.setSize(width, height)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.35
+  renderer.toneMappingExposure = 1.05
   canvasContainer.value.appendChild(renderer.domElement)
 
   // 4. Studio HDRI Environment Map (Crucial for Titanium frames, sapphire lenses & gloss backs)
@@ -371,24 +370,24 @@ function initThree() {
   pmremGenerator.compileEquirectangularShader()
   const roomEnv = new RoomEnvironment()
   scene.environment = pmremGenerator.fromScene(roomEnv).texture
-  scene.environmentIntensity = 1.6
+  scene.environmentIntensity = 1.1
 
-  // 5. Lighting: Global Studio Ambient + Key/Fill/Rim lights
-  ambientLight = new THREE.AmbientLight(0xffffff, 1.3)
+  // 5. Lighting: Global Studio Ambient + Key/Fill/Rim lights (Calibrated to preserve true phone colors)
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
   scene.add(ambientLight)
 
   // Pure white Studio Key Light (bright front-right)
-  const keyLight = new THREE.DirectionalLight(0xffffff, 2.5)
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.8)
   keyLight.position.set(5, 8, 8)
   scene.add(keyLight)
 
   // Studio Fill Light (soft front-left)
-  const fillLight = new THREE.DirectionalLight(0xffffff, 1.6)
+  const fillLight = new THREE.DirectionalLight(0xffffff, 1.0)
   fillLight.position.set(-5, 6, 6)
   scene.add(fillLight)
 
   // Top overall Rim Light
-  const topRim = new THREE.DirectionalLight(0xffffff, 2.2)
+  const topRim = new THREE.DirectionalLight(0xffffff, 1.4)
   topRim.position.set(0, 10, -5)
   scene.add(topRim)
 
@@ -423,7 +422,7 @@ function initThree() {
     stationGroup.add(pedestalObj)
 
     // Dedicated Front Soft Spotlight for each station (White light so true materials/colors shine)
-    const frontSpot = new THREE.SpotLight(0xffffff, 3.5, 18, Math.PI * 0.38, 0.45)
+    const frontSpot = new THREE.SpotLight(0xffffff, 2.2, 18, Math.PI * 0.38, 0.45)
     frontSpot.position.set(st.pedestalPos[0], 5.5, st.pedestalPos[2] + 4.5)
     const spotTarget = new THREE.Object3D()
     spotTarget.position.set(...st.pedestalPos)
@@ -432,7 +431,7 @@ function initThree() {
     scene.add(frontSpot)
 
     // Dedicated Overhead Theme Spotlight
-    const spot = new THREE.SpotLight(st.themeHex, 2.8, 14, Math.PI * 0.35, 0.6)
+    const spot = new THREE.SpotLight(st.themeHex, 2.0, 14, Math.PI * 0.35, 0.6)
     spot.position.set(st.pedestalPos[0], 6.5, st.pedestalPos[2] + 1.2)
     spot.target = spotTarget
     scene.add(spot)
@@ -538,10 +537,11 @@ function loadStationModel(station, record) {
           if (station.id === 'ip16') {
             // Fix 1: Desert Titanium Frame & Camera Rings
             if (['metalframe.002', 'metaL.001', 'gray.001'].includes(mat.name)) {
-              mat.color.setHex(0xd4af37) // Premium Desert Titanium gold metallic
-              mat.metalness = 0.88
-              mat.roughness = 0.18
-              mat.envMapIntensity = 2.4
+              mat.color.setHex(0xcfa456) // Premium Desert Titanium gold metallic
+              mat.metalness = 0.92
+              mat.roughness = 0.16
+              mat.envMapIntensity = 2.2
+              mat.needsUpdate = true
             }
             // Fix 2: Camera Lenses - Sapphire glass optical reflections
             if (mat.name === 'lensinglass' || child.name.includes('lensinglass')) {
@@ -549,27 +549,31 @@ function loadStationModel(station, record) {
               mat.roughness = 0.04
               mat.metalness = 0.4
               mat.envMapIntensity = 3.2
+              mat.needsUpdate = true
             }
             // Fix 3: Camera Glass Island Plate (Desert Titanium warm satin tint)
             if (mat.name === 'glass.002') {
-              mat.color.setHex(0xb59477) // Warm desert titanium camera island tint
-              mat.roughness = 0.08
-              mat.metalness = 0.15
-              mat.envMapIntensity = 2.0
-            }
-            // Fix 4: Desert Titanium Backplate (Authentic warm golden sand frosted glass)
-            if (mat.name === 'basecolor.001') {
-              mat.color.setHex(0xbe9f83) // Authentic Desert Titanium satin glass
-              mat.roughness = 0.32
+              mat.color.setHex(0x9a7553) // Warm desert titanium camera island tint
+              mat.roughness = 0.12
               mat.metalness = 0.18
-              mat.envMapIntensity = 1.4
+              mat.envMapIntensity = 1.6
+              mat.needsUpdate = true
+            }
+            // Fix 4: Desert Titanium Backplate (Rich warm golden sand frosted glass)
+            if (mat.name === 'basecolor.001') {
+              mat.color.setHex(0x9e7c5b) // Authentic Desert Titanium satin glass
+              mat.roughness = 0.38
+              mat.metalness = 0.15
+              mat.envMapIntensity = 1.2
+              mat.needsUpdate = true
             }
             // Fix 5: Apple Logo (Polished Desert Titanium Gold)
             if (mat.name === 'apple_logo.001') {
               mat.color.setHex(0xd4af37)
-              mat.metalness = 0.95
-              mat.roughness = 0.08
-              mat.envMapIntensity = 2.8
+              mat.metalness = 0.98
+              mat.roughness = 0.06
+              mat.envMapIntensity = 2.6
+              mat.needsUpdate = true
             }
           }
 
@@ -581,6 +585,7 @@ function loadStationModel(station, record) {
               mat.roughness = 0.35
               mat.metalness = 0.25
               mat.envMapIntensity = 2.2
+              mat.needsUpdate = true
             }
             // Fix 2: Natural Titanium brushed frame (separated from screen!)
             if (mat.name === 'metalframe') {
@@ -588,19 +593,22 @@ function loadStationModel(station, record) {
               mat.metalness = 0.88
               mat.roughness = 0.18
               mat.envMapIntensity = 2.6
+              mat.needsUpdate = true
             }
             // Fix 3: Camera sapphire lenses
             if (mat.name === 'lens') {
               mat.roughness = 0.05
               mat.envMapIntensity = 2.8
+              mat.needsUpdate = true
             }
             // Fix 4: Front screen bezel
             if (mat.name === 'black') {
               mat.color.setHex(0x0a0a0c)
               mat.roughness = 0.25
               mat.metalness = 0.1
+              mat.needsUpdate = true
             }
-            // Fix 5: Front Super Retina XDR OLED Display Screen (Original material was named Material.001)
+            // Fix 5: Front Super Retina XDR OLED Display Screen
             if (mat.name === 'Material.001') {
               if (child.geometry && child.geometry.attributes.uv && !child.userData.uvFixed) {
                 child.userData.uvFixed = true
@@ -611,17 +619,24 @@ function loadStationModel(station, record) {
                   const origU = uv.getX(k)
                   const origV = uv.getY(k)
                   // Remap 90-deg rotated atlas UVs to standard 2D canvas texture coordinates
-                  const newX = (maxV - origV) / (maxV - minV)
-                  const newY = 1.0 - (origU - minU) / (maxU - minU)
+                  const newX = (origV - minV) / (maxV - minV)
+                  const newY = (origU - minU) / (maxU - minU)
                   uv.setXY(k, newX, newY)
                 }
                 uv.needsUpdate = true
               }
-              mat.map = createIPhone15ScreenTexture()
-              mat.color.setHex(0xffffff)
-              mat.roughness = 0.08
-              mat.metalness = 0.04
-              mat.envMapIntensity = 1.6
+              const screenTex = createIPhone15ScreenTexture()
+              screenTex.colorSpace = THREE.SRGBColorSpace
+              child.material = new THREE.MeshPhysicalMaterial({
+                map: screenTex,
+                color: 0xffffff,
+                roughness: 0.1,
+                metalness: 0.02,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.05,
+                reflectivity: 0.8,
+              })
+              child.material.needsUpdate = true
             }
           }
 
@@ -847,7 +862,7 @@ function animate(time = 0) {
 
     // Focus spotlight intensity
     if (obj.spot) {
-      obj.spot.intensity = isCurrent ? 4.2 : 1.2
+      obj.spot.intensity = isCurrent ? 2.4 : 0.8
     }
   })
 
