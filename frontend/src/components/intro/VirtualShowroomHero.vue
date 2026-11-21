@@ -465,12 +465,16 @@ function initThree() {
   window.addEventListener('resize', onWindowResize)
   window.addEventListener('scroll', handleScroll, { passive: true })
 
-  // Mouse drag interaction on canvas
+  // Mouse drag interaction on canvas & container
   const dom = renderer.domElement
   dom.addEventListener('mousedown', onMouseDown)
+  dom.addEventListener('touchstart', onTouchStart, { passive: true })
+  if (canvasContainer.value) {
+    canvasContainer.value.addEventListener('mousedown', onMouseDown)
+    canvasContainer.value.addEventListener('touchstart', onTouchStart, { passive: true })
+  }
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
-  dom.addEventListener('touchstart', onTouchStart, { passive: true })
   window.addEventListener('touchmove', onTouchMove, { passive: true })
   window.addEventListener('touchend', onTouchEnd)
 
@@ -754,15 +758,24 @@ function scrollToStation(idx) {
 
 // Mouse Drag Rotation
 function onMouseDown(e) {
+  if (e.target && e.target.closest('button, a, input, select')) return
   isDragging.value = true
   previousMouseX = e.clientX
+  const currentObj = stationObjects[currentStation.value]
+  if (currentObj && currentObj.modelContainer) {
+    activeUserYaw = currentObj.modelContainer.rotation.y
+  }
 }
 
 function onMouseMove(e) {
   if (!isDragging.value) return
   const deltaX = e.clientX - previousMouseX
   previousMouseX = e.clientX
-  activeUserYaw += deltaX * 0.008
+  activeUserYaw += deltaX * 0.009
+  const currentObj = stationObjects[currentStation.value]
+  if (currentObj && currentObj.modelContainer) {
+    currentObj.modelContainer.rotation.y = activeUserYaw
+  }
 }
 
 function onMouseUp() {
@@ -771,8 +784,13 @@ function onMouseUp() {
 
 function onTouchStart(e) {
   if (e.touches.length > 0) {
+    if (e.target && e.target.closest('button, a, input, select')) return
     isDragging.value = true
     previousMouseX = e.touches[0].clientX
+    const currentObj = stationObjects[currentStation.value]
+    if (currentObj && currentObj.modelContainer) {
+      activeUserYaw = currentObj.modelContainer.rotation.y
+    }
   }
 }
 
@@ -780,7 +798,11 @@ function onTouchMove(e) {
   if (!isDragging.value || e.touches.length === 0) return
   const deltaX = e.touches[0].clientX - previousMouseX
   previousMouseX = e.touches[0].clientX
-  activeUserYaw += deltaX * 0.008
+  activeUserYaw += deltaX * 0.009
+  const currentObj = stationObjects[currentStation.value]
+  if (currentObj && currentObj.modelContainer) {
+    currentObj.modelContainer.rotation.y = activeUserYaw
+  }
 }
 
 function onTouchEnd() {
@@ -836,13 +858,10 @@ function animate(time = 0) {
         // Direct user drag rotation
         obj.modelContainer.rotation.y = activeUserYaw
       } else {
-        // Ambient cinematic slow orbit sway
-        const sway = Math.sin(sec * 0.7 + i * 1.2) * 0.3
-        obj.modelContainer.rotation.y = THREE.MathUtils.lerp(
-          obj.modelContainer.rotation.y,
-          isAutoRotate.value ? sec * 0.4 + sway : sway,
-          0.05,
-        )
+        if (isAutoRotate.value) {
+          // Orbit smoothly from current angle
+          obj.modelContainer.rotation.y += 0.005
+        }
       }
     }
 
@@ -1087,6 +1106,18 @@ onUnmounted(() => {
                 </svg>
                 <span>{{ isAutoRotate ? '360° On' : '360° Off' }}</span>
               </button>
+            </div>
+
+            <!-- DRAG GUIDE HINT -->
+            <div class="mt-4 flex items-center gap-2 text-xs text-white/70">
+              <span class="flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+              </svg>
+              <span>Giữ chuột & kéo ngang để xoay 360° chiếc máy này</span>
             </div>
           </div>
         </div>
