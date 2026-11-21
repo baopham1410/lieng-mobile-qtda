@@ -12,15 +12,18 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['open-cart'])
+
 const sectionRef = ref(null)
 const canvasContainer = ref(null)
 const scrollProgress = ref(0)
 const currentStation = ref(0) // 0: iPhone 18, 1: S22 Ultra, 2: iPhone 16 Pro Max, 3: Fold Duo
 const isTextVisible = ref(true)
 const activeTextStation = ref(0)
-const headerOffset = ref(112)
+const headerOffset = ref(0)
 const isAutoRotate = ref(true)
 const isDragging = ref(false)
+const isHudVisible = ref(true)
 
 // 5 Flagship Stations specifications
 const stations = [
@@ -41,9 +44,9 @@ const stations = [
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(244, 63, 94, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/phone.glb',
     baseRot: [0, Math.PI, 0],
-    targetHeight: 3.8,
+    targetHeight: 3.5,
     pedestalPos: [0, 0, 0],
-    cameraOffset: [0, 0.4, 6.8],
+    cameraOffset: [0, 0.25, 7.2],
     cameraTarget: [0, 0, 0],
   },
   {
@@ -63,9 +66,9 @@ const stations = [
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(14, 165, 233, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/samsung_galaxy_s22_ultra.glb',
     baseRot: [0, 0.35, 0],
-    targetHeight: 3.8,
+    targetHeight: 3.5,
     pedestalPos: [10, 0, -2],
-    cameraOffset: [10, 0.4, 5.0],
+    cameraOffset: [10, 0.25, 5.2],
     cameraTarget: [10, 0, -2],
   },
   {
@@ -85,9 +88,9 @@ const stations = [
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(217, 119, 6, 0.26) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/iphone_16_pro_max.glb',
     baseRot: [0, Math.PI / 2 + 0.35, 0],
-    targetHeight: 3.8,
+    targetHeight: 3.5,
     pedestalPos: [20, 0, 0],
-    cameraOffset: [20, 0.4, 6.8],
+    cameraOffset: [20, 0.25, 7.2],
     cameraTarget: [20, 0, 0],
   },
   {
@@ -107,9 +110,9 @@ const stations = [
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(161, 161, 170, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/iphone_15_pro_max.glb',
     baseRot: [0, -0.35, 0],
-    targetHeight: 3.8,
+    targetHeight: 3.5,
     pedestalPos: [30, 0, -2],
-    cameraOffset: [30, 0.4, 5.0],
+    cameraOffset: [30, 0.25, 5.2],
     cameraTarget: [30, 0, -2],
   },
   {
@@ -129,9 +132,9 @@ const stations = [
     bgGradient: 'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.28) 0%, rgba(9, 9, 11, 0) 75%)',
     file: '/models/iphone_duo_concept.glb',
     baseRot: [0, 0.2, 0],
-    targetHeight: 3.2,
+    targetHeight: 3.0,
     pedestalPos: [40, 0, 0],
-    cameraOffset: [40, 0.4, 4.8],
+    cameraOffset: [40, 0.25, 5.2],
     cameraTarget: [40, 0, 0],
   },
 ]
@@ -147,7 +150,7 @@ let isVisible = true
 let observer = null
 
 // Smooth camera motion targets
-const currentCamPos = new THREE.Vector3(0, 0.4, 6.8)
+const currentCamPos = new THREE.Vector3(0, 0.25, 7.2)
 const currentCamTarget = new THREE.Vector3(0, 0, 0)
 
 // Drag rotate state
@@ -155,11 +158,17 @@ let previousMouseX = 0
 let activeUserYaw = 0
 
 function updateHeaderOffset() {
-  const headerEl = document.getElementById('top') || document.querySelector('header')
-  if (headerEl) {
-    const h = Math.round(headerEl.getBoundingClientRect().height)
-    if (h > 0) headerOffset.value = h
+  const headerEl = document.getElementById('top')
+  if (headerEl && sectionRef.value) {
+    const headerRect = headerEl.getBoundingClientRect()
+    const sectionRect = sectionRef.value.getBoundingClientRect()
+    // Only apply offset if header is rendered ABOVE the 3D section
+    if (headerRect.top < sectionRect.top && headerRect.height > 0) {
+      headerOffset.value = Math.round(headerRect.height)
+      return
+    }
   }
+  headerOffset.value = 0
 }
 
 function createHolographicPedestal(station) {
@@ -261,7 +270,7 @@ function initThree() {
 
   // 2. Camera
   camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100)
-  camera.position.set(0, 0.4, 6.8)
+  camera.position.set(0, 0.25, 7.2)
 
   // 3. Renderer with high-performance Tone Mapping
   renderer = new THREE.WebGLRenderer({
@@ -790,8 +799,22 @@ onUnmounted(() => {
         title="Kéo chuột để xoay 360°"
       />
 
+      <!-- FLOATING RESTORE HUD BUTTON (Appears when in Zen Fullscreen view) -->
+      <button
+        v-if="!isHudVisible"
+        type="button"
+        class="absolute top-5 left-5 z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 backdrop-blur-xl text-xs font-semibold text-white shadow-2xl transition cursor-pointer pointer-events-auto"
+        @click="isHudVisible = true"
+      >
+        <span>👁️</span>
+        <span>Hiện bảng điều khiển & thông số</span>
+      </button>
+
       <!-- SHOWROOM HUD OVERLAY (Z-20) -->
-      <div class="relative z-20 mx-auto w-full max-w-[1440px] h-full flex flex-col justify-between px-6 py-6 md:px-12 lg:px-20 pointer-events-none">
+      <div
+        class="relative z-20 mx-auto w-full max-w-[1440px] h-full flex flex-col justify-between px-6 py-6 md:px-12 lg:px-20 pointer-events-none transition-all duration-300"
+        :class="isHudVisible ? 'opacity-100' : 'opacity-0'"
+      >
         <!-- TOP SHOWROOM HEADER & QUICK JUMP STATIONS -->
         <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 pointer-events-auto">
           <!-- BADGE BRAND -->
@@ -801,11 +824,11 @@ onUnmounted(() => {
               <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
             </span>
             <span class="text-xs font-semibold uppercase tracking-wider text-white/90">
-              Liêng Mobile • 3D Virtual Showroom Tour
+              Liêng Mobile • 3D Showroom
             </span>
           </div>
 
-          <!-- QUICK SWITCHER TABS (STATIONS 1 - 4) -->
+          <!-- QUICK SWITCHER TABS (STATIONS 1 - 5) -->
           <div class="flex items-center gap-1.5 p-1 rounded-full backdrop-blur-xl bg-black/40 border border-white/15 shadow-xl overflow-x-auto max-w-full">
             <button
               v-for="(st, idx) in stations"
@@ -824,16 +847,29 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <!-- SCROLL PROGRESS TRACKER -->
-          <div class="hidden lg:flex items-center gap-3 backdrop-blur-xl bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-mono">
-            <span class="text-white/60">SHOWROOM TOUR</span>
-            <div class="w-20 h-1.5 bg-white/15 rounded-full overflow-hidden">
-              <div
-                class="h-full bg-gradient-to-r from-cyan-400 via-rose-500 to-purple-500 transition-all duration-75"
-                :style="{ width: `${Math.round(scrollProgress * 100)}%` }"
-              />
+          <!-- ZEN VIEW TOGGLE & PROGRESS TRACKER -->
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="px-3.5 py-2 rounded-full text-xs font-medium backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-md"
+              :title="isHudVisible ? 'Ẩn các nút điều khiển để ngắm điện thoại toàn màn hình không vướng' : 'Hiện lại thông tin & điều khiển'"
+              @click="isHudVisible = !isHudVisible"
+            >
+              <span>👁️</span>
+              <span class="hidden sm:inline">Toàn cảnh</span>
+            </button>
+
+            <!-- SCROLL PROGRESS TRACKER -->
+            <div class="hidden lg:flex items-center gap-3 backdrop-blur-xl bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-mono">
+              <span class="text-white/60">TOUR</span>
+              <div class="w-16 h-1.5 bg-white/15 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-cyan-400 via-rose-500 to-purple-500 transition-all duration-75"
+                  :style="{ width: `${Math.round(scrollProgress * 100)}%` }"
+                />
+              </div>
+              <span class="text-cyan-400 font-bold w-9 text-right">{{ Math.round(scrollProgress * 100) }}%</span>
             </div>
-            <span class="text-cyan-400 font-bold w-9 text-right">{{ Math.round(scrollProgress * 100) }}%</span>
           </div>
         </div>
 

@@ -17,16 +17,19 @@ const scrollProgress = ref(0)
 const currentChapter = ref(0) // 0, 1, 2, 3
 const isTextVisible = ref(true)
 const activeTextChapter = ref(0)
-const headerOffset = ref(112)
+const headerOffset = ref(0)
 
 function updateHeaderOffset() {
-  const headerEl = document.getElementById('top') || document.querySelector('header')
-  if (headerEl) {
-    const h = Math.round(headerEl.getBoundingClientRect().height)
-    if (h > 0) {
-      headerOffset.value = h
+  const headerEl = document.getElementById('top')
+  if (headerEl && sectionRef.value) {
+    const headerRect = headerEl.getBoundingClientRect()
+    const sectionRect = sectionRef.value.getBoundingClientRect()
+    if (headerRect.top < sectionRect.top && headerRect.height > 0) {
+      headerOffset.value = Math.round(headerRect.height)
+      return
     }
   }
+  headerOffset.value = 0
 }
 
 const chapters = [

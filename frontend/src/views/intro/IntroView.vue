@@ -160,12 +160,6 @@ function selectCategory(id) {
 
 <template>
   <div class="min-h-screen bg-gray-50 text-gray-900">
-    <StoreHeader
-      v-model:search-query="searchQuery"
-      :cart-count="cartCount"
-      @open-cart="cartOpen = true"
-    />
-
     <div
       v-if="checkoutNotice"
       class="fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-2xl bg-gray-900 px-6 py-4 text-sm font-medium text-white shadow-xl"
@@ -173,36 +167,77 @@ function selectCategory(id) {
       Đã ghi nhận đơn — nhân viên sẽ liên hệ tư vấn trong ít phút.
     </div>
 
-    <main>
-      <!-- Mode Switcher: Virtual Showroom 4 Máy vs Storytelling iPhone 18 -->
-      <div class="relative z-30 bg-[#09090b] py-2.5 px-4 flex items-center justify-center border-b border-white/10">
-        <div class="inline-flex items-center gap-1.5 p-1 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl text-xs font-medium text-white shadow-xl">
-          <button
-            type="button"
-            class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
-            :class="activeHeroMode === 'showroom' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
-            @click="activeHeroMode = 'showroom'"
-          >
-            <span>🏛️</span>
-            <span>Virtual Showroom 5 Flagship (Mô hình 3)</span>
-          </button>
-          <button
-            type="button"
-            class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
-            :class="activeHeroMode === 'story' ? 'bg-gradient-to-r from-rose-500 to-amber-500 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
-            @click="activeHeroMode = 'story'"
-          >
-            <span>🎬</span>
-            <span>Storytelling iPhone 18</span>
-          </button>
-        </div>
+    <!-- FLOATING TOP-RIGHT 3D HERO CONTROLLER (Z-40) -->
+    <aside aria-label="Điều khiển 3D" class="fixed top-4 right-4 sm:right-6 z-40 flex items-center gap-2 pointer-events-auto">
+      <!-- MODE SWITCHER PILL -->
+      <div class="inline-flex items-center gap-1 p-1 rounded-full bg-black/60 border border-white/20 backdrop-blur-xl text-xs font-medium text-white shadow-2xl">
+        <button
+          type="button"
+          class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
+          :class="activeHeroMode === 'showroom' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
+          @click="activeHeroMode = 'showroom'"
+        >
+          <span>🏛️</span>
+          <span class="hidden sm:inline">Showroom 5 Máy</span>
+        </button>
+        <button
+          type="button"
+          class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
+          :class="activeHeroMode === 'story' ? 'bg-gradient-to-r from-rose-500 to-amber-500 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
+          @click="activeHeroMode = 'story'"
+        >
+          <span>🎬</span>
+          <span class="hidden sm:inline">Story iPhone 18</span>
+        </button>
       </div>
 
-      <!-- Mode 3: 3D Virtual Showroom Tour (450vh) -->
-      <VirtualShowroomHero v-if="activeHeroMode === 'showroom'" :store-info="storeInfo" />
+      <!-- QUICK JUMP TO CATALOG & CART BUTTON -->
+      <a
+        href="#san-pham"
+        class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-600/90 hover:bg-red-600 border border-red-400/40 backdrop-blur-xl text-xs font-semibold text-white shadow-xl transition-all cursor-pointer"
+        title="Cuộn xuống xem bảng giá & sản phẩm"
+      >
+        <StoreDeviceIcon name="store" size-class="h-3.5 w-3.5" />
+        <span>Vào Cửa Hàng</span>
+      </a>
+
+      <button
+        type="button"
+        class="flex items-center justify-center h-9 w-9 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 backdrop-blur-xl text-white shadow-2xl transition cursor-pointer relative"
+        title="Mở giỏ hàng"
+        @click="cartOpen = true"
+      >
+        <StoreDeviceIcon name="cart" size-class="h-4 w-4" />
+        <span
+          v-if="cartCount > 0"
+          class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
+        >
+          {{ cartCount }}
+        </span>
+      </button>
+    </aside>
+
+    <main>
+      <!-- Mode 3: 3D Virtual Showroom Tour (500vh) - Chiếm trọn 100vh Fullscreen không vướng Header -->
+      <VirtualShowroomHero
+        v-if="activeHeroMode === 'showroom'"
+        :store-info="storeInfo"
+        @open-cart="cartOpen = true"
+      />
 
       <!-- Mode 1: Dark-Mode Cinematic Scroll-Driven 3D Storytelling (400vh) -->
-      <ScrollStorytellingHero v-else :store-info="storeInfo" />
+      <ScrollStorytellingHero
+        v-else
+        :store-info="storeInfo"
+        @open-cart="cartOpen = true"
+      />
+
+      <!-- STOREHEADER: STICKY Ở ĐỈNH KHI BẮT ĐẦU VÀO PHẦN CỬA HÀNG / BẢNG GIÁ -->
+      <StoreHeader
+        v-model:search-query="searchQuery"
+        :cart-count="cartCount"
+        @open-cart="cartOpen = true"
+      />
 
       <!-- Trust bar -->
       <section class="border-b border-gray-200 bg-white">
