@@ -161,23 +161,19 @@ onUnmounted(() => {
 <template>
   <section
     ref="containerRef"
-    class="border-y border-white/10 bg-[#0c0d12]/90 backdrop-blur-xl relative overflow-hidden"
+    class="border-b border-gray-200 bg-white relative overflow-hidden"
   >
-    <!-- Background subtle symmetrical ambient studio glow (Warm Amber on left, Cool Cyan on right) -->
-    <div class="absolute -top-24 left-1/4 h-56 w-96 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent blur-3xl pointer-events-none" />
-    <div class="absolute -bottom-24 right-1/4 h-56 w-96 rounded-full bg-gradient-to-l from-cyan-500/12 via-teal-500/8 to-transparent blur-3xl pointer-events-none" />
-
-    <div class="mx-auto max-w-7xl px-4 py-8 relative z-10">
+    <div class="mx-auto max-w-7xl px-4 py-8">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-2 px-1">
         <div class="flex items-center gap-2">
-          <span class="inline-flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-          <p class="text-xs font-bold uppercase tracking-widest text-amber-300/90">
+          <span class="inline-flex h-2 w-2 rounded-full bg-red-600 animate-ping" />
+          <p class="text-xs font-bold uppercase tracking-widest text-red-600">
             Hệ thống chỉ số &amp; uy tín thương hiệu
           </p>
         </div>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-1 text-xs font-semibold text-amber-300 transition backdrop-blur-md cursor-pointer active:scale-95 shadow-md hover:border-amber-400/50"
+          class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100 px-3.5 py-1 text-xs font-semibold text-gray-700 transition cursor-pointer active:scale-95 shadow-xs"
           title="Bấm để quay số ngẫu nhiên lại"
           @click="reSpinAll"
         >
@@ -190,66 +186,61 @@ onUnmounted(() => {
         <div
           v-for="card in cardStates"
           :key="card.id"
-          class="group relative rounded-2xl border p-5 text-center transition-all duration-300 backdrop-blur-2xl cursor-pointer select-none"
+          class="group relative rounded-2xl border p-5 text-center transition-all duration-300 cursor-pointer select-none"
           :class="[
             card.isSpinning
-              ? 'border-amber-400/70 bg-[#161822] shadow-[0_0_25px_rgba(251,191,36,0.35)] scale-[1.02]'
+              ? 'border-red-400 bg-red-50/60 shadow-[0_0_20px_rgba(239,68,68,0.2)] scale-[1.02]'
               : card.punch
-                ? 'border-amber-300 bg-[#1a1b26] shadow-[0_0_30px_rgba(251,191,36,0.5)] scale-[1.05]'
-                : 'border-white/10 bg-[#121318]/90 hover:border-amber-500/40 hover:bg-[#161822] hover:shadow-xl hover:shadow-amber-500/10 hover:scale-[1.02]'
+                ? 'border-red-500 bg-red-50 shadow-[0_0_25px_rgba(239,68,68,0.3)] scale-[1.05]'
+                : 'border-gray-100 bg-gray-50/70 hover:border-red-200 hover:bg-white hover:shadow-xl hover:scale-[1.02]'
           ]"
           @click="spinCard(card, 1200)"
         >
           <!-- Spinning slot status badge -->
           <div
             v-if="card.isSpinning"
-            class="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-black shadow-md shadow-orange-500/50 animate-pulse"
+            class="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm animate-pulse"
           >
             Đang quay...
           </div>
           <div
             v-else-if="card.isLocked"
-            class="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500/20 border border-cyan-400/60 px-2.5 py-0.5 text-[9px] font-bold text-cyan-300 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+            class="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[9px] font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             Chính xác ✓
           </div>
 
-          <!-- Number with Slot Machine Punch & Symmetrical Gradient -->
+          <!-- Number with Slot Machine Punch & Crisp Red Typography -->
           <div class="flex items-center justify-center gap-0.5">
             <span
               class="font-black tracking-tight text-3xl sm:text-4xl transition-all inline-block font-mono"
               :class="[
                 card.isSpinning
-                  ? 'text-amber-300 blur-[0.6px] translate-y-[-1px]'
+                  ? 'text-red-400 blur-[0.6px] translate-y-[-1px]'
                   : card.punch
-                    ? 'scale-110 text-white drop-shadow-md'
-                    : card.id === 2
-                      ? 'bg-gradient-to-r from-cyan-300 via-sky-300 to-teal-300 bg-clip-text text-transparent'
-                      : 'bg-gradient-to-r from-amber-300 via-orange-400 to-amber-200 bg-clip-text text-transparent'
+                    ? 'scale-110 text-red-600 drop-shadow-sm'
+                    : 'text-red-600'
               ]"
             >
               {{ card.currentNumStr }}
             </span>
             <span
-              class="text-xl sm:text-2xl font-black"
-              :class="[
-                card.id === 2 ? 'text-cyan-300' : 'text-amber-300',
-                { 'opacity-50 blur-[0.4px]': card.isSpinning }
-              ]"
+              class="text-xl sm:text-2xl font-black text-red-600"
+              :class="{ 'opacity-50 blur-[0.4px]': card.isSpinning }"
             >
               {{ card.suffix }}
             </span>
           </div>
 
           <!-- Label -->
-          <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-gray-300 group-hover:text-white transition-colors">
+          <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-gray-600 group-hover:text-gray-900 transition-colors">
             {{ card.label }}
           </p>
 
-          <!-- Subtle bottom glow accent line -->
+          <!-- Subtle bottom accent line -->
           <div
             class="mt-3 mx-auto h-0.5 w-12 rounded-full transition-all duration-300"
-            :class="card.isSpinning ? 'w-20 bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-white/15 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-amber-400 group-hover:to-orange-500'"
+            :class="card.isSpinning ? 'w-20 bg-red-500' : 'bg-gray-200 group-hover:w-20 group-hover:bg-red-500'"
           />
         </div>
       </div>
