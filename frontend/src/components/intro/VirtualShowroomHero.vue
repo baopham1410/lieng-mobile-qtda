@@ -796,7 +796,6 @@ onUnmounted(() => {
       <div
         ref="canvasContainer"
         class="absolute inset-0 z-10 w-full h-full cursor-grab active:cursor-grabbing"
-        title="Kéo chuột để xoay 360°"
       />
 
       <!-- FLOATING RESTORE HUD BUTTON (Appears when in Zen Fullscreen view) -->
@@ -957,62 +956,6 @@ onUnmounted(() => {
                 <span>{{ isAutoRotate ? '360° On' : '360° Off' }}</span>
               </button>
             </div>
-
-            <!-- DRAG GUIDE HINT -->
-            <div class="mt-5 flex items-center gap-2 text-xs text-white/50">
-              <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-              </svg>
-              <span>Giữ chuột & kéo ngang để xoay 360° chiếc máy này</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- BOTTOM CONTROLS & PEDESTAL DOTS -->
-        <div class="w-full flex items-center justify-between pb-2 pointer-events-auto">
-          <!-- STATION STATUS TEXT -->
-          <div class="text-xs font-mono text-white/60">
-            BỆ TRƯNG BÀY <span class="text-cyan-400 font-bold">{{ stations[currentStation].stationNumber }}</span> / 04 —
-            {{ stations[currentStation].brand }}
-          </div>
-
-          <!-- SCROLL GUIDE HINT -->
-          <div class="hidden sm:flex items-center gap-2 text-xs text-white/50 animate-bounce">
-            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-            <span>Cuộn chuột để di chuyển camera sang bệ máy tiếp theo</span>
-          </div>
-
-          <!-- RIGHT SIDE VERTICAL INDICATOR DOTS (CENTERED IN VISIBLE AREA) -->
-          <div
-            class="fixed right-6 sm:right-10 -translate-y-1/2 z-30 flex flex-col items-center gap-3 backdrop-blur-xl bg-black/40 border border-white/15 p-2 rounded-full shadow-2xl transition-all"
-            :style="{ top: `calc(50% + ${headerOffset / 2}px)` }"
-          >
-            <button
-              v-for="(st, idx) in stations"
-              :key="st.id"
-              type="button"
-              class="group relative flex items-center justify-center p-1 cursor-pointer transition-all"
-              @click="scrollToStation(idx)"
-            >
-              <!-- DOT -->
-              <span
-                class="rounded-full transition-all duration-300"
-                :class="
-                  currentStation === idx
-                    ? 'w-3 h-8 bg-gradient-to-b from-cyan-400 to-blue-500 shadow-md ring-2 ring-white/40'
-                    : 'w-2.5 h-2.5 bg-white/30 hover:bg-white/70'
-                "
-              />
-
-              <!-- TOOLTIP ON HOVER -->
-              <span
-                class="absolute right-9 px-2.5 py-1 rounded-lg bg-gray-900 border border-white/15 text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-xl pointer-events-none"
-              >
-                {{ st.stationNumber }}. {{ st.title }}
-              </span>
-            </button>
           </div>
         </div>
       </div>

@@ -827,41 +827,6 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-
-        <!-- BOTTOM CONTROLS & CHAPTER DOTS -->
-        <div class="w-full flex items-center justify-between pb-4 pointer-events-auto">
-          <!-- CHAPTER STEP TEXT -->
-          <div class="text-xs font-mono text-white/60">
-            CHƯƠNG <span class="text-rose-400 font-bold">{{ chapters[currentChapter].number }}</span> / 04 — {{ chapters[currentChapter].badge.split('•')[0] }}
-          </div>
-
-          <!-- RIGHT SIDE VERTICAL INDICATOR DOTS (CENTERED IN VISIBLE AREA) -->
-          <div
-            class="fixed right-6 sm:right-10 -translate-y-1/2 z-30 flex flex-col items-center gap-3 backdrop-blur-xl bg-black/40 border border-white/15 p-2 rounded-full shadow-2xl transition-all"
-            :style="{ top: `calc(50% + ${headerOffset / 2}px)` }"
-          >
-            <button
-              v-for="chap in chapters"
-              :key="chap.index"
-              type="button"
-              class="group relative flex items-center justify-center p-1 cursor-pointer transition-all"
-              @click="scrollToChapter(chap.index)"
-            >
-              <!-- DOT -->
-              <span
-                class="rounded-full transition-all duration-300"
-                :class="currentChapter === chap.index ? 'w-3 h-8 bg-gradient-to-b from-rose-500 to-amber-400 shadow-md ring-2 ring-white/40' : 'w-2.5 h-2.5 bg-white/30 hover:bg-white/70'"
-              />
-
-              <!-- TOOLTIP ON HOVER -->
-              <span
-                class="absolute right-9 px-2.5 py-1 rounded-lg bg-gray-900 border border-white/15 text-[10px] font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-xl pointer-events-none"
-              >
-                {{ chap.number }}. {{ chap.title }}
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </section>

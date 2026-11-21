@@ -167,34 +167,12 @@ function selectCategory(id) {
       Đã ghi nhận đơn — nhân viên sẽ liên hệ tư vấn trong ít phút.
     </div>
 
-    <!-- FLOATING TOP-RIGHT 3D HERO CONTROLLER (Z-40) -->
-    <aside aria-label="Điều khiển 3D" class="fixed top-4 right-4 sm:right-6 z-40 flex items-center gap-2 pointer-events-auto">
-      <!-- MODE SWITCHER PILL -->
-      <div class="inline-flex items-center gap-1 p-1 rounded-full bg-black/60 border border-white/20 backdrop-blur-xl text-xs font-medium text-white shadow-2xl">
-        <button
-          type="button"
-          class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
-          :class="activeHeroMode === 'showroom' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
-          @click="activeHeroMode = 'showroom'"
-        >
-          <span>🏛️</span>
-          <span class="hidden sm:inline">Showroom 5 Máy</span>
-        </button>
-        <button
-          type="button"
-          class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5"
-          :class="activeHeroMode === 'story' ? 'bg-gradient-to-r from-rose-500 to-amber-500 font-bold text-white shadow-md' : 'text-white/70 hover:text-white'"
-          @click="activeHeroMode = 'story'"
-        >
-          <span>🎬</span>
-          <span class="hidden sm:inline">Story iPhone 18</span>
-        </button>
-      </div>
-
+    <!-- FLOATING TOP-RIGHT STORE SHORTCUTS (Z-40) -->
+    <aside aria-label="Lối tắt cửa hàng" class="fixed top-4 right-4 sm:right-6 z-40 flex items-center gap-2 pointer-events-auto">
       <!-- QUICK JUMP TO CATALOG & CART BUTTON -->
       <a
         href="#san-pham"
-        class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-600/90 hover:bg-red-600 border border-red-400/40 backdrop-blur-xl text-xs font-semibold text-white shadow-xl transition-all cursor-pointer"
+        class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-600/90 hover:bg-red-600 border border-red-400/40 backdrop-blur-xl text-xs font-semibold text-white shadow-xl transition-all cursor-pointer"
         title="Cuộn xuống xem bảng giá & sản phẩm"
       >
         <StoreDeviceIcon name="store" size-class="h-3.5 w-3.5" />
