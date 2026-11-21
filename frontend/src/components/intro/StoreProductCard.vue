@@ -21,12 +21,12 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
 <template>
   <article
     v-tilt-3d="{ max: 10, scale: 1.02 }"
-    class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white/95 backdrop-blur-sm shadow-sm transition-shadow duration-300 hover:border-red-300 hover:shadow-2xl"
+    class="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121318]/90 backdrop-blur-xl shadow-lg transition-all duration-300 hover:border-red-500/50 hover:shadow-2xl hover:shadow-red-500/10 hover:-translate-y-1"
   >
-    <div class="relative aspect-square overflow-hidden bg-white p-4 flex items-center justify-center border-b border-gray-100">
+    <div class="relative aspect-square overflow-hidden bg-[#0d0e12] p-4 flex items-center justify-center border-b border-white/5">
       <span
         v-if="product.badge"
-        class="absolute left-3 top-3 z-10 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+        class="absolute left-3 top-3 z-10 rounded-full bg-gradient-to-r from-red-600 to-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-md shadow-red-600/40"
       >
         {{ product.badge }}
       </span>
@@ -34,45 +34,45 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
         v-if="imageUrl && !imageFailed"
         :src="imageUrl"
         :alt="product.name"
-        class="mx-auto h-full w-full max-h-[220px] max-w-[220px] object-contain transition duration-300 group-hover:scale-105"
+        class="mx-auto h-full w-full max-h-[220px] max-w-[220px] object-contain transition duration-300 group-hover:scale-105 drop-shadow-md"
         loading="lazy"
         @error="imageFailed = true"
       />
       <div
         v-else
-        class="mx-auto flex h-full max-w-[180px] flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-gray-200/80 to-gray-300/40 p-4 shadow-inner"
+        class="mx-auto flex h-full max-w-[180px] flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-gray-800 to-gray-900 p-4 shadow-inner border border-white/5"
       >
-        <div class="h-36 w-20 rounded-2xl border-4 border-gray-800 bg-gray-900 shadow-xl" />
+        <div class="h-36 w-20 rounded-2xl border-2 border-red-500/30 bg-black/60 shadow-xl" />
         <div class="mt-2 h-1.5 w-10 rounded-full bg-gray-700" />
       </div>
     </div>
 
     <div class="flex flex-1 flex-col p-4">
-      <p class="text-xs font-medium uppercase tracking-wide text-red-600">{{ product.brand }}</p>
-      <h3 class="mt-1 line-clamp-2 text-sm font-semibold text-gray-900">{{ product.name }}</h3>
+      <p class="text-xs font-bold uppercase tracking-wider text-red-400">{{ product.brand }}</p>
+      <h3 class="mt-1 line-clamp-2 text-sm font-semibold text-white group-hover:text-red-400 transition-colors">{{ product.name }}</h3>
       <ul class="mt-2 flex flex-wrap gap-1">
         <li
           v-for="spec in product.specs"
           :key="spec"
-          class="rounded bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600"
+          class="rounded-lg bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300 font-light"
         >
           {{ spec }}
         </li>
       </ul>
       <div class="mt-auto pt-4">
-        <p class="text-lg font-bold text-red-600">{{ formatPrice(product.price) }}</p>
-        <p v-if="product.oldPrice" class="text-xs text-gray-400 line-through">{{ formatPrice(product.oldPrice) }}</p>
+        <p class="text-lg font-extrabold text-red-400">{{ formatPrice(product.price) }}</p>
+        <p v-if="product.oldPrice" class="text-xs text-gray-500 line-through">{{ formatPrice(product.oldPrice) }}</p>
         <div class="mt-auto flex gap-2 pt-4">
           <button
             type="button"
-            class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition hover:border-red-300 hover:text-red-600 cursor-pointer"
+            class="flex-1 rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/10 hover:border-red-400/40 hover:text-white cursor-pointer"
             @click="emit('view', product)"
           >
             Chi tiết
           </button>
           <button
             type="button"
-            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-red-600 disabled:opacity-50 cursor-pointer"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 py-2.5 text-sm font-semibold text-white shadow-md shadow-red-600/30 transition active:scale-95 disabled:opacity-40 cursor-pointer"
             :disabled="product.inStock === false"
             @click="emit('add-to-cart', product)"
           >
