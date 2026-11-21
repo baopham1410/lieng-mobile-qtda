@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 
 const props = defineProps({
@@ -21,12 +22,12 @@ const headerOffset = ref(112)
 const isAutoRotate = ref(true)
 const isDragging = ref(false)
 
-// 4 Flagship Stations specifications
+// 5 Flagship Stations specifications
 const stations = [
   {
     id: 'ip18',
     stationNumber: '01',
-    brand: 'APPLE FLAGSHIP',
+    brand: 'APPLE CONCEPT',
     badge: 'THIẾT KẾ ĐỘT PHÁ • BẢN LĨNH FLAGSHIP',
     accentBadge: 'from-rose-600 to-orange-500',
     title: 'iPhone 18 Pro Max',
@@ -61,10 +62,10 @@ const stations = [
     themeColor: '#0ea5e9',
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(14, 165, 233, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/samsung_galaxy_s22_ultra.glb',
-    baseRot: [0, 0, 0],
+    baseRot: [0, 0.35, 0],
     targetHeight: 3.8,
     pedestalPos: [10, 0, -2],
-    cameraOffset: [10, 0.4, 4.8],
+    cameraOffset: [10, 0.4, 5.0],
     cameraTarget: [10, 0, -2],
   },
   {
@@ -83,15 +84,37 @@ const stations = [
     themeColor: '#d97706',
     bgGradient: 'radial-gradient(circle at 62% 50%, rgba(217, 119, 6, 0.26) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/iphone_16_pro_max.glb',
-    baseRot: [0, Math.PI / 2, 0],
+    baseRot: [0, Math.PI / 2 + 0.35, 0],
     targetHeight: 3.8,
     pedestalPos: [20, 0, 0],
     cameraOffset: [20, 0.4, 6.8],
     cameraTarget: [20, 0, 0],
   },
   {
-    id: 'duo',
+    id: 'ip15',
     stationNumber: '04',
+    brand: 'APPLE TITANIUM',
+    badge: 'TITAN TỰ NHIÊN • PHÍM ACTION BUTTON',
+    accentBadge: 'from-zinc-400 to-amber-600',
+    title: 'iPhone 15 Pro Max',
+    subtitle:
+      'Tuyệt tác gia công Titan cấp hàng không vũ trụ siêu nhẹ và bền bỉ. Trang bị phím Action Button đa nhiệm linh hoạt và chip Apple A17 Pro tiến trình 3nm đột phá.',
+    price: '28.490.000₫',
+    oldPrice: '32.990.000₫',
+    specs: ['Khung Titan Tự Nhiên siêu nhẹ', 'Phím Action Button đa nhiệm', 'Chip Apple A17 Pro 3nm', 'Camera tiềm vọng Zoom 5x quang học'],
+    themeHex: 0xa1a1aa,
+    themeColor: '#a1a1aa',
+    bgGradient: 'radial-gradient(circle at 62% 50%, rgba(161, 161, 170, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
+    file: '/models/iphone_15_pro_max.glb',
+    baseRot: [0, -0.35, 0],
+    targetHeight: 3.8,
+    pedestalPos: [30, 0, -2],
+    cameraOffset: [30, 0.4, 5.0],
+    cameraTarget: [30, 0, -2],
+  },
+  {
+    id: 'duo',
+    stationNumber: '05',
     brand: 'FUTURISTIC FOLD',
     badge: 'KỶ NGUYÊN MÀN HÌNH GẬP • KHÔNG GIỚI HẠN',
     accentBadge: 'from-purple-500 to-pink-500',
@@ -105,11 +128,11 @@ const stations = [
     themeColor: '#a855f7',
     bgGradient: 'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.28) 0%, rgba(9, 9, 11, 0) 75%)',
     file: '/models/iphone_duo_concept.glb',
-    baseRot: [0, 0, 0],
+    baseRot: [0, 0.2, 0],
     targetHeight: 3.2,
-    pedestalPos: [30, 0, -2],
-    cameraOffset: [30, 0.4, 4.8],
-    cameraTarget: [30, 0, -2],
+    pedestalPos: [40, 0, 0],
+    cameraOffset: [40, 0.4, 4.8],
+    cameraTarget: [40, 0, 0],
   },
 ]
 
@@ -252,17 +275,34 @@ function initThree() {
   renderer.toneMappingExposure = 1.35
   canvasContainer.value.appendChild(renderer.domElement)
 
-  // 4. Lighting: Global Ambient + Atmospheric Showroom lights
-  ambientLight = new THREE.AmbientLight(0xffffff, 1.2)
+  // 4. Studio HDRI Environment Map (Crucial for Titanium frames, sapphire lenses & gloss backs)
+  const pmremGenerator = new THREE.PMREMGenerator(renderer)
+  pmremGenerator.compileEquirectangularShader()
+  const roomEnv = new RoomEnvironment()
+  scene.environment = pmremGenerator.fromScene(roomEnv).texture
+  scene.environmentIntensity = 1.6
+
+  // 5. Lighting: Global Studio Ambient + Key/Fill/Rim lights
+  ambientLight = new THREE.AmbientLight(0xffffff, 1.3)
   scene.add(ambientLight)
 
+  // Pure white Studio Key Light (bright front-right)
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.5)
+  keyLight.position.set(5, 8, 8)
+  scene.add(keyLight)
+
+  // Studio Fill Light (soft front-left)
+  const fillLight = new THREE.DirectionalLight(0xffffff, 1.6)
+  fillLight.position.set(-5, 6, 6)
+  scene.add(fillLight)
+
   // Top overall Rim Light
-  const topRim = new THREE.DirectionalLight(0xffffff, 2.5)
+  const topRim = new THREE.DirectionalLight(0xffffff, 2.2)
   topRim.position.set(0, 10, -5)
   scene.add(topRim)
 
-  // 5. Ground Cyber Grid Floor Plane
-  const groundGeo = new THREE.PlaneGeometry(120, 60, 40, 40)
+  // 6. Ground Cyber Grid Floor Plane
+  const groundGeo = new THREE.PlaneGeometry(160, 60, 40, 40)
   const groundMat = new THREE.MeshStandardMaterial({
     color: 0x07080a,
     roughness: 0.35,
@@ -274,15 +314,15 @@ function initThree() {
   scene.add(ground)
 
   // Grid line helper for futuristic neon room reflection
-  const gridHelper = new THREE.GridHelper(120, 60, 0x1f2937, 0x111827)
+  const gridHelper = new THREE.GridHelper(160, 60, 0x1f2937, 0x111827)
   gridHelper.position.y = -2.18
   scene.add(gridHelper)
 
-  // 6. Master Showroom Group
+  // 7. Master Showroom Group
   showroomGroup = new THREE.Group()
   scene.add(showroomGroup)
 
-  // 7. Build Stations & Load Models
+  // 8. Build Stations & Load Models
   stations.forEach((st, idx) => {
     const stationGroup = new THREE.Group()
     stationGroup.position.set(...st.pedestalPos)
@@ -291,11 +331,20 @@ function initThree() {
     const { group: pedestalObj, ringMesh, waveMesh, particleSystem } = createHolographicPedestal(st)
     stationGroup.add(pedestalObj)
 
-    // Dedicated Overhead Spotlight for each station
-    const spot = new THREE.SpotLight(st.themeHex, 3.5, 14, Math.PI * 0.28, 0.6)
-    spot.position.set(0, 6.5, 2.5)
-    spot.target = stationGroup
-    stationGroup.add(spot)
+    // Dedicated Front Soft Spotlight for each station (White light so true materials/colors shine)
+    const frontSpot = new THREE.SpotLight(0xffffff, 3.5, 18, Math.PI * 0.38, 0.45)
+    frontSpot.position.set(st.pedestalPos[0], 5.5, st.pedestalPos[2] + 4.5)
+    const spotTarget = new THREE.Object3D()
+    spotTarget.position.set(...st.pedestalPos)
+    scene.add(spotTarget)
+    frontSpot.target = spotTarget
+    scene.add(frontSpot)
+
+    // Dedicated Overhead Theme Spotlight
+    const spot = new THREE.SpotLight(st.themeHex, 2.8, 14, Math.PI * 0.35, 0.6)
+    spot.position.set(st.pedestalPos[0], 6.5, st.pedestalPos[2] + 1.2)
+    spot.target = spotTarget
+    scene.add(spot)
 
     // Container for the Phone Model
     const modelContainer = new THREE.Group()
@@ -322,7 +371,7 @@ function initThree() {
     loadStationModel(st, record)
   })
 
-  // 8. Event Listeners
+  // 9. Event Listeners
   window.addEventListener('resize', onWindowResize)
   window.addEventListener('scroll', handleScroll, { passive: true })
 
@@ -353,19 +402,145 @@ function loadStationModel(station, record) {
     (gltf) => {
       const model = gltf.scene
 
-      // Clean unwanted background plates
+      // Traversal with targeted material calibrations for each flagship
       model.traverse((child) => {
-        if (child.name.includes('Plane') || child.name === 'Object_22' || (child.material && child.material.name === 'Material.003')) {
-          child.visible = false
-        }
-        if (child.isMesh && child.material) {
-          const mat = child.material
-          if (Array.isArray(mat)) {
-            mat.forEach((m) => (m.envMapIntensity = 1.3))
-          } else {
-            mat.envMapIntensity = 1.3
+        if (!child.isMesh || !child.material) return
+
+        const mats = Array.isArray(child.material) ? child.material : [child.material]
+
+        mats.forEach((mat) => {
+          mat.envMapIntensity = 2.0
+
+          // === STATION 2: Samsung Galaxy S22 Ultra ===
+          if (station.id === 's22u') {
+            // Fix 1: Back glass cover - deep obsidian black with high glossy reflections
+            if (mat.name === 'Back_Cover_Glass') {
+              mat.color.setHex(0x181c22) // Deep charcoal obsidian
+              mat.roughness = 0.15
+              mat.metalness = 0.2
+              mat.envMapIntensity = 2.6
+            }
+            // Fix 2: Camera Bezels & Deco rings - make the 4 camera rings gleam like metallic titanium rings
+            if (['Cam_Bezel', 'BackCamDeco', 'Cam_Body', 'Rearcase_hole'].includes(mat.name)) {
+              mat.color.setHex(0x71717a) // Bright metallic titanium/chrome
+              mat.metalness = 0.95
+              mat.roughness = 0.12
+              mat.envMapIntensity = 3.2
+            }
+            // Fix 3: Camera lens optics - deep sapphire glass with reflections
+            if (['Cam_Glass', 'Cam_lens', 'Zoom_Cam'].includes(mat.name)) {
+              mat.color.setHex(0x0f172a)
+              mat.roughness = 0.04
+              mat.metalness = 0.35
+              mat.envMapIntensity = 3.0
+            }
+            // Fix 4: Metal frame
+            if (['Bezel', 'Rearcase', 'Antenna_Plastic'].includes(mat.name)) {
+              mat.color.setHex(0x475569) // Armor Aluminum edge
+              mat.metalness = 0.88
+              mat.roughness = 0.18
+              mat.envMapIntensity = 2.4
+            }
           }
-        }
+
+          // === STATION 3: iPhone 16 Pro Max ===
+          if (station.id === 'ip16') {
+            // Fix 1: Desert Titanium Frame & Camera Rings
+            if (['metalframe.002', 'metaL.001', 'gray.001'].includes(mat.name)) {
+              mat.color.setHex(0xd4af37) // Premium Desert Titanium gold metallic
+              mat.metalness = 0.85
+              mat.roughness = 0.18
+              mat.envMapIntensity = 2.6
+            }
+            // Fix 2: Camera Lenses - Sapphire glass optical reflections
+            if (mat.name === 'lensinglass' || child.name.includes('lensinglass')) {
+              mat.color.setHex(0x0a1628) // Deep midnight blue sapphire lens
+              mat.roughness = 0.04
+              mat.metalness = 0.4
+              mat.envMapIntensity = 3.2
+            }
+            // Fix 3: Camera Glass Island Plate
+            if (mat.name === 'glass.002') {
+              mat.roughness = 0.06
+              mat.metalness = 0.1
+              mat.envMapIntensity = 2.2
+            }
+            // Fix 4: Desert Titanium Backplate
+            if (mat.name === 'basecolor.001') {
+              mat.roughness = 0.36
+              mat.metalness = 0.2
+              mat.envMapIntensity = 2.0
+            }
+            // Fix 5: Apple Logo
+            if (mat.name === 'apple_logo.001') {
+              mat.metalness = 0.95
+              mat.roughness = 0.1
+              mat.envMapIntensity = 3.0
+            }
+          }
+
+          // === STATION 4: iPhone 15 Pro Max ===
+          if (station.id === 'ip15') {
+            if (mat.name === 'backpanel') {
+              mat.color.setHex(0x8e877e) // Natural Titanium back
+              mat.roughness = 0.35
+              mat.metalness = 0.25
+              mat.envMapIntensity = 2.2
+            }
+            if (['metalframe', 'Material.001'].includes(mat.name)) {
+              mat.color.setHex(0xa8a29e) // Natural Titanium brushed frame
+              mat.metalness = 0.88
+              mat.roughness = 0.18
+              mat.envMapIntensity = 2.6
+            }
+            if (mat.name === 'lens') {
+              mat.roughness = 0.05
+              mat.envMapIntensity = 2.8
+            }
+          }
+
+          // === STATION 5: iPhone Fold Duo Concept ===
+          if (station.id === 'duo') {
+            // Fix 1: Outer Display Frame - give it sleek Space Grey Titanium edge
+            if (['Display_Frame', 'Rubber'].includes(mat.name)) {
+              mat.color.setHex(0x374151) // Space grey titanium chamfer
+              mat.metalness = 0.75
+              mat.roughness = 0.2
+              mat.envMapIntensity = 2.2
+            }
+            // Fix 2: Camera lenses on the back
+            if (['Camera_Lens', 'Camera_filter', 'Camera_sapphire_miror', 'Lens_frame'].includes(mat.name)) {
+              mat.color.setHex(0x0a1128)
+              mat.roughness = 0.04
+              mat.metalness = 0.4
+              mat.envMapIntensity = 3.0
+            }
+            // Fix 3: Titanium Hinge
+            if (['Titanium', 'Metal_tint'].includes(mat.name)) {
+              mat.color.setHex(0xd1d5db)
+              mat.metalness = 0.95
+              mat.roughness = 0.12
+              mat.envMapIntensity = 2.8
+            }
+            // Fix 4: Frosted glass back
+            if (mat.name === 'Frosted_glass') {
+              mat.envMapIntensity = 2.0
+              mat.roughness = 0.22
+            }
+          }
+
+          // === STATION 1: iPhone 18 Pro Max ===
+          if (station.id === 'ip18') {
+            if (['Camera Lens', 'Camera sapphire miror', 'Camera mirror filter'].includes(mat.name)) {
+              mat.roughness = 0.04
+              mat.envMapIntensity = 3.0
+            }
+            if (['Metal tint', 'Anodized aluminum', 'Metal Screw'].includes(mat.name)) {
+              mat.envMapIntensity = 2.8
+              mat.metalness = 0.88
+            }
+          }
+        })
       })
 
       // Set calibrated upright & facing orientation
@@ -587,8 +762,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- SECTION 450VH SHOWROOM TOUR -->
-  <section ref="sectionRef" class="relative w-full h-[450vh] bg-[#09090b] text-white select-none">
+  <!-- SECTION 500VH SHOWROOM TOUR -->
+  <section ref="sectionRef" class="relative w-full h-[500vh] bg-[#09090b] text-white select-none">
     <!-- STICKY 100VH VIEWPORT POSITIONED BELOW STOREHEADER -->
     <div
       class="sticky w-full overflow-hidden flex items-center justify-center transition-all"

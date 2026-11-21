@@ -184,7 +184,7 @@ function selectCategory(id) {
             @click="activeHeroMode = 'showroom'"
           >
             <span>🏛️</span>
-            <span>Virtual Showroom 4 Máy (Mô hình 3)</span>
+            <span>Virtual Showroom 5 Flagship (Mô hình 3)</span>
           </button>
           <button
             type="button"
