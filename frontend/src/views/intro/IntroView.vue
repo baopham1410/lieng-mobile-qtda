@@ -6,7 +6,7 @@ import StoreProductCard from '@/components/intro/StoreProductCard.vue'
 import StoreCartDrawer from '@/components/intro/StoreCartDrawer.vue'
 import StoreProductModal from '@/components/intro/StoreProductModal.vue'
 import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
-import Hero3DExperience from '@/components/intro/Hero3DExperience.vue'
+import ScrollStorytellingHero from '@/components/intro/ScrollStorytellingHero.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
 import { withApiFallback } from '@/utils/apiFallback'
 import {
@@ -172,81 +172,8 @@ function selectCategory(id) {
     </div>
 
     <main>
-      <!-- Hero 3D Futuristic Showcase (ThreeUI Style) -->
-      <section class="pt-2 text-white">
-        <div class="relative w-full overflow-hidden bg-[#180406] shadow-2xl border-b border-red-950/40">
-          <div
-            v-for="(slide, index) in heroSlides"
-            :key="slide.title"
-            class="absolute inset-0 transition-opacity duration-1000"
-            :class="index === activeSlide ? 'opacity-100' : 'opacity-0'"
-          >
-            <!-- Nền không gian phòng Lab công nghệ sang trọng với ánh sáng tương phản cao -->
-            <div class="absolute inset-0 bg-gradient-to-br from-[#3b060a] via-[#1a0305] to-[#080102]">
-              <!-- Ánh sáng Spotlight hội tụ vào vị trí mô hình 3D -->
-              <div class="absolute inset-0 bg-[radial-gradient(ellipse_85%_75%_at_72%_50%,rgba(225,29,72,0.32),rgba(0,0,0,0))]" />
-              <div class="absolute inset-0 bg-[radial-gradient(circle_at_15%_25%,rgba(244,63,94,0.15),rgba(0,0,0,0))]" />
-              <!-- Lưới Cyber Grid 3D mờ chuẩn ThreeUI -->
-              <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_50%,#000_60%,transparent_100%)] opacity-60" />
-            </div>
-          </div>
-
-          <div class="relative z-10 mx-auto grid w-full max-w-[1440px] grid-cols-1 items-center gap-8 px-6 py-12 md:px-10 lg:grid-cols-12 lg:min-h-[calc(100vh-88px)] lg:px-16 lg:py-16 xl:px-20">
-            <!-- Cột trái: Nội dung tiêu đề, huy hiệu và nút hành động -->
-            <div class="lg:col-span-6 xl:col-span-7 flex flex-col items-start">
-              <transition name="fade" mode="out-in">
-                <div :key="activeSlide" class="max-w-xl lg:max-w-2xl">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white"
-                    :class="`bg-gradient-to-r ${heroSlides[activeSlide].accent}`"
-                  >
-                    <StoreDeviceIcon name="fire" size-class="h-3.5 w-3.5 text-white" />
-                    <span>{{ heroSlides[activeSlide].badge }}</span>
-                  </span>
-                  <h1 class="mt-5 max-w-2xl text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
-                    {{ heroSlides[activeSlide].title }}
-                  </h1>
-                  <p class="mt-4 max-w-xl text-lg text-gray-300">
-                    {{ heroSlides[activeSlide].subtitle }}
-                  </p>
-                  <div class="mt-8 flex flex-wrap gap-4">
-                    <a
-                      href="#san-pham"
-                      class="rounded-xl bg-white px-8 py-3 font-semibold text-gray-900 transition hover:bg-gray-100 shadow-lg hover:shadow-xl"
-                    >
-                      {{ heroSlides[activeSlide].cta }}
-                    </a>
-                    <a
-                      :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
-                      class="inline-flex items-center gap-2 rounded-xl border border-white/40 px-8 py-3 font-medium transition hover:bg-white/10"
-                    >
-                      <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-white" />
-                      <span>Tư vấn: {{ storeInfo.hotlineDisplay }}</span>
-                    </a>
-                  </div>
-                </div>
-              </transition>
-
-              <div class="mt-8 flex gap-2">
-                <button
-                  v-for="(_, index) in heroSlides"
-                  :key="index"
-                  type="button"
-                  class="h-2 rounded-full transition-all cursor-pointer"
-                  :class="index === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'"
-                  :aria-label="`Slide ${index + 1}`"
-                  @click="goToSlide(index)"
-                />
-              </div>
-            </div>
-
-            <!-- Cột phải: Trải nghiệm 3D Three.js tương tác thực phong cách ThreeUI -->
-            <div class="lg:col-span-6 xl:col-span-5 flex items-center justify-center w-full">
-              <Hero3DExperience />
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- Dark-Mode Cinematic Scroll-Driven 3D Storytelling (400vh) -->
+      <ScrollStorytellingHero :store-info="storeInfo" />
 
       <!-- Trust bar -->
       <section class="border-b border-gray-200 bg-white">
