@@ -39,9 +39,9 @@ const stations = [
     price: '34.990.000₫',
     oldPrice: '38.990.000₫',
     specs: ['Màn hình 6.9" 120Hz ProMotion', 'Độ sáng cực đại 3000 nits', 'Khung Titan Grade 5 siêu bền', 'Cụm 3 Camera 48MP AI'],
-    themeHex: 0xf97316,
-    themeColor: '#f97316',
-    bgGradient: 'radial-gradient(circle at 65% 48%, #ff6e08 0%, #ea580c 38%, #b83600 70%, #7c2000 100%)',
+    themeHex: 0xf43f5e,
+    themeColor: '#f43f5e',
+    bgGradient: 'radial-gradient(circle at 62% 50%, rgba(244, 63, 94, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/phone.glb',
     baseRot: [0, Math.PI, 0],
     targetHeight: 3.5,
@@ -54,16 +54,16 @@ const stations = [
     stationNumber: '02',
     brand: 'SAMSUNG ULTRA',
     badge: 'QUÁI VẬT NHIẾP ẢNH • BÚT S-PEN TÍCH HỢP',
-    accentBadge: 'from-amber-500 to-orange-600',
+    accentBadge: 'from-cyan-500 to-blue-600',
     title: 'Galaxy S22 / S25 Ultra',
     subtitle:
       'Màn hình Dynamic AMOLED 2X cong tràn siêu thực, camera 108MP Space Zoom 100x sắc nét đến từng micromet và sức mạnh Galaxy AI tích hợp bút S-Pen quyền năng.',
     price: '26.990.000₫',
     oldPrice: '31.990.000₫',
     specs: ['Bút S-Pen độ trễ 2.8ms', 'Camera 108MP 100x Space Zoom', 'Màn hình 6.8" Quad HD+ 120Hz', 'Khung Armor Aluminum'],
-    themeHex: 0xfb923c,
-    themeColor: '#fb923c',
-    bgGradient: 'radial-gradient(circle at 65% 48%, #ff781f 0%, #ea580c 38%, #a83200 70%, #6e1c00 100%)',
+    themeHex: 0x0ea5e9,
+    themeColor: '#0ea5e9',
+    bgGradient: 'radial-gradient(circle at 62% 50%, rgba(14, 165, 233, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/samsung_galaxy_s22_ultra.glb',
     baseRot: [0, 0.35, 0],
     targetHeight: 3.5,
@@ -85,7 +85,7 @@ const stations = [
     specs: ['Viền mỏng kỷ lục 1.15mm', 'Phím Camera Control điện dung', 'Chip Apple A18 Pro 3nm', 'Thời lượng pin vượt trội 33h'],
     themeHex: 0xd97706,
     themeColor: '#d97706',
-    bgGradient: 'radial-gradient(circle at 65% 48%, #ff7a00 0%, #d96306 40%, #a23800 75%, #6d1b00 100%)',
+    bgGradient: 'radial-gradient(circle at 62% 50%, rgba(217, 119, 6, 0.26) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/iphone_16_pro_max.glb',
     baseRot: [0, Math.PI / 2 + 0.35, 0],
     targetHeight: 3.5,
@@ -98,16 +98,16 @@ const stations = [
     stationNumber: '04',
     brand: 'APPLE TITANIUM',
     badge: 'TITAN TỰ NHIÊN • PHÍM ACTION BUTTON',
-    accentBadge: 'from-amber-600 to-orange-600',
+    accentBadge: 'from-zinc-400 to-amber-600',
     title: 'iPhone 15 Pro Max',
     subtitle:
       'Tuyệt tác gia công Titan cấp hàng không vũ trụ siêu nhẹ và bền bỉ. Trang bị phím Action Button đa nhiệm linh hoạt và chip Apple A17 Pro tiến trình 3nm đột phá.',
     price: '28.490.000₫',
     oldPrice: '32.990.000₫',
     specs: ['Khung Titan Tự Nhiên siêu nhẹ', 'Phím Action Button đa nhiệm', 'Chip Apple A17 Pro 3nm', 'Camera tiềm vọng Zoom 5x quang học'],
-    themeHex: 0xf97316,
-    themeColor: '#f97316',
-    bgGradient: 'radial-gradient(circle at 65% 48%, #ff6b00 0%, #e25300 40%, #9e2a00 75%, #631500 100%)',
+    themeHex: 0xa1a1aa,
+    themeColor: '#a1a1aa',
+    bgGradient: 'radial-gradient(circle at 62% 50%, rgba(161, 161, 170, 0.28) 0%, rgba(9, 9, 11, 0) 70%)',
     file: '/models/iphone_15_pro_max.glb',
     baseRot: [0, -0.35, 0],
     targetHeight: 3.5,
@@ -120,16 +120,16 @@ const stations = [
     stationNumber: '05',
     brand: 'FUTURISTIC FOLD',
     badge: 'KỶ NGUYÊN MÀN HÌNH GẬP • KHÔNG GIỚI HẠN',
-    accentBadge: 'from-orange-500 to-rose-600',
+    accentBadge: 'from-purple-500 to-pink-500',
     title: 'iPhone Fold Duo Concept',
     subtitle:
       'Thiết kế gập kép tương lai với bản lề titan giọt nước siêu phẳng. Mở rộng không gian hiển thị kép đỉnh cao, biến smartphone thành trạm làm việc di động đa nhiệm.',
     price: '42.990.000₫',
     oldPrice: '48.990.000₫',
     specs: ['Màn hình gập Flex OLED 8.1"', 'Bản lề giọt nước Zero-Gap', 'Đa nhiệm 3 cửa sổ song song', 'Kính siêu mỏng Ultra-Thin'],
-    themeHex: 0xfb923c,
-    themeColor: '#fb923c',
-    bgGradient: 'radial-gradient(circle at 55% 48%, #ff6e08 0%, #ea580c 40%, #b83600 75%, #7a1d00 100%)',
+    themeHex: 0xa855f7,
+    themeColor: '#a855f7',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.28) 0%, rgba(9, 9, 11, 0) 75%)',
     file: '/models/iphone_duo_concept.glb',
     baseRot: [0, 0.2, 0],
     targetHeight: 3.0,
@@ -259,7 +259,7 @@ function createHolographicPedestal(station) {
   // 1. High-tech reflective dark base cylinder
   const baseGeo = new THREE.CylinderGeometry(1.8, 2.1, 0.2, 48)
   const baseMat = new THREE.MeshStandardMaterial({
-    color: 0x1c100a,
+    color: 0x111317,
     metalness: 0.9,
     roughness: 0.15,
   })
@@ -345,9 +345,9 @@ function initThree() {
   width = canvasContainer.value.clientWidth
   height = canvasContainer.value.clientHeight || (window.innerHeight - headerOffset.value)
 
-  // 1. Scene with Warm Sunset Studio Atmosphere
+  // 1. Scene
   scene = new THREE.Scene()
-  scene.fog = new THREE.FogExp2(0x8a2400, 0.012)
+  scene.fog = new THREE.FogExp2(0x09090b, 0.028)
 
   // 2. Camera
   camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100)
@@ -373,7 +373,7 @@ function initThree() {
   scene.environmentIntensity = 1.1
 
   // 5. Lighting: Global Studio Ambient + Key/Fill/Rim lights (Calibrated to preserve true phone colors)
-  ambientLight = new THREE.AmbientLight(0xffffff, 0.85)
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
   scene.add(ambientLight)
 
   // Pure white Studio Key Light (bright front-right)
@@ -386,24 +386,27 @@ function initThree() {
   fillLight.position.set(-5, 6, 6)
   scene.add(fillLight)
 
-  // Top overall Rim Light (Warm amber tint from back rim matching warm orange studio)
-  const topRim = new THREE.DirectionalLight(0xffaa44, 1.8)
+  // Top overall Rim Light
+  const topRim = new THREE.DirectionalLight(0xffffff, 1.4)
   topRim.position.set(0, 10, -5)
   scene.add(topRim)
 
-  // 6. Ground Warm Studio Reflective Floor Plane
+  // 6. Ground Cyber Grid Floor Plane
   const groundGeo = new THREE.PlaneGeometry(160, 60, 40, 40)
   const groundMat = new THREE.MeshStandardMaterial({
-    color: 0x220701,
-    roughness: 0.28,
+    color: 0x07080a,
+    roughness: 0.35,
     metalness: 0.85,
-    transparent: true,
-    opacity: 0.5,
   })
   const ground = new THREE.Mesh(groundGeo, groundMat)
   ground.rotation.x = -Math.PI / 2
   ground.position.y = -2.2
   scene.add(ground)
+
+  // Grid line helper for futuristic neon room reflection
+  const gridHelper = new THREE.GridHelper(160, 60, 0x1f2937, 0x111827)
+  gridHelper.position.y = -2.18
+  scene.add(gridHelper)
 
   // 7. Master Showroom Group
   showroomGroup = new THREE.Group()
@@ -920,7 +923,7 @@ onUnmounted(() => {
 
 <template>
   <!-- SECTION 500VH SHOWROOM TOUR -->
-  <section ref="sectionRef" class="relative w-full h-[500vh] bg-[#7c2000] text-white select-none">
+  <section ref="sectionRef" class="relative w-full h-[500vh] bg-[#09090b] text-white select-none">
     <!-- STICKY 100VH VIEWPORT POSITIONED BELOW STOREHEADER -->
     <div
       class="sticky w-full overflow-hidden flex items-center justify-center transition-all"
@@ -929,15 +932,15 @@ onUnmounted(() => {
         height: `calc(100vh - ${headerOffset}px)`,
       }"
     >
-      <!-- DYNAMIC 600MS SMOOTH WARM SUNSET ORANGE RADIAL GRADIENT BACKDROP -->
+      <!-- DYNAMIC 600MS SMOOTH RADIAL GRADIENT BACKDROP -->
       <div
         class="absolute inset-0 pointer-events-none transition-all duration-[600ms] ease-out"
         :style="{ background: stations[currentStation].bgGradient }"
       />
 
-      <!-- SUBTLE CINEMATIC STUDIO VIGNETTE OVERLAY -->
+      <!-- SUBTLE CINEMATIC CYBER GRID OVERLAY -->
       <div
-        class="absolute inset-0 bg-[radial-gradient(ellipse_75%_65%_at_50%_50%,transparent_50%,rgba(0,0,0,0.35)_100%)] pointer-events-none"
+        class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_50%,#000_60%,transparent_100%)] pointer-events-none opacity-40"
       />
 
       <!-- THREE.JS WEBGL CANVAS (INTERACTIVE 360 DRAG) -->
@@ -1023,7 +1026,7 @@ onUnmounted(() => {
         <!-- MAIN MIDDLE CONTENT (LEFT TECH SPECS HUD CARD) -->
         <div class="flex-1 flex items-center w-full">
           <div
-            class="max-w-xl lg:max-w-xl transition-all duration-300 pointer-events-auto rounded-3xl backdrop-blur-2xl bg-black/45 border border-white/15 p-6 sm:p-8 shadow-2xl shadow-black/40 text-white"
+            class="max-w-xl lg:max-w-xl transition-all duration-300 pointer-events-auto"
             :class="isTextVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-5'"
           >
             <!-- BRAND BADGE -->

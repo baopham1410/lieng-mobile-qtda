@@ -46,7 +46,7 @@ watch(
             <div v-else class="flex h-full items-center justify-center">
               <div class="h-48 w-24 rounded-3xl border-4 border-white/10 bg-[#181a24] shadow-xl" />
             </div>
-            <span class="absolute left-4 top-4 rounded-full bg-gradient-to-r from-red-600 to-rose-600 px-3 py-1 text-xs font-bold text-white shadow-md shadow-red-600/40 border border-white/20">
+            <span class="absolute left-4 top-4 rounded-full bg-gradient-to-r from-amber-500 to-rose-600 px-3 py-1 text-xs font-bold text-white shadow-md shadow-orange-600/30 border border-white/20">
               {{ product.badge }}
             </span>
             <button
@@ -63,7 +63,7 @@ watch(
         </div>
 
         <div class="p-6 sm:p-8">
-          <p class="text-xs font-bold uppercase tracking-widest text-red-400">{{ product.brand }}</p>
+          <p class="text-xs font-bold uppercase tracking-widest text-amber-400">{{ product.brand }}</p>
           <h2 class="mt-1 text-2xl font-black text-white">{{ product.name }}</h2>
 
           <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
@@ -80,7 +80,7 @@ watch(
           </div>
 
           <div class="mt-5 flex flex-wrap items-end gap-3">
-            <p class="text-3xl font-black text-red-400">{{ formatPrice(product.price) }}</p>
+            <p class="text-3xl font-black text-amber-400">{{ formatPrice(product.price) }}</p>
             <p v-if="product.oldPrice && product.oldPrice > product.price" class="text-sm text-gray-400 line-through font-medium">
               {{ formatPrice(product.oldPrice) }}
             </p>
@@ -92,7 +92,7 @@ watch(
               :key="spec"
               class="flex items-center gap-2"
             >
-              <span class="h-1.5 w-1.5 rounded-full bg-red-500" />
+              <span class="h-1.5 w-1.5 rounded-full bg-amber-400" />
               <span>{{ spec }}</span>
             </li>
           </ul>
@@ -105,7 +105,7 @@ watch(
                 :key="color"
                 type="button"
                 class="rounded-full px-4 py-2 text-sm font-semibold transition cursor-pointer"
-                :class="selectedColor === color ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30 border border-white/20' : 'bg-[#181a24] text-gray-300 border border-white/10 hover:border-red-500/40'"
+                :class="selectedColor === color ? 'bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white shadow-md shadow-orange-600/30 border border-white/20' : 'bg-[#181a24] text-gray-300 border border-white/10 hover:border-amber-500/40'"
                 @click="selectedColor = color"
               >
                 {{ color }}
@@ -113,8 +113,8 @@ watch(
             </div>
           </div>
 
-          <div class="mt-6 flex items-center gap-3 rounded-2xl bg-red-950/30 p-4 text-sm text-red-200 border border-red-500/20">
-            <StoreDeviceIcon name="warranty" size-class="h-5 w-5 text-red-400 shrink-0" />
+          <div class="mt-6 flex items-center gap-3 rounded-2xl bg-cyan-950/20 p-4 text-sm text-cyan-200 border border-cyan-500/20">
+            <StoreDeviceIcon name="warranty" size-class="h-5 w-5 text-cyan-400 shrink-0" />
             <p class="text-xs sm:text-sm font-medium leading-relaxed">
               Bảo hành {{ product.warrantyMonths }} tháng chính hãng · IMEI tra cứu minh bạch tại quầy hoặc ứng dụng.
             </p>
@@ -123,7 +123,7 @@ watch(
           <div class="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition cursor-pointer active:scale-98"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-600/30 transition cursor-pointer active:scale-98"
               @click="emit('add-to-cart', product)"
             >
               <StoreDeviceIcon name="bag" size-class="h-4 w-4 text-white" />
@@ -133,7 +133,7 @@ watch(
               :href="`tel:${storeInfo.hotline.replace(/\s/g, '')}`"
               class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 py-3.5 text-center text-sm font-bold text-white transition hover:bg-white/10 active:scale-98"
             >
-              <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-red-400" />
+              <StoreDeviceIcon name="phone-call" size-class="h-4 w-4 text-amber-400" />
               <span>Gọi tư vấn: {{ storeInfo.hotlineDisplay }}</span>
             </a>
           </div>
