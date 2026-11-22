@@ -10,6 +10,7 @@ import StoreLotteryCounter from '@/components/intro/StoreLotteryCounter.vue'
 import ScrollStorytellingHero from '@/components/intro/ScrollStorytellingHero.vue'
 import VirtualShowroomHero from '@/components/intro/VirtualShowroomHero.vue'
 import StoreFlagshipShowcase from '@/components/intro/StoreFlagshipShowcase.vue'
+import StorePromoBanner from '@/components/intro/StorePromoBanner.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
 import { withApiFallback } from '@/utils/apiFallback'
 import {
@@ -218,6 +219,9 @@ function selectCategory(id) {
         :cart-count="cartCount"
         @open-cart="cartOpen = true"
       />
+
+      <!-- BANNER QUẢNG CÁO SIÊU PHẨM CHÍNH (NGAY TRÊN PHẦN HỆ THỐNG CHỈ SỐ) -->
+      <StorePromoBanner />
 
       <!-- Trust bar: Slot Machine Lottery Quay Số Ngẫu Nhiên & Chốt Số -->
       <StoreLotteryCounter
