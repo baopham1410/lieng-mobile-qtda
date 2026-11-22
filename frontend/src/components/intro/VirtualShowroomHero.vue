@@ -60,7 +60,7 @@ const stations = [
         title: 'Cụm 3 Camera 48MP AI',
         badge: 'PHOTONIC ENGINE PRO',
         description: 'Hệ thống 3 ống kính 48MP đồng nhất cảm biến thế hệ mới, hỗ trợ quay video điện ảnh 8K 60fps ProRes và khử rung gimbal quang học tích hợp.',
-        localPos: [-0.35, 0.95, 0.15],
+        localPos: [-0.016, 0.064, 0.010],
         targetRotY: Math.PI,
       },
       {
@@ -68,7 +68,7 @@ const stations = [
         title: 'Màn hình Super Retina XDR 6.9"',
         badge: 'PROMOTION 120HZ',
         description: 'Tấm nền OLED ProMotion 1-120Hz độ sáng đỉnh 3000 nits, viền mỏng vô cực không khiếm khuyết, kính Ceramic Shield chống trầy thế hệ mới.',
-        localPos: [0.0, 0.2, -0.15],
+        localPos: [0.000, 0.010, -0.004],
         targetRotY: 0,
       },
       {
@@ -76,7 +76,7 @@ const stations = [
         title: 'Khung Titan Hàng Không Grade 5',
         badge: 'AEROSPACE GRADE',
         description: 'Hợp kim titan Grade 5 gia công chuẩn xác bằng phay CNC vi mô, vừa siêu nhẹ vừa tản nhiệt tối ưu cho chip xử lý.',
-        localPos: [0.65, 0.0, 0.0],
+        localPos: [0.039, 0.000, 0.002],
         targetRotY: Math.PI * 0.4,
       },
       {
@@ -84,7 +84,7 @@ const stations = [
         title: 'Phím Tác Vụ Cảm Biến Lực',
         badge: 'HAPTIC FEEDBACK',
         description: 'Phím Action thế hệ mới cảm ứng điện dung nhận diện chạm vuốt mượt mà để đổi nhanh chế độ zoom, khẩu độ và chụp tức thì.',
-        localPos: [-0.68, 0.5, 0.0],
+        localPos: [-0.039, 0.035, 0.002],
         targetRotY: -Math.PI * 0.4,
       },
     ],
@@ -116,31 +116,31 @@ const stations = [
         title: 'Ống Kính 100x Space Zoom',
         badge: 'CẢM BIẾN 108MP PRO',
         description: 'Camera siêu zoom 100x kết hợp thuật toán Galaxy AI xử lý đa khung hình, cho ảnh chụp thiên văn và vật thể từ xa sắc nét ngoạn mục.',
-        localPos: [-0.32, 0.95, -0.15],
-        targetRotY: 0,
+        localPos: [0.56, 4.32, -0.20],
+        targetRotY: Math.PI,
       },
       {
         id: 'spen',
         title: 'Bút S-Pen Tích Hợp Thân Máy',
         badge: 'ĐỘ TRỄ 2.8MS',
         description: 'Cây bút S-Pen quyền năng ẩn trong thân máy, hỗ trợ viết vẽ như bút thật, chuyển đổi chữ viết tay và điều khiển cử chỉ không chạm.',
-        localPos: [0.55, -1.3, 0.0],
-        targetRotY: Math.PI * 0.5,
+        localPos: [1.54, 2.00, 0.00],
+        targetRotY: 0,
       },
       {
         id: 'display',
         title: 'Màn Hình Dynamic AMOLED 2X',
         badge: 'VISION BOOSTER 120HZ',
         description: 'Màn hình 6.8 inch cong tràn 120Hz siêu nét với công nghệ Vision Booster tự động điều chỉnh tương phản sắc sảo theo ánh sáng môi trường.',
-        localPos: [0.0, 0.1, 0.15],
-        targetRotY: Math.PI,
+        localPos: [0.00, 2.65, 0.14],
+        targetRotY: 0,
       },
       {
         id: 'frame',
         title: 'Khung Armor Aluminum & IP68',
         badge: 'BẢO VỆ TOÀN DIỆN',
         description: 'Khung hợp kim nhôm Armor Aluminum cứng cáp cùng chuẩn kháng nước bụi IP68 bảo vệ thiết bị an tâm trong mọi điều kiện vận hành.',
-        localPos: [-0.65, 0.0, 0.0],
+        localPos: [-1.25, 2.60, 0.00],
         targetRotY: -Math.PI * 0.4,
       },
     ],
@@ -172,15 +172,15 @@ const stations = [
         title: 'Phím Camera Control Cảm Ứng Lực',
         badge: 'CÔNG NGHỆ MỚI 2024',
         description: 'Phím bấm xúc giác phủ đá sapphire nhạy áp lực và điện dung, cho phép trượt ngón tay để zoom mượt, đổi tiêu cự và bấm 2 nấc chụp chuẩn DSLR.',
-        localPos: [0.65, -0.2, 0.0],
-        targetRotY: Math.PI * 0.45,
+        localPos: [-0.003, -0.15, -0.39],
+        targetRotY: -Math.PI * 0.48,
       },
       {
         id: 'tetra',
         title: 'Camera Tiềm Vọng Tetraprism 5x',
         badge: 'QUANG HỌC 120MM',
         description: 'Thiết kế lăng kính phản xạ 4 lần đột phá đem lại tiêu cự 120mm quang học 5x sắc nét, bắt trọn từng khoảnh khắc chân dung từ xa.',
-        localPos: [-0.32, 0.95, 0.15],
+        localPos: [0.085, 0.62, 0.18],
         targetRotY: Math.PI,
       },
       {
@@ -188,15 +188,15 @@ const stations = [
         title: 'Vỏ Titan Sa Mạc (Desert Titanium)',
         badge: 'VIỀN SIÊU MỎNG 1.15MM',
         description: 'Màu Titan Sa Mạc sang trọng với lớp hoàn thiện satin cao cấp, viền màn hình siêu mỏng kỷ lục thế giới chỉ 1.15mm.',
-        localPos: [0.0, -0.8, 0.15],
-        targetRotY: Math.PI,
+        localPos: [0.046, -0.20, 0.00],
+        targetRotY: Math.PI * 0.9,
       },
       {
         id: 'a18',
         title: 'Chip Apple A18 Pro 3nm',
         badge: 'APPLE INTELLIGENCE',
         description: 'Bộ vi xử lý 3nm thế hệ thứ 2 với Neural Engine 16 lõi xử lý AI trực tiếp trên máy và Ray Tracing phần cứng tăng tốc đồ họa game AAA.',
-        localPos: [0.0, 0.1, -0.15],
+        localPos: [-0.046, 0.10, 0.00],
         targetRotY: 0,
       },
     ],
@@ -228,15 +228,15 @@ const stations = [
         title: 'Phím Tác Vụ Action Button',
         badge: 'ĐA NHIỆM TÙY BIẾN',
         description: 'Thay thế cần gạt rung truyền thống bằng phím vật lý tùy biến đa năng: mở camera, bật đèn pin, ghi âm hay kích hoạt phím tắt chỉ với 1 nhấn.',
-        localPos: [-0.65, 0.7, 0.0],
-        targetRotY: -Math.PI * 0.45,
+        localPos: [-0.79, 1.84, 0.00],
+        targetRotY: -Math.PI * 0.4,
       },
       {
         id: 'usbc',
         title: 'Cổng USB-C Tốc Độ 10Gbps',
         badge: 'CHUẨN USB 3 CAO CẤP',
         description: 'Cổng USB-C tốc độ cao truyền tệp ProRes 4K trực tiếp sang ổ cứng ngoài và hỗ trợ sạc ngược cho phụ kiện AirPods, Apple Watch.',
-        localPos: [0.0, -1.5, 0.0],
+        localPos: [0.01, -1.03, 0.00],
         targetRotY: 0,
       },
       {
@@ -244,7 +244,7 @@ const stations = [
         title: 'Mặt Lưng Kính Nhám Titan Tự Nhiên',
         badge: 'CHỐNG BÁM VÂN TAY',
         description: 'Kính cường lực nhám cao cấp kết hợp khung titan cấp 5 đem lại cảm giác cầm nắm chắc tay, nhẹ hơn 19g so với thế hệ tiền nhiệm.',
-        localPos: [0.0, 0.1, 0.15],
+        localPos: [0.03, 0.74, -0.09],
         targetRotY: Math.PI,
       },
       {
@@ -252,7 +252,7 @@ const stations = [
         title: 'Màn Hình Dynamic Island 2000 Nits',
         badge: 'OLED SUPER RETINA XDR',
         description: 'Màn hình Super Retina XDR với cụm Dynamic Island biến ảo linh hoạt hiển thị thông báo, bản đồ và nhạc theo thời gian thực.',
-        localPos: [0.0, 0.4, -0.15],
+        localPos: [0.03, 0.74, 0.096],
         targetRotY: 0,
       },
     ],
@@ -284,7 +284,7 @@ const stations = [
         title: 'Bản Lề Titan Giọt Nước Zero-Gap',
         badge: 'CƠ KHÍ SIÊU CHÍNH XÁC',
         description: 'Cơ cấu gập mở giọt nước đa khớp bằng titan hàng không giúp 2 nửa màn hình khép khít hoàn toàn và triệt tiêu tối đa nếp gấp màn hình.',
-        localPos: [0.0, 0.0, 0.0],
+        localPos: [0.000, 0.000, 0.002],
         targetRotY: 0,
       },
       {
@@ -292,7 +292,7 @@ const stations = [
         title: 'Màn Hình Flex OLED Kép 8.1"',
         badge: 'ULTRA-THIN GLASS (UTG)',
         description: 'Mở rộng từ 6.2 inch thành tablet 8.1 inch tỷ lệ chuẩn, kính siêu mỏng UTG bền bỉ chịu hơn 400.000 lần gập mở liên tục.',
-        localPos: [0.5, 0.2, -0.1],
+        localPos: [0.035, 0.000, -0.004],
         targetRotY: 0,
       },
       {
@@ -300,7 +300,7 @@ const stations = [
         title: 'Camera Tiềm Vọng Siêu Mỏng',
         badge: 'CẢM BIẾN DƯỚI MÀN HÌNH',
         description: 'Cụm ống kính quang học siêu mỏng được tinh chỉnh riêng cho thân máy gập, hỗ trợ chụp selfie bằng camera chính với màn hình phụ.',
-        localPos: [-0.4, 0.8, 0.15],
+        localPos: [0.059, 0.044, -0.005],
         targetRotY: Math.PI,
       },
       {
@@ -308,7 +308,7 @@ const stations = [
         title: 'Hệ Thống Đa Nhiệm 3 Cửa Sổ',
         badge: 'DUO ENGINE TƯƠNG TÁC',
         description: 'Giao diện tối ưu hóa cho màn hình gập, cho phép kéo thả dữ liệu giữa 3 ứng dụng đồng thời và chế độ Flex Mode đặt nằm chụp rảnh tay.',
-        localPos: [-0.4, -0.5, -0.1],
+        localPos: [-0.042, 0.000, 0.001],
         targetRotY: 0,
       },
     ],
@@ -889,6 +889,18 @@ function loadStationModel(station, record) {
 
       record.modelMesh = model
       record.modelContainer.add(model)
+
+      // Create precision 3D anchors for hotspots attached directly to model
+      record.anchors = {}
+      if (station.hotspots) {
+        station.hotspots.forEach((hs) => {
+          const anchor = new THREE.Object3D()
+          anchor.name = 'anchor_' + hs.id
+          anchor.position.set(...hs.localPos)
+          model.add(anchor)
+          record.anchors[hs.id] = anchor
+        })
+      }
     },
     undefined,
     (err) => {
@@ -903,6 +915,17 @@ function loadStationModel(station, record) {
       const mesh = new THREE.Mesh(fallbackGeo, fallbackMat)
       record.modelMesh = mesh
       record.modelContainer.add(mesh)
+
+      record.anchors = {}
+      if (station.hotspots) {
+        station.hotspots.forEach((hs) => {
+          const anchor = new THREE.Object3D()
+          anchor.name = 'anchor_' + hs.id
+          anchor.position.set(0, 0, 0)
+          mesh.add(anchor)
+          record.anchors[hs.id] = anchor
+        })
+      }
     },
   )
 }
@@ -1180,18 +1203,26 @@ function animate(time = 0) {
   if (isHotspotMode.value && camera && canvasContainer.value) {
     const currentObj = stationObjects[currentStation.value]
     if (currentObj && currentObj.modelContainer) {
+      currentObj.modelContainer.updateMatrixWorld(true)
       const currentSt = stations[currentStation.value]
       const currentHotspots = currentSt.hotspots || []
       const stationWorldPos = new THREE.Vector3(...currentSt.pedestalPos)
       const containerRect = canvasContainer.value.getBoundingClientRect()
+      const currentAnchors = currentObj.anchors || {}
 
       const projected = currentHotspots.map((hs, idx) => {
-        const v = new THREE.Vector3(...hs.localPos)
-        v.applyEuler(currentObj.modelContainer.rotation)
-        v.add(currentObj.modelContainer.position)
-        v.add(stationWorldPos)
+        const anchor = currentAnchors[hs.id]
+        const worldPos = new THREE.Vector3()
+        if (anchor) {
+          anchor.getWorldPosition(worldPos)
+        } else {
+          worldPos.set(...hs.localPos)
+          worldPos.applyEuler(currentObj.modelContainer.rotation)
+          worldPos.add(currentObj.modelContainer.position)
+          worldPos.add(stationWorldPos)
+        }
 
-        const proj = v.clone().project(camera)
+        const proj = worldPos.clone().project(camera)
         const inFront = proj.z < 1
 
         const screenX = (proj.x * 0.5 + 0.5) * width
