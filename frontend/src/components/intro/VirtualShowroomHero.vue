@@ -320,7 +320,7 @@ const stations = [
     baseRot: [0, 0.2, 0],
     targetHeight: 3.0,
     pedestalPos: [40, 0, 0],
-    cameraOffset: [40, 0.25, 5.2],
+    cameraOffset: [40, 0.25, 7.0],
     cameraTarget: [40, 0, 0],
   },
 ]
@@ -964,7 +964,7 @@ function scrollToStation(idx) {
   const rect = sectionRef.value.getBoundingClientRect()
   const offset = headerOffset.value
   const totalScrollable = sectionRef.value.clientHeight - (window.innerHeight - offset)
-  const targetScrollTop = window.scrollY + rect.top - offset + (idx / (stations.length - 0.8)) * totalScrollable
+  const targetScrollTop = window.scrollY + rect.top - offset + (idx / (stations.length - 1)) * totalScrollable
   window.scrollTo({
     top: targetScrollTop,
     behavior: 'smooth',

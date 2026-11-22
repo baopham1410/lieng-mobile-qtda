@@ -1,26 +1,30 @@
 import Constants from 'expo-constants'
 
 function resolveApiBaseUrl(): string {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl && !envUrl.includes('depot-seasons')) {
-    return envUrl
-  }
   if (typeof window !== 'undefined' && window.location?.hostname) {
     const host = window.location.hostname
     if (host === 'localhost' || host === '127.0.0.1') {
       return 'http://127.0.0.1:8080/api/v1'
     }
-    // Khi chạy qua Cloudflare tunnel Web Admin
-    if (host.includes('trycloudflare.com') && window.location.port === '5173') {
-      return `${window.location.origin}/api/v1`
+    if (host.includes('trycloudflare.com')) {
+      if (window.location.port === '5173') {
+        return `${window.location.origin}/api/v1`
+      }
+      return 'https://calls-analysis-auctions-increased.trycloudflare.com/api/v1'
     }
-    return 'https://manga-nyc-subcommittee-keys.trycloudflare.com/api/v1'
   }
+
   const host = Constants.expoConfig?.hostUri?.split(':')[0]
   if (host && host !== 'localhost' && host !== '127.0.0.1' && !host.includes('on.expo.app')) {
     return `http://${host}:8080/api/v1`
   }
-  return 'https://manga-nyc-subcommittee-keys.trycloudflare.com/api/v1'
+
+  const envUrl = process.env.EXPO_PUBLIC_API_URL
+  if (envUrl && !envUrl.includes('depot-seasons') && !envUrl.includes('manga-nyc')) {
+    return envUrl
+  }
+
+  return 'https://calls-analysis-auctions-increased.trycloudflare.com/api/v1'
 }
 
 /**
