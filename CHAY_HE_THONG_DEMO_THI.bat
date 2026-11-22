@@ -24,8 +24,8 @@ start "4. Web Frontend (:5173)" cmd /k "cd frontend && npm run dev -- --host 0.0
 :: 5. Mobile Web 8085
 start "5. Mobile Web (:8085)" cmd /k "npx serve -s mobile-expo\dist -l 8085"
 
-:: Cho cac service khoi dong 3 giay
-timeout /t 3 /nobreak >nul
+:: Cho cac service khoi dong 4 giay
+timeout /t 4 /nobreak >nul
 
 :: 6. Cloudflare Tunnel Web
 start "6. Cloudflare Tunnel Web" cmd /k "C:\Users\phamb\.gemini\antigravity\scratch\cloudflared.exe tunnel --url http://127.0.0.1:5173"
@@ -33,13 +33,20 @@ start "6. Cloudflare Tunnel Web" cmd /k "C:\Users\phamb\.gemini\antigravity\scra
 :: 7. Cloudflare Tunnel Mobile
 start "7. Cloudflare Tunnel Mobile" cmd /k "C:\Users\phamb\.gemini\antigravity\scratch\cloudflared.exe tunnel --url http://127.0.0.1:8085"
 
+:: Cho them 3 giay de server san sang roi chay script kiem tra
+timeout /t 3 /nobreak >nul
+cls
+
+:: Chay kiem tra tu dong toan dien 10/10 dich vu & model 3D
+node KIEM_TRA_TOAN_BO_TRUOC_KHI_THI.js
+
 echo.
 echo =====================================================================
-echo DA KHOI DONG XONG TAT CA CAC DICH VU!
-echo Xem cua so 'Cloudflare Tunnel' de lay link https://...trycloudflare.com
-echo Hoac truy cap truc tiep cuc bo:
+echo CAC DUONG DAN TRUY CAP CHINH THUC:
 echo   - Web Admin POS: http://localhost:5173
 echo   - Mobile B2C:    http://localhost:8085
 echo   - AutoGrade AI:  http://localhost:8091/docs
+echo   - Assistant AI:  http://localhost:8090/docs
+echo   - Xem cua so 'Cloudflare Tunnel' de lay link https://...trycloudflare.com
 echo =====================================================================
 pause
