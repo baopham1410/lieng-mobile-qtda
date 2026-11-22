@@ -30,7 +30,7 @@ const slides = [
     secondaryCta: { label: 'Xem chi tiết', link: '#san-pham' },
     image: '/hero/hero-promo.png',
     imageAlt: 'iPhone 16 Pro Max Chính Hãng VN/A',
-    imageFit: 'contain',
+    isFullGraphic: true,
   },
   {
     id: 's24ultra',
@@ -56,7 +56,7 @@ const slides = [
     secondaryCta: { label: 'Xem thông số', link: '#san-pham' },
     image: '/hero/hero-samsung.jpg',
     imageAlt: 'Samsung Galaxy S24 Ultra Chính Hãng',
-    imageFit: 'contain',
+    isFullGraphic: false,
   },
   {
     id: 'tradein',
@@ -82,7 +82,7 @@ const slides = [
     secondaryCta: { label: 'Bảng giá thu đổi', link: '#san-pham' },
     image: '/hero/iphone-15-pro-max.jpg',
     imageAlt: 'Chương trình Thu cũ đổi mới Liêng Mobile',
-    imageFit: 'contain',
+    isFullGraphic: false,
   },
 ]
 
@@ -226,15 +226,33 @@ onUnmounted(() => {
             <!-- RIGHT PROMO HERO IMAGE (AUTHENTIC RETAIL SHOWCASE) -->
             <div class="lg:col-span-5 flex justify-center items-center z-10">
               <div class="relative w-full max-w-sm sm:max-w-md flex items-center justify-center p-2">
-                <!-- Soft Glow Behind Product -->
-                <div class="absolute inset-0 bg-white/10 rounded-full blur-2xl transform scale-75" />
-                
-                <img
-                  :src="slides[currentSlide].image"
-                  :alt="slides[currentSlide].imageAlt"
-                  class="relative z-10 w-full h-56 sm:h-64 md:h-72 lg:h-80 object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-105"
-                  loading="eager"
-                />
+                <!-- If full marketing graphic (Slide 1: iPhone 16) -->
+                <div v-if="slides[currentSlide].isFullGraphic" class="relative w-full flex items-center justify-center">
+                  <div class="absolute inset-0 bg-white/10 rounded-full blur-2xl transform scale-75" />
+                  <img
+                    :src="slides[currentSlide].image"
+                    :alt="slides[currentSlide].imageAlt"
+                    class="relative z-10 w-full h-56 sm:h-64 md:h-72 lg:h-80 object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 hover:scale-105"
+                    loading="eager"
+                  />
+                </div>
+
+                <!-- If product cutout on white card (Slide 2: Samsung S24, Slide 3: Trade-in iPhone 15) -->
+                <div
+                  v-else
+                  class="relative flex flex-col items-center justify-center p-4 sm:p-5 rounded-2xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/30 transition-transform duration-500 hover:scale-[1.02] max-w-[280px] sm:max-w-[310px] w-full"
+                >
+                  <img
+                    :src="slides[currentSlide].image"
+                    :alt="slides[currentSlide].imageAlt"
+                    class="w-full h-48 sm:h-56 md:h-60 object-contain"
+                    loading="eager"
+                  />
+                  <div class="mt-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-[11px] font-bold">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span>Chính hãng • Bảo hành 12T</span>
+                  </div>
+                </div>
               </div>
             </div>
 
