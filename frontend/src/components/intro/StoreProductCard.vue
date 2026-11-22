@@ -20,7 +20,8 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product.image))
 
 <template>
   <article
-    class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg"
+    v-tilt-3d="{ max: 10, scale: 1.02 }"
+    class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white/95 backdrop-blur-sm shadow-sm transition-shadow duration-300 hover:border-red-300 hover:shadow-2xl"
   >
     <div class="relative aspect-square overflow-hidden bg-white p-4 flex items-center justify-center border-b border-gray-100">
       <span
