@@ -316,6 +316,9 @@ class AppraisalController extends Controller
 
     public function appraise(Request $request, AppraisalTicket $appraisal): JsonResponse
     {
+        @ini_set('max_execution_time', '180');
+        @set_time_limit(180);
+
         $appraisal->load(['photos', 'user']);
 
         if ($appraisal->photos->isEmpty()) {
@@ -350,7 +353,7 @@ class AppraisalController extends Controller
         ];
 
         $base = config('autograde.base_url');
-        $timeout = (int) config('autograde.timeout', 60);
+        $timeout = (int) config('autograde.timeout', 180);
 
         $pending = Http::timeout($timeout)->acceptJson();
         $attachedCount = 0;
@@ -445,6 +448,9 @@ class AppraisalController extends Controller
 
     public function confirmDetections(Request $request, AppraisalTicket $appraisal): JsonResponse
     {
+        @ini_set('max_execution_time', '180');
+        @set_time_limit(180);
+
         $validated = $request->validate([
             'detections' => 'present|array',
             'ocr' => 'nullable|array',
@@ -464,7 +470,7 @@ class AppraisalController extends Controller
         $storage = $validated['storage'] ?? $appraisal->storage;
 
         $base = config('autograde.base_url');
-        $timeout = (int) config('autograde.timeout', 60);
+        $timeout = (int) config('autograde.timeout', 180);
 
         try {
             $response = Http::timeout($timeout)->acceptJson()->post("{$base}/valuate", [

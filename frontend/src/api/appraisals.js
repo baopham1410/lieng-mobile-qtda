@@ -66,7 +66,7 @@ export async function removeAppraisalPhoto(id, slot) {
 
 export async function runAppraisalAi(id, payload = {}) {
   const { data } = await apiClient.post(`/appraisals/${id}/appraise`, payload, {
-    timeout: 90000,
+    timeout: 180000,
     loadingMessage: 'Đang chạy YOLOv8 + PaddleOCR…',
   })
   return unwrapApiData(data)
@@ -74,7 +74,7 @@ export async function runAppraisalAi(id, payload = {}) {
 
 export async function confirmAppraisalDetections(id, payload) {
   const { data } = await apiClient.post(`/appraisals/${id}/confirm-detections`, payload, {
-    timeout: 30000,
+    timeout: 60000,
     loadingMessage: 'Đang tính lại giá…',
   })
   return unwrapApiData(data)

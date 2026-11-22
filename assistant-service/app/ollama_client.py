@@ -51,7 +51,11 @@ def chat(system: str, user: str) -> str:
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
-                "options": {"temperature": 0.2},
+                "options": {
+                    "temperature": 0.2,
+                    "num_ctx": 2048,
+                    "num_predict": 256,
+                },
             },
         )
         r.raise_for_status()

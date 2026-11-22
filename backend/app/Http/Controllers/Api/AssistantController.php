@@ -14,6 +14,9 @@ class AssistantController extends Controller
 {
     public function chat(Request $request): JsonResponse
     {
+        @set_time_limit(180);
+        @ini_set('max_execution_time', '180');
+
         $validated = $request->validate([
             'message' => 'required|string|max:2000',
         ]);
@@ -32,6 +35,9 @@ class AssistantController extends Controller
 
     public function publicChat(Request $request): JsonResponse
     {
+        @set_time_limit(180);
+        @ini_set('max_execution_time', '180');
+
         $validated = $request->validate([
             'message' => 'required|string|max:2000',
         ]);
@@ -77,6 +83,9 @@ class AssistantController extends Controller
 
     private function proxyQuery(string $collection, string $message): JsonResponse
     {
+        @set_time_limit(180);
+        @ini_set('max_execution_time', '180');
+
         $base = config('assistant.base_url');
         $timeout = config('assistant.timeout');
 
