@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import AppContentBreadcrumb from '@/components/common/AppContentBreadcrumb.vue'
 import { storeInfo } from '@/data/storeIntro'
+import { fetchConsultations, createConsultation, updateConsultation } from '@/api/consult'
 import {
   CONSULT_TOPICS,
   consultStatusClass,
@@ -16,6 +18,7 @@ import {
 
 const rows = ref([])
 const historyQuery = ref('')
+const activeFilterTab = ref('all') // 'all' | 'tradein' | 'hold' | 'call'
 const activeId = ref(null)
 const session = ref(emptyConsultForm())
 const live = ref(false)
@@ -28,6 +31,14 @@ const mediaRecorder = ref(null)
 const recordChunks = ref([])
 const recordStartedAt = ref(null)
 
+const counts = computed(() => {
+  const all = rows.value.length
+  const tradein = rows.value.filter((r) => (r.topic || '').toLowerCase().includes('thu cũ') || (r.topic || '').toLowerCase().includes('trade')).length
+  const hold = rows.value.filter((r) => (r.topic || '').toLowerCase().includes('giữ máy')).length
+  const call = all - tradein - hold
+  return { all, tradein, hold, call }
+})
+
 const phase = computed(() => {
   if (recording.value) return 'recording'
   if (!live.value) return 'idle'
@@ -37,14 +48,14 @@ const phase = computed(() => {
 
 const phaseLabel = computed(() => {
   if (phase.value === 'recording') return 'Đang ghi âm'
-  if (phase.value === 'ringing') return 'Đang gọi tới'
+  if (phase.value === 'ringing') return 'Đang gọi tới / Lịch hẹn mới'
   if (phase.value === 'active') return 'Đang tư vấn'
   return 'Sẵn sàng nhận'
 })
 
 const phaseHint = computed(() => {
   if (phase.value === 'idle') {
-    return `Hotline ${storeInfo.hotlineDisplay} — bấm Tiếp nhận khi có khách gọi vào.`
+    return `Hotline ${storeInfo.hotlineDisplay} & Lịch hẹn đặt online từ Mobile App.`
   }
   if (phase.value === 'ringing') return 'Nhập SĐT / tên khách rồi bắt đầu tư vấn.'
   if (phase.value === 'recording') return 'Đang ghi cuộc gọi — có thể ghi chú song song.'
@@ -56,6 +67,14 @@ const phaseHint = computed(() => {
 const filteredHistory = computed(() => {
   const q = historyQuery.value.trim().toLowerCase()
   return rows.value.filter((r) => {
+    const topicLower = (r.topic || '').toLowerCase()
+    const isTradeIn = topicLower.includes('thu cũ') || topicLower.includes('trade')
+    const isHold = topicLower.includes('giữ máy')
+
+    if (activeFilterTab.value === 'tradein' && !isTradeIn) return false
+    if (activeFilterTab.value === 'hold' && !isHold) return false
+    if (activeFilterTab.value === 'call' && (isTradeIn || isHold)) return false
+
     if (!q) return true
     const hay = [r.code, r.customerName, r.customerPhone, r.callerPhone, r.topic, r.notes]
       .join(' ')
@@ -64,7 +83,18 @@ const filteredHistory = computed(() => {
   })
 })
 
-function loadRows() {
+let pollTimer = null
+
+async function loadRows() {
+  try {
+    const data = await fetchConsultations()
+    if (Array.isArray(data)) {
+      rows.value = data
+      return
+    }
+  } catch (e) {
+    console.warn('API consultations fetch error, using local fallback', e)
+  }
   rows.value = getConsultRows()
 }
 
@@ -183,7 +213,7 @@ function clearRecording() {
   session.value.durationSec = null
 }
 
-function persistSession(finalStatus) {
+async function persistSession(finalStatus) {
   error.value = ''
   if (!session.value.customerPhone.trim() && !session.value.callerPhone.trim()) {
     error.value = 'Nhập SĐT người gọi hoặc SĐT khách trước khi kết thúc.'
@@ -212,28 +242,35 @@ function persistSession(finalStatus) {
       startedAt: session.value.startedAt,
       endedAt: ended,
       durationSec: session.value.durationSec,
-      staffName: 'Nhân viên demo',
+      staffName: 'Nhân viên hotline',
     }
 
-    if (activeId.value) {
-      rows.value = rows.value.map((r) =>
-        r.id === activeId.value
-          ? { ...r, ...payload, code: r.code, recordingDataUrl: payload.recordingDataUrl }
-          : r,
-      )
-    } else {
-      const id = Math.max(0, ...rows.value.map((r) => r.id)) + 1
-      rows.value = [
-        {
-          id,
-          code: nextConsultCode(rows.value),
-          ...payload,
-        },
-        ...rows.value,
-      ]
+    try {
+      if (activeId.value) {
+        await updateConsultation(activeId.value, {
+          customer_name: payload.customerName,
+          customer_phone: payload.customerPhone,
+          topic: payload.topic,
+          interest_product: payload.interestProduct,
+          notes: payload.notes,
+          status: payload.status,
+          staff_name: payload.staffName,
+        })
+      } else {
+        await createConsultation({
+          customer_name: payload.customerName,
+          customer_phone: payload.customerPhone,
+          topic: payload.topic,
+          interest_product: payload.interestProduct,
+          notes: payload.notes,
+          status: payload.status,
+        })
+      }
+    } catch (e) {
+      console.warn('Could not persist consultation to backend, saving locally', e)
     }
 
-    saveConsultRows(rows.value)
+    await loadRows()
     statusMsg.value = `Đã lưu — ${statusLabel(finalStatus)}`
     resetSession()
     return true
@@ -254,9 +291,13 @@ function finishCallback() {
   persistSession('callback')
 }
 
-onMounted(loadRows)
+onMounted(() => {
+  loadRows()
+  pollTimer = setInterval(loadRows, 8000)
+})
 onUnmounted(() => {
   stopRecording()
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 
@@ -346,6 +387,31 @@ onUnmounted(() => {
             <p v-if="session.durationSec && !recording" class="shrink-0 text-xs tabular-nums text-slate-500">
               {{ formatDuration(session.durationSec) }}
             </p>
+          </div>
+
+          <!-- Trade-in highlight banner if active session is a Trade-in appointment -->
+          <div
+            v-if="(session.topic || '').toLowerCase().includes('thu cũ')"
+            class="rounded-xl border border-rose-200 bg-rose-50/70 p-4"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-700">
+                  📅 Lịch hẹn Thu cũ đổi mới
+                </span>
+                <h4 class="mt-1 text-sm font-bold text-slate-900">{{ session.interestProduct || 'Chưa chọn máy' }}</h4>
+                <p class="mt-0.5 text-xs text-slate-600">{{ session.notes || 'Không có ghi chú' }}</p>
+              </div>
+              <RouterLink
+                :to="{ path: '/appraisal', query: { phone: session.customerPhone || session.callerPhone, inspect: '1' } }"
+                class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-red-700"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                Khách đã tới quầy: Xác nhận &amp; Thẩm định máy
+              </RouterLink>
+            </div>
           </div>
 
           <fieldset :disabled="!live" class="space-y-4 disabled:opacity-45">
@@ -489,13 +555,13 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <!-- History -->
+      <!-- History / Appointments -->
       <aside class="rounded-2xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
         <div class="border-b border-slate-100 px-5 py-4">
           <div class="flex items-center justify-between gap-2">
             <div>
-              <h3 class="text-base font-semibold text-slate-900">Lịch sử cuộc gọi</h3>
-              <p class="text-xs text-slate-500">{{ filteredHistory.length }} cuộc gọi</p>
+              <h3 class="text-base font-semibold text-slate-900">Yêu cầu & Lịch hẹn</h3>
+              <p class="text-xs text-slate-500">{{ filteredHistory.length }} mục đang hiển thị</p>
             </div>
             <button
               type="button"
@@ -505,17 +571,37 @@ onUnmounted(() => {
               Làm mới
             </button>
           </div>
+
+          <!-- Category filter tabs -->
+          <div class="mt-3 flex gap-1 rounded-xl bg-slate-100 p-1 text-[11px]">
+            <button
+              v-for="t in [
+                { id: 'all', label: `Tất cả (${counts.all})` },
+                { id: 'tradein', label: `📅 Thu cũ (${counts.tradein})` },
+                { id: 'hold', label: `🔒 Giữ máy (${counts.hold})` },
+                { id: 'call', label: `📞 Hotline (${counts.call})` },
+              ]"
+              :key="t.id"
+              type="button"
+              class="flex-1 rounded-lg py-1.5 font-semibold transition text-center"
+              :class="activeFilterTab === t.id ? 'bg-white text-red-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="activeFilterTab = t.id"
+            >
+              {{ t.label }}
+            </button>
+          </div>
+
           <input
             v-model="historyQuery"
             type="text"
-            placeholder="Tìm SĐT, tên…"
+            placeholder="Tìm SĐT, tên, thiết bị…"
             class="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
           />
         </div>
 
         <div class="p-3">
           <p v-if="!filteredHistory.length" class="px-2 py-6 text-center text-sm text-slate-400">
-            Chưa có cuộc gọi
+            Không có yêu cầu nào phù hợp
           </p>
           <ul v-else class="max-h-[min(70vh,560px)] space-y-1 overflow-y-auto">
             <li v-for="row in filteredHistory" :key="row.id">
@@ -531,9 +617,23 @@ onUnmounted(() => {
               >
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold text-slate-900">
-                      {{ row.customerName || row.customerPhone || row.callerPhone || 'Chưa có tên' }}
-                    </p>
+                    <div class="flex items-center gap-1.5">
+                      <span
+                        v-if="(row.topic || '').toLowerCase().includes('thu cũ')"
+                        class="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700"
+                      >
+                        📅 Thu cũ
+                      </span>
+                      <span
+                        v-else-if="(row.topic || '').toLowerCase().includes('giữ máy')"
+                        class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
+                      >
+                        🔒 Giữ máy
+                      </span>
+                      <p class="truncate text-sm font-semibold text-slate-900">
+                        {{ row.customerName || row.customerPhone || row.callerPhone || 'Chưa có tên' }}
+                      </p>
+                    </div>
                     <p class="mt-0.5 text-xs text-slate-500">
                       {{ row.customerPhone || row.callerPhone || '—' }}
                     </p>

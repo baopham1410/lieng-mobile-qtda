@@ -11,7 +11,7 @@ const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete'])
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  timeout: 8000,
+  timeout: 30000,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',

@@ -93,23 +93,16 @@ class DashboardController extends Controller
         $monthRevenue = (float) ($orderSummary->month_revenue ?? 0);
 
         $todayRevenue = (float) ($orderSummary->today_revenue ?? 0);
-        if ($todayRevenue <= 0 && ! empty($orderSummary->total_completed_revenue)) {
-            $todayRevenue = (float) $orderSummary->total_completed_revenue;
-        }
-
         $todayOrders = (int) ($orderSummary->today_orders ?? 0);
-        if ($todayOrders <= 0 && ! empty($orderSummary->total_completed_orders)) {
-            $todayOrders = (int) $orderSummary->total_completed_orders;
-        }
 
         return [
             'today_revenue' => $todayRevenue,
             'today_orders' => $todayOrders,
-            'completed_orders' => (int) ($orderSummary->total_completed_orders ?? $todayOrders),
+            'completed_orders' => (int) ($orderSummary->total_completed_orders ?? 0),
             'month_revenue' => $monthRevenue,
             'month_profit' => (float) ($monthRevenue * 0.28),
             'imei_in_stock' => ImeiCode::where('status', 'in_stock')->count(),
-            'services_pending' => (int) (\App\Models\WarrantyRepair::where('status', '!=', 'completed')->count() ?: \App\Models\Warranty::where('status', 'active')->count()),
+            'services_pending' => (int) \App\Models\Warranty::where('status', 'active')->count(),
             'pending_imports' => StockImport::where('status', 'draft')->count(),
             'low_stock_variants' => $lowStockVariants->count(),
             'recent_orders' => $recentOrders->map(fn ($o) => [

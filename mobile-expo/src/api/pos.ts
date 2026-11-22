@@ -80,11 +80,21 @@ export async function submitPosCheckout(payload: {
   discount?: number
   notes?: string
 }) {
-  const { data } = await api.post('/pos/checkout', payload)
+  const { data } = await api.post('/pos/checkout', payload, { timeout: 45000 })
   return data
 }
 
 export async function fetchOrderPaymentStatus(orderId: number | string) {
   const { data } = await api.get(`/orders/${orderId}/payment-status`)
+  return data?.data ?? data
+}
+
+export async function confirmPosPayment(orderId: number | string) {
+  const { data } = await api.post(`/pos/orders/${orderId}/confirm-payment`)
+  return data?.data ?? data
+}
+
+export async function cancelPosOrder(orderId: number | string) {
+  const { data } = await api.post(`/pos/orders/${orderId}/cancel`)
   return data?.data ?? data
 }

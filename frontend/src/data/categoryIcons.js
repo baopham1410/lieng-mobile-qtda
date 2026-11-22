@@ -10,9 +10,6 @@ export const CATEGORY_GRADIENT_BY_SLUG = {
   tablet: 'from-violet-500 to-purple-500',
   laptop: 'from-sky-500 to-blue-500',
   'phu-kien': 'from-amber-500 to-orange-500',
-  tivi: 'from-indigo-500 to-blue-600',
-  'tu-lanh': 'from-cyan-500 to-teal-500',
-  quat: 'from-emerald-500 to-green-600',
 }
 
 export function categoryDisplayIcon(category) {

@@ -34,10 +34,7 @@ class WarehouseController extends Controller
         $totalExported = max($soldImeis, $completedOrders);
 
         $pendingOrders = (int) Order::whereIn('status', ['pending', 'pending_discount', 'pending_payment'])->count();
-        $warrantyReceiving = (int) WarrantyRepair::where('status', '!=', 'completed')->count();
-        if ($warrantyReceiving === 0) {
-            $warrantyReceiving = (int) Warranty::where('status', 'active')->count();
-        }
+        $warrantyReceiving = (int) Warranty::where('status', 'active')->count();
         $totalImports = (int) StockImport::count();
 
         // 2. Category distribution from DB
@@ -162,7 +159,7 @@ class WarehouseController extends Controller
             'recent_imports' => $recentImports,
             'export_orders' => $pendingExportOrders,
             'recent_dispatches' => $recentDispatches,
-            'suppliers' => Supplier::all(['id', 'name', 'code', 'phone']),
+            'suppliers' => Supplier::all(['id', 'name', 'phone', 'email']),
         ]);
     }
 
@@ -227,7 +224,7 @@ class WarehouseController extends Controller
             if (! $supplierId) {
                 $supplier = Supplier::firstOrCreate(
                     ['name' => $validated['supplier_name'] ?? 'Công ty Apple Distributor VN'],
-                    ['code' => 'NCC-' . rand(100, 999), 'phone' => '0909.888.999']
+                    ['phone' => '0909.888.999']
                 );
                 $supplierId = $supplier->id;
             }

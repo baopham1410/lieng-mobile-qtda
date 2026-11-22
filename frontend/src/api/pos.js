@@ -1,6 +1,6 @@
 import apiClient, { silentRequest } from './client'
 
-const POS_TIMEOUT = 20000
+const POS_TIMEOUT = 45000
 const POS_OPTS = { timeout: POS_TIMEOUT, ...silentRequest }
 const POS_WRITE = { timeout: POS_TIMEOUT }
 

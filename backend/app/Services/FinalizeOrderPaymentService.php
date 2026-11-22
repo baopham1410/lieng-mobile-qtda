@@ -82,6 +82,7 @@ class FinalizeOrderPaymentService
             ])->save();
 
             ReportCacheService::bustAll();
+            \App\Http\Controllers\Api\StoreOwnerController::bustOwnerCaches();
 
             ActivityLogger::record($order->user, [
                 'action' => 'checkout',

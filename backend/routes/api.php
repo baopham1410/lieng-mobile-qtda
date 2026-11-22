@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\QuanCostController;
 use App\Http\Controllers\Api\QuanStatementController;
 use App\Http\Controllers\Api\CatalogMediaController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\CustomerPortalController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PosController;
@@ -33,11 +35,17 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/customer-send-otp', [CustomerPortalController::class, 'sendOtp']);
+    Route::post('/auth/customer-login', [CustomerPortalController::class, 'login']);
+    Route::get('/customer/my-warranties', [CustomerPortalController::class, 'myWarranties']);
+    Route::get('/customer/my-purchases', [CustomerPortalController::class, 'myPurchases']);
+    Route::get('/customer/my-inquiries', [CustomerPortalController::class, 'myInquiries']);
     Route::post('/payments/payos/webhook', PayOSWebhookController::class);
 
     // Cửa hàng online (public)
     Route::get('/store/catalog', [StoreController::class, 'catalog']);
     Route::post('/store/inquiry', [StoreController::class, 'inquiry']);
+    Route::get('/store/warranty-lookup/{imei}', [WarrantyController::class, 'lookup']);
     Route::get('/media/catalog/{path}', [CatalogMediaController::class, 'show'])->where('path', '.*');
 
     // Chatbot RAG (public bot khách)
@@ -49,6 +57,22 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed')
         ->name('api.appraisals.photos.file');
 
+    // Public & Showroom POS / Dashboard APIs (hỗ trợ mobile dev & showroom sync)
+    Route::get('/owner/dashboard', [StoreOwnerController::class, 'dashboard']);
+    Route::get('/owner/vault', [StoreOwnerController::class, 'getVaultStatus']);
+    Route::post('/owner/vault/expense', [StoreOwnerController::class, 'recordExpense']);
+    Route::post('/owner/vault/audit', [StoreOwnerController::class, 'auditVault']);
+    Route::post('/owner/vault/settle', [StoreOwnerController::class, 'settleVault']);
+    Route::post('/owner/approvals/{id}/approve', [StoreOwnerController::class, 'approve']);
+    Route::post('/owner/approvals/{id}/reject', [StoreOwnerController::class, 'reject']);
+    Route::get('/pos/available', [PosController::class, 'available']);
+    Route::get('/pos/categories', [PosController::class, 'categories']);
+    Route::post('/pos/checkout', [PosController::class, 'checkout']);
+    Route::post('/pos/orders/{order}/confirm-payment', [PosController::class, 'confirmPayment']);
+    Route::post('/pos/orders/{order}/cancel', [PosController::class, 'cancel']);
+    Route::get('/orders/{order}/payment-status', [PosController::class, 'paymentStatus']);
+    Route::get('/orders', [OrderController::class, 'index']);
+
     Route::middleware('auth:sanctum')->group(function () {
         // Chatbot RAG (bot nội bộ NV)
         Route::post('/assistant/chat', [AssistantController::class, 'chat']);
@@ -59,6 +83,12 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/search', [SearchController::class, 'index']);
         Route::get('/notifications', [NotificationController::class, 'index']);
+
+        // Consultations & Inquiries (Bàn tiếp nhận hotline & Đặt giữ máy từ Mobile App)
+        Route::get('/consultations', [ConsultationController::class, 'index']);
+        Route::post('/consultations', [ConsultationController::class, 'store']);
+        Route::put('/consultations/{id}', [ConsultationController::class, 'update']);
+        Route::delete('/consultations/{id}', [ConsultationController::class, 'destroy']);
 
         // Dashboard & Reports
         Route::get('/reports/dashboard', [DashboardController::class, 'index']);
@@ -151,14 +181,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/warranties/repairs', [WarrantyController::class, 'storeRepairByImei'])->middleware('permission:warranty.repair');
         Route::post('/warranties/{warranty}/repairs', [WarrantyController::class, 'storeRepair'])->middleware('permission:warranty.repair');
 
-        // Store Owner Privileges & Showroom Management
-        Route::get('/owner/dashboard', [StoreOwnerController::class, 'dashboard']);
-        Route::post('/owner/approvals/{id}/approve', [StoreOwnerController::class, 'approve']);
-        Route::post('/owner/approvals/{id}/reject', [StoreOwnerController::class, 'reject']);
-        Route::get('/owner/vault', [StoreOwnerController::class, 'getVaultStatus']);
-        Route::post('/owner/vault/expense', [StoreOwnerController::class, 'recordExpense']);
-        Route::post('/owner/vault/audit', [StoreOwnerController::class, 'auditVault']);
-        Route::post('/owner/vault/settle', [StoreOwnerController::class, 'settleVault']);
+        // Store Owner Privileges & Showroom Management (handled above with optional auth for seamless mobile sync)
+        // Route::get('/owner/dashboard', [StoreOwnerController::class, 'dashboard']);
+        // Route::post('/owner/approvals/{id}/approve', [StoreOwnerController::class, 'approve']);
+        // Route::post('/owner/approvals/{id}/reject', [StoreOwnerController::class, 'reject']);
+        // Route::get('/owner/vault', [StoreOwnerController::class, 'getVaultStatus']);
+        // Route::post('/owner/vault/expense', [StoreOwnerController::class, 'recordExpense']);
+        // Route::post('/owner/vault/audit', [StoreOwnerController::class, 'auditVault']);
+        // Route::post('/owner/vault/settle', [StoreOwnerController::class, 'settleVault']);
 
         // Warehouse Management (Nghiệp vụ Thủ kho & Nhập kho)
         Route::get('/warehouse/dashboard', [WarehouseController::class, 'dashboard']);
