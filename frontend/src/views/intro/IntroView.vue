@@ -9,7 +9,6 @@ import StoreDeviceIcon from '@/components/intro/StoreDeviceIcon.vue'
 import StoreLotteryCounter from '@/components/intro/StoreLotteryCounter.vue'
 import ScrollStorytellingHero from '@/components/intro/ScrollStorytellingHero.vue'
 import VirtualShowroomHero from '@/components/intro/VirtualShowroomHero.vue'
-import StoreFlagshipShowcase from '@/components/intro/StoreFlagshipShowcase.vue'
 import StorePromoBanner from '@/components/intro/StorePromoBanner.vue'
 import { fetchStoreCatalog, submitStoreInquiry } from '@/api/store'
 import { withApiFallback } from '@/utils/apiFallback'
@@ -256,9 +255,6 @@ function selectCategory(id) {
           </a>
         </div>
       </section>
-
-      <!-- FLAGSHIP SHOWCASE: BỘ SƯU TẬP SIÊU PHẨM (IPHONE 17/18 PRO & GALAXY S24 ULTRA) -->
-      <StoreFlagshipShowcase />
 
       <!-- Featured -->
       <section class="bg-white py-14 border-t border-gray-100">
