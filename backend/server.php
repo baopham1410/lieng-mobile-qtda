@@ -6,6 +6,9 @@
  * Emulates Apache's mod_rewrite functionality from built-in PHP web server
  */
 
+@ini_set('max_execution_time', '180');
+@set_time_limit(180);
+
 $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? ''
 );

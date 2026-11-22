@@ -28,6 +28,7 @@ const isHudVisible = ref(true)
 // Interactive 3D Hotspot Mode State (Option 2)
 const isHotspotMode = ref(false)
 const selectedHotspot = ref(null)
+const hoveredHotspot = ref(null)
 const projectedHotspots = ref([])
 const isHoveringPhone = ref(false)
 const cardRefs = ref({})
@@ -116,8 +117,8 @@ const stations = [
         title: 'Ống Kính 100x Space Zoom',
         badge: 'CẢM BIẾN 108MP PRO',
         description: 'Camera siêu zoom 100x kết hợp thuật toán Galaxy AI xử lý đa khung hình, cho ảnh chụp thiên văn và vật thể từ xa sắc nét ngoạn mục.',
-        localPos: [0.56, 4.32, -0.20],
-        targetRotY: Math.PI,
+        localPos: [0.776, 3.78, -0.10],
+        targetRotY: -Math.PI,
       },
       {
         id: 'spen',
@@ -125,7 +126,7 @@ const stations = [
         badge: 'ĐỘ TRỄ 2.8MS',
         description: 'Cây bút S-Pen quyền năng ẩn trong thân máy, hỗ trợ viết vẽ như bút thật, chuyển đổi chữ viết tay và điều khiển cử chỉ không chạm.',
         localPos: [1.54, 2.00, 0.00],
-        targetRotY: 0,
+        targetRotY: -Math.PI * 0.5,
       },
       {
         id: 'display',
@@ -140,8 +141,8 @@ const stations = [
         title: 'Khung Armor Aluminum & IP68',
         badge: 'BẢO VỆ TOÀN DIỆN',
         description: 'Khung hợp kim nhôm Armor Aluminum cứng cáp cùng chuẩn kháng nước bụi IP68 bảo vệ thiết bị an tâm trong mọi điều kiện vận hành.',
-        localPos: [-1.25, 2.60, 0.00],
-        targetRotY: -Math.PI * 0.4,
+        localPos: [-1.25, 2.64, 0.00],
+        targetRotY: Math.PI * 0.5,
       },
     ],
     themeHex: 0x0ea5e9,
@@ -172,15 +173,15 @@ const stations = [
         title: 'Phím Camera Control Cảm Ứng Lực',
         badge: 'CÔNG NGHỆ MỚI 2024',
         description: 'Phím bấm xúc giác phủ đá sapphire nhạy áp lực và điện dung, cho phép trượt ngón tay để zoom mượt, đổi tiêu cự và bấm 2 nấc chụp chuẩn DSLR.',
-        localPos: [-0.003, -0.15, -0.39],
-        targetRotY: -Math.PI * 0.48,
+        localPos: [0.000, -0.22, 0.40],
+        targetRotY: -Math.PI * 0.5,
       },
       {
         id: 'tetra',
         title: 'Camera Tiềm Vọng Tetraprism 5x',
         badge: 'QUANG HỌC 120MM',
         description: 'Thiết kế lăng kính phản xạ 4 lần đột phá đem lại tiêu cự 120mm quang học 5x sắc nét, bắt trọn từng khoảnh khắc chân dung từ xa.',
-        localPos: [0.085, 0.62, 0.18],
+        localPos: [0.0824, 0.52, 0.25],
         targetRotY: Math.PI,
       },
       {
@@ -188,15 +189,15 @@ const stations = [
         title: 'Vỏ Titan Sa Mạc (Desert Titanium)',
         badge: 'VIỀN SIÊU MỎNG 1.15MM',
         description: 'Màu Titan Sa Mạc sang trọng với lớp hoàn thiện satin cao cấp, viền màn hình siêu mỏng kỷ lục thế giới chỉ 1.15mm.',
-        localPos: [0.046, -0.20, 0.00],
-        targetRotY: Math.PI * 0.9,
+        localPos: [0.000, 0.00, -0.40],
+        targetRotY: Math.PI * 0.5,
       },
       {
         id: 'a18',
         title: 'Chip Apple A18 Pro 3nm',
         badge: 'APPLE INTELLIGENCE',
         description: 'Bộ vi xử lý 3nm thế hệ thứ 2 với Neural Engine 16 lõi xử lý AI trực tiếp trên máy và Ray Tracing phần cứng tăng tốc đồ họa game AAA.',
-        localPos: [-0.046, 0.10, 0.00],
+        localPos: [-0.047, 0.02, 0.00],
         targetRotY: 0,
       },
     ],
@@ -1381,47 +1382,51 @@ onUnmounted(() => {
           </defs>
 
           <g v-for="hs in projectedHotspots" :key="`line-${hs.id}`">
-            <!-- Background glow line when active -->
+            <!-- Background glow line when active or hovered -->
             <path
-              v-if="selectedHotspot?.id === hs.id"
+              v-if="(selectedHotspot?.id === hs.id || hoveredHotspot?.id === hs.id) && hs.visible"
               :d="hs.pathD"
               fill="none"
               stroke="#38bdf8"
               stroke-width="3"
-              opacity="0.5"
+              opacity="0.6"
               filter="url(#lineGlow)"
             />
 
-            <!-- Crisp White Leader Line -->
+            <!-- Crisp White Leader Line for active or hovered hotspot -->
             <path
+              v-if="(selectedHotspot?.id === hs.id || hoveredHotspot?.id === hs.id) && hs.visible"
               :d="hs.pathD"
               fill="none"
-              :stroke="selectedHotspot?.id === hs.id ? '#ffffff' : 'rgba(255, 255, 255, 0.65)'"
-              :stroke-width="selectedHotspot?.id === hs.id ? '2' : '1.25'"
-              :stroke-dasharray="selectedHotspot?.id === hs.id ? 'none' : '4, 2'"
+              stroke="#ffffff"
+              stroke-width="2"
               class="transition-all duration-300"
             />
 
             <!-- Component Anchor: Outer Pulsing Radar Ring on the phone -->
             <circle
+              v-if="hs.visible"
               :cx="hs.anchorX"
               :cy="hs.anchorY"
-              :r="selectedHotspot?.id === hs.id ? 10 : 7"
-              :stroke="selectedHotspot?.id === hs.id ? '#38bdf8' : 'rgba(255, 255, 255, 0.7)'"
-              stroke-width="1.5"
+              :r="selectedHotspot?.id === hs.id ? 10 : (hoveredHotspot?.id === hs.id ? 8 : 5)"
+              :stroke="selectedHotspot?.id === hs.id ? '#38bdf8' : (hoveredHotspot?.id === hs.id ? '#ffffff' : 'rgba(255, 255, 255, 0.4)')"
+              :stroke-width="selectedHotspot?.id === hs.id ? 1.75 : 1"
               fill="none"
-              opacity="0.8"
+              :opacity="selectedHotspot?.id === hs.id ? 0.9 : 0.5"
             />
 
             <!-- Component Anchor: Precision Core Dot on the phone -->
             <circle
+              v-if="hs.visible"
               :cx="hs.anchorX"
               :cy="hs.anchorY"
-              :r="selectedHotspot?.id === hs.id ? 4 : 3"
+              :r="selectedHotspot?.id === hs.id ? 4 : (hoveredHotspot?.id === hs.id ? 3.5 : 2.5)"
               :fill="selectedHotspot?.id === hs.id ? '#38bdf8' : '#ffffff'"
+              :opacity="selectedHotspot?.id === hs.id || hoveredHotspot?.id === hs.id ? 1 : 0.6"
               class="transition-all duration-300"
             />
             <circle
+              v-if="hs.visible && (selectedHotspot?.id === hs.id || hoveredHotspot?.id === hs.id)"
               :cx="hs.anchorX"
               :cy="hs.anchorY"
               r="1.2"
@@ -1445,6 +1450,8 @@ onUnmounted(() => {
                 : 'bg-black/70 border-white/20 hover:border-white/50 hover:bg-black/85 hover:scale-[1.01]'
             "
             @click="selectHotspot(hs)"
+            @mouseenter="hoveredHotspot = hs"
+            @mouseleave="hoveredHotspot = null"
           >
             <!-- Card Header: Index Number & Badge -->
             <div class="flex items-center justify-between gap-2">
