@@ -143,7 +143,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="relative w-full bg-gray-50 pt-6 pb-2">
+  <section class="relative w-full bg-gray-50 pt-8 sm:pt-10 pb-4">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
       <!-- MAIN BANNER CAROUSEL CARD -->
       <div
